@@ -1,0 +1,12 @@
+import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
+import { optionalAuthenticate } from '../middleware/auth.js';
+import { publicItemMetadata, publicFileContent, publicFolderFileContent, reportPublicItem } from '../controllers/drivePublicController.js';
+const router = Router();
+const publicLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 200, standardHeaders: true, legacyHeaders: false });
+router.use(publicLimiter);
+router.get('/folder/:token/files/:fileId/content', publicFolderFileContent);
+router.get('/:type/:token', publicItemMetadata);
+router.get('/file/:token/content', publicFileContent);
+router.post('/:type/:id/report', optionalAuthenticate, reportPublicItem);
+export default router;

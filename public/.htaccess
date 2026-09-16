@@ -1,0 +1,11 @@
+Options -MultiViews
+RewriteEngine On
+
+# Let the API, realtime server and uploaded assets keep their own handlers.
+RewriteRule ^(?:api|socket\.io|site-assets|uploads|assets|fonts)(?:/|$) - [L]
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# React Router browser-history fallback.
+RewriteRule ^ index.html [L]

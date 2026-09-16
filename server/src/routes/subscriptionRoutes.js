@@ -1,0 +1,13 @@
+import { Router } from 'express';
+import { authenticate } from '../middleware/auth.js';
+import { requireFeaturePermission, requireTenantSubscriptionAccount } from '../middleware/rolePermission.js';
+import { listPlans, mySubscription, subscriptionHistory, checkout, renew, cancel } from '../controllers/subscriptionController.js';
+const router = Router();
+router.get('/plans', listPlans);
+router.use(authenticate, requireFeaturePermission('module:subscription'), requireTenantSubscriptionAccount);
+router.get('/me', mySubscription);
+router.get('/history', subscriptionHistory);
+router.post('/checkout', checkout);
+router.post('/:id/renew', renew);
+router.post('/:id/cancel', cancel);
+export default router;

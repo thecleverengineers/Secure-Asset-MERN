@@ -1,0 +1,14 @@
+import { Router } from 'express';
+import { listResources, listOwnedProperties, listTenantApplications, getResource, createResource, updateResource, deleteResource, changeStatus } from '../controllers/resourceController.js';
+import { authenticate } from '../middleware/auth.js';
+const router = Router();
+router.use(authenticate);
+router.get('/properties/mine', listOwnedProperties);
+router.get('/applications/mine', listTenantApplications);
+router.get('/:resource', listResources);
+router.post('/:resource', createResource);
+router.get('/:resource/:id', getResource);
+router.patch('/:resource/:id', updateResource);
+router.delete('/:resource/:id', deleteResource);
+router.post('/:resource/:id/status', changeStatus);
+export default router;

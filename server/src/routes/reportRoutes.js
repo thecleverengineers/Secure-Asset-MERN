@@ -1,0 +1,10 @@
+import { Router } from 'express';
+import { authenticate } from '../middleware/auth.js';
+import { requireFeaturePermission } from '../middleware/rolePermission.js';
+import { exportCsv, exportPdf, exportXlsx, reportCatalog } from '../controllers/reportController.js';
+const router = Router();
+router.get('/catalog', authenticate, requireFeaturePermission('module:reports'), reportCatalog);
+router.get('/:resource.csv', authenticate, requireFeaturePermission('module:reports', 'export'), exportCsv);
+router.get('/:resource.xlsx', authenticate, requireFeaturePermission('module:reports', 'export'), exportXlsx);
+router.get('/:resource.pdf', authenticate, requireFeaturePermission('module:reports', 'export'), exportPdf);
+export default router;

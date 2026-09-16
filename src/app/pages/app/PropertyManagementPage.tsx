@@ -1,0 +1,40 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
+import {
+  Alert, Box, Button, Card, CardContent, Chip, Grid, LinearProgress, MenuItem, Paper, Stack, TextField, Typography,
+} from '@mui/material';
+import AddRounded from '@mui/icons-material/AddRounded';
+import ApartmentRounded from '@mui/icons-material/ApartmentRounded';
+import BedRounded from '@mui/icons-material/BedRounded';
+import BusinessRounded from '@mui/icons-material/BusinessRounded';
+import FileDownloadRounded from '@mui/icons-material/FileDownloadRounded';
+import ImageRounded from '@mui/icons-material/ImageRounded';
+import MeetingRoomRounded from '@mui/icons-material/MeetingRoomRounded';
+import RefreshRounded from '@mui/icons-material/RefreshRounded';
+import { downloadPropertyExport, getLandlordOverview, getPropertyTree, getResource } from '../../services/api';
+import CompactPageToolbar from '../../components/layout/CompactPageToolbar';
+import { WorkspaceSkeleton } from '../../components/shared/PremiumSkeleton';
+
+const money=(value:number)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(value||0);
+const sentence=(value:string)=>String(value||'').replaceAll('_',' ').replace(/\b\w/g,(letter)=>letter.toUpperCase());
+function idOf(value:any){return typeof value==='object'?value?._id:value;}
+
+function TreeNode({node,depth=0}:{node:any;depth?:number}){
+  return <Box sx={{ml:depth*2,borderLeft:depth?'2px solid':'none',borderColor:'divider',pl:depth?2:0,py:.5}}><Paper variant="outlined" sx={{p:1.5,borderRadius:3}}><Stack direction="row" justifyContent="space-between" alignItems="center" gap={2}><Box><Typography fontWeight={850}>{node.name}</Typography><Typography color="text.secondary" fontSize={12}>{sentence(node.level)} · {sentence(node.status)}{node.price?` · ${money(node.price)}`:''}</Typography></Box><Stack direction="row" gap={.7} flexWrap="wrap" justifyContent="flex-end"><Chip size="small" label={sentence(node.purpose||'rent')} variant="outlined"/><Chip size="small" label={sentence(node.visibility||'private')} color={node.visibility==='public'?'success':'default'}/>{node.media?.length>0&&<Chip size="small" icon={<ImageRounded/>} label={node.media.length}/>}</Stack></Stack></Paper>{(node.children||[]).map((child:any)=><TreeNode key={child._id} node={child} depth={depth+1}/>)}</Box>;
+}
+
+export default function PropertyManagementPage(){
+  const navigate=useNavigate();const [overview,setOverview]=useState<any>(null);const [properties,setProperties]=useState<any[]>([]);const [selected,setSelected]=useState('');const [tree,setTree]=useState<any>(null);const [loading,setLoading]=useState(true);const [error,setError]=useState('');
+  async function load(){setLoading(true);setError('');try{const [summary,list]=await Promise.all([getLandlordOverview(),getResource('properties',{limit:100})]);setOverview(summary.data);setProperties(list.data);const id=selected||list.data[0]?._id||'';setSelected(id);if(id)setTree((await getPropertyTree(id)).data);}catch(e){setError((e as Error).message);}finally{setLoading(false);}}
+  useEffect(()=>{load();},[]);
+  async function selectProperty(id:string){setSelected(id);if(!id){setTree(null);return;}try{setTree((await getPropertyTree(id)).data);}catch(e){setError((e as Error).message);}}
+  const counters=useMemo(()=>[{key:'buildings',label:'Buildings',icon:BusinessRounded},{key:'apartments',label:'Apartments',icon:ApartmentRounded},{key:'rooms',label:'Rooms',icon:MeetingRoomRounded},{key:'beds',label:'Beds',icon:BedRounded}],[]);
+  const selectedProperty=properties.find((property)=>property._id===selected);
+  if(loading&&!overview)return <WorkspaceSkeleton rows={4}/>;
+  return <Box sx={{px:{xs:2,sm:3,lg:4},pb:6}}><CompactPageToolbar marker="property-management-toolbar-v153" title="Property Structure Management" description="Manage each property, building, floor, apartment, room and bed." actions={<><Button variant="outlined" startIcon={<RefreshRounded/>} onClick={load}>Refresh</Button><Button variant="contained" startIcon={<AddRounded/>} onClick={()=>navigate('/app/add_property')}>Add property</Button></>}/>
+  {error&&<Alert severity="error" sx={{mb:2}}>{error}</Alert>}
+  <Grid container spacing={2} mb={3}>{counters.map(({key,label,icon:Icon})=>{const used=Number(overview?.usage?.[key]||0),limit=Number(overview?.limits?.[key]||0),remaining=overview?.remaining?.[key];const percent=limit>0&&limit<999999?Math.min(used/limit*100,100):0;return <Grid size={{xs:12,sm:6,lg:3}} key={key}><Card variant="outlined" sx={{borderRadius:4,height:'100%'}}><CardContent><Stack direction="row" justifyContent="space-between"><Box><Typography color="text.secondary" fontSize={12} fontWeight={750}>{label.toUpperCase()}</Typography><Typography fontSize={28} fontWeight={950}>{used}<Typography component="span" color="text.secondary" fontSize={14}> / {limit>=999999?'Unlimited':limit}</Typography></Typography></Box><Icon color="primary"/></Stack>{limit<999999&&<LinearProgress variant="determinate" value={percent} sx={{mt:2,height:7,borderRadius:9}}/>}<Typography color="text.secondary" fontSize={12} mt={1}>{remaining>=999999?'Unlimited remaining':`${Math.max(Number(remaining||0),0)} remaining`}</Typography></CardContent></Card></Grid>;})}</Grid>
+  <Grid container spacing={2.5} mb={3}>{[['Occupied',overview?.kpis?.occupiedRooms],['Vacant',overview?.kpis?.vacantRooms],['Reserved',overview?.kpis?.reservedRooms],['Applications',overview?.kpis?.pendingApplications],['Interviews',overview?.kpis?.scheduledInterviews],['Site visits',overview?.kpis?.scheduledSiteVisits],['Rent expected',money(overview?.kpis?.monthlyRentExpected)],['Rent collected',money(overview?.kpis?.rentCollected)]].map(([label,value])=><Grid size={{xs:6,sm:4,lg:3}} key={String(label)}><Paper variant="outlined" sx={{p:2,borderRadius:3}}><Typography color="text.secondary" fontSize={11.5}>{label}</Typography><Typography fontWeight={900} fontSize={21}>{value??0}</Typography></Paper></Grid>)}</Grid>
+  <Paper variant="outlined" sx={{p:{xs:2,md:3},borderRadius:4}}><Stack direction={{xs:'column',md:'row'}} justifyContent="space-between" gap={2} mb={2}><TextField select size="small" label="Property" value={selected} onChange={(event)=>selectProperty(event.target.value)} sx={{minWidth:{md:340}}}>{properties.map((property)=><MenuItem key={property._id} value={property._id}>{property.title} · {sentence(property.purpose||property.listingType)}</MenuItem>)}</TextField><Stack direction="row" gap={1} flexWrap="wrap">{(selectedProperty?.purpose||selectedProperty?.listingType)==='rent'&&<Button variant="contained" startIcon={<MeetingRoomRounded/>} onClick={()=>navigate(`/app/my-listings/${selected}/rooms`)} disabled={!selected}>Manage Rooms</Button>}<Button variant="outlined" startIcon={<ApartmentRounded/>} onClick={()=>navigate(`/app/property-details/${selected}`)} disabled={!selected}>Open property details</Button><Button variant="outlined" startIcon={<FileDownloadRounded/>} onClick={()=>downloadPropertyExport(selected,'csv')} disabled={!selected}>Export CSV</Button><Button variant="outlined" startIcon={<FileDownloadRounded/>} onClick={()=>downloadPropertyExport(selected,'json')} disabled={!selected}>Backup JSON</Button></Stack></Stack>
+  {!tree?<Typography color="text.secondary" py={6} textAlign="center">Select a property to view its hierarchy.</Typography>:<Stack spacing={2}><Paper sx={{p:2,bgcolor:'action.hover',borderRadius:3}} elevation={0}><Typography fontWeight={900}>{tree.property.title}</Typography><Typography color="text.secondary" fontSize={12}>{tree.property.address?.city||'Location not set'} · {sentence(tree.property.hierarchyMode||'simple')}</Typography></Paper>{tree.tree?.length?tree.tree.map((node:any)=><TreeNode key={node._id} node={node}/>):<Paper variant="outlined" sx={{p:6,textAlign:'center',borderStyle:'dashed'}}><Typography fontWeight={850}>No structure added yet</Typography><Typography color="text.secondary" fontSize={13}>Add a building, apartment, room, bed, office, shop or plot.</Typography></Paper>}</Stack>}</Paper></Box>;
+}

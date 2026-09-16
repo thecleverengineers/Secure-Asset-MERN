@@ -1,0 +1,19 @@
+node_modules
+dist
+.env
+server/src/uploads/*
+!server/src/uploads/.gitkeep
+*.log
+.DS_Store
+
+# Production/runtime state
+.env.production
+logs/*.log
+storage/vault/*
+!storage/vault/.gitkeep
+storage/tmp/*
+!storage/tmp/.gitkeep
+.pm2/
+backups/
+storage/site-assets/*
+!storage/site-assets/.gitkeep

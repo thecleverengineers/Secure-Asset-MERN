@@ -1,0 +1,858 @@
+:root {
+  --sa-app-background: #f7f7f5;
+  --sa-paper: #ffffff;
+  --sa-text-primary: #152225;
+  --sa-text-secondary: #68777a;
+  --sa-border: #e6e9e6;
+  --sa-navigation: #0b5270;
+  --sa-navigation-text: #ffffff;
+  --sa-primary: #0b5270;
+  --sa-icon: #0b5270;
+  --sa-card-radius: 18px;
+  --sa-button-radius: 12px;
+  --sa-input-radius: 13px;
+  --sa-navigation-radius: 12px;
+  --sa-modal-radius: 0px;
+  --sa-content-max-width: 1580px;
+  --sa-page-background: #f7f7f5;
+  --sa-page-surface: #ffffff;
+  --sa-page-max-width: 1580px;
+  --sa-page-padding: 32px;
+  --sa-page-card-radius: 18px;
+  --sa-page-button-radius: 12px;
+  --sa-editor-grid-spacing: 8px;
+  --sa-motion-duration: 160ms;
+  --sa-motion-easing: ease;
+}
+
+* { box-sizing: border-box; }
+@media (max-width: 899px) {
+  .sa-vault-mobile-floating-scan { position: fixed !important; right: 22px; bottom: 82px; z-index: 1200; width: 64px; height: 64px; color: #fff !important; border: 4px solid rgba(255,255,255,.92) !important; border-radius: 50% !important; background: linear-gradient(145deg, #7b2ff7, #b54bff 48%, #ff4f8b) !important; box-shadow: 0 12px 28px rgba(106,42,196,.34), 0 4px 0 rgba(255,255,255,.25) inset; transition: transform .18s ease, box-shadow .18s ease; }
+  .sa-vault-mobile-floating-scan:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 16px 32px rgba(106,42,196,.42), 0 4px 0 rgba(255,255,255,.28) inset; }
+  .sa-vault-mobile-floating-scan:active { transform: scale(.95); }
+  .sa-vault-mobile-floating-scan .MuiSvgIcon-root { font-size: 31px; filter: drop-shadow(0 2px 2px rgba(45,12,92,.25)); }
+}
+html, body, #root { min-height: 100%; margin: 0; }
+body {
+  background:
+    radial-gradient(circle at 85% -10%, rgba(35, 128, 98, .10), transparent 30rem),
+    radial-gradient(circle at -10% 22%, rgba(7, 63, 86, .075), transparent 26rem),
+    var(--sa-app-background);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+a { color: inherit; text-decoration: none; }
+
+.sa-app-main {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(35, 128, 98, .08), transparent 34rem),
+    radial-gradient(circle at 0% 32%, rgba(7, 63, 86, .055), transparent 30rem);
+  background-color: var(--sa-page-background);
+}
+
+.sa-app-content {
+  width: min(100%, var(--sa-page-max-width));
+  margin-inline: auto;
+}
+
+/* Authentication is a primary application surface, not a floating card.
+   Keep it flush with the public shell so the split experience fills the
+   available canvas at every breakpoint. */
+.sa-auth-experience,
+.sa-auth-experience > * {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.sa-auth-surface {
+  width: 100%;
+  min-height: 100%;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.sa-design-studio {
+  --sa-studio-grid: var(--sa-editor-grid-spacing);
+}
+
+.sa-design-studio button,
+.sa-design-studio input,
+.sa-design-studio [role='button'] {
+  transition-duration: var(--sa-motion-duration);
+  transition-timing-function: var(--sa-motion-easing);
+}
+
+.sa-page-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #567278;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.sa-page-kicker::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: currentColor;
+  content: '';
+}
+
+.sa-surface-card {
+  width: 100%;
+  border: 1px solid var(--sa-border);
+  border-radius: var(--sa-card-radius);
+  box-shadow: none !important;
+}
+
+/* Content surfaces are deliberately flat: borders, spacing and tonal contrast
+   create hierarchy without making every page look raised. Component-level
+   tokens use !important so older one-off sx elevation cannot reintroduce card
+   shadows after the flat workspace style is published. Dialogs, menus and
+   other overlays keep their separate depth rules. */
+.MuiCard-root,
+.MuiCard-root:hover,
+.MuiTableContainer-root,
+.MuiTableContainer-root:hover,
+.sa-surface-card,
+.sa-surface-card:hover,
+.sa-surface-card:focus-within {
+  width: 100%;
+  box-shadow: none !important;
+}
+
+.MuiCard-root,
+.MuiTableContainer-root {
+  border-radius: var(--sa-page-card-radius, var(--sa-card-radius)) !important;
+}
+
+.MuiButton-root:not(.MuiIconButton-root) {
+  border-radius: var(--sa-page-button-radius, var(--sa-button-radius)) !important;
+}
+
+.MuiOutlinedInput-root {
+  border-radius: var(--sa-input-radius) !important;
+}
+
+.sa-app-main .MuiListItemButton-root,
+.MuiBottomNavigation-root {
+  border-radius: var(--sa-navigation-radius) !important;
+}
+
+.sa-soft-panel {
+  background: linear-gradient(145deg, rgba(255,255,255,.92), rgba(248,250,248,.92));
+}
+
+.sa-auth-mode-nav .MuiButton-root {
+  min-height: 38px;
+  font-weight: 760;
+  letter-spacing: .005em;
+  text-transform: none;
+}
+
+.sa-no-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
+.sa-no-scrollbar { scrollbar-width: none; }
+
+.sa-mobile-listing-rail,
+.sa-mobile-category-rail {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sa-mobile-listing-rail::-webkit-scrollbar,
+.sa-mobile-category-rail::-webkit-scrollbar { display: none; }
+
+/* Authenticated navigation stays discoverable on long role menus without
+   taking visual weight away from the workspace. */
+.sa-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(7, 63, 86, .52) transparent;
+  scrollbar-gutter: stable;
+}
+
+.sa-sidebar-scroll::-webkit-scrollbar { width: 7px; }
+.sa-sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+.sa-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(7, 63, 86, .68), rgba(35, 128, 98, .52));
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 0;
+}
+.sa-sidebar-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(7, 63, 86, .84); }
+
+/* Every shared popup gets a visible, keyboard/mouse/touch-friendly content
+   scrollbar. The dialog header and action row stay in place while long
+   forms, previews and lists scroll inside the window. */
+.sa-professional-dialog-paper .MuiDialogContent-root {
+  min-height: 0;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(11, 82, 112, .72) rgba(11, 82, 112, .10);
+  scrollbar-gutter: stable;
+}
+
+.sa-professional-dialog-paper .MuiDialogContent-root::-webkit-scrollbar {
+  width: 9px;
+}
+
+.sa-professional-dialog-paper .MuiDialogContent-root::-webkit-scrollbar-track {
+  background: rgba(11, 82, 112, .08);
+  border-left: 1px solid rgba(11, 82, 112, .08);
+}
+
+.sa-professional-dialog-paper .MuiDialogContent-root::-webkit-scrollbar-thumb {
+  min-height: 44px;
+  background: linear-gradient(180deg, rgba(11, 82, 112, .82), rgba(35, 128, 98, .72));
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+.sa-professional-dialog-paper .MuiDialogContent-root::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(8, 60, 81, .94), rgba(21, 97, 74, .88));
+  background-clip: padding-box;
+}
+
+.dark .sa-professional-dialog-paper .MuiDialogContent-root {
+  scrollbar-color: rgba(120, 220, 216, .78) rgba(255, 255, 255, .10);
+}
+
+.dark .sa-professional-dialog-paper .MuiDialogContent-root::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, .08);
+  border-left-color: rgba(255, 255, 255, .10);
+}
+
+@media (max-width: 599px) {
+  .sa-professional-dialog-paper .MuiDialogContent-root::-webkit-scrollbar {
+    width: 7px;
+  }
+
+  .sa-professional-dialog-paper .MuiDialogContent-root {
+    scrollbar-gutter: auto;
+  }
+}
+
+/* The default remains intentionally plain for headers and dialogs. The
+   Design Studio updates the CSS variables below only after an administrator
+   explicitly publishes a different visual system. */
+.sa-page-header,
+.MuiAppBar-root,
+[data-slot='drawer-content'] {
+  border-radius: 0 !important;
+}
+
+.MuiDialog-paper,
+[data-slot='dialog-content'],
+[data-slot='alert-dialog-content'] {
+  border-radius: var(--sa-modal-radius) !important;
+}
+
+.MuiMenu-paper,
+.MuiPopover-paper,
+.MuiAutocomplete-paper,
+[data-slot='popover-content'],
+[data-slot='select-content'],
+[data-slot='dropdown-menu-content'],
+[data-slot='context-menu-content'],
+[data-slot='menubar-content'],
+[data-slot='sheet-content'],
+[data-slot='command'] {
+  border-radius: var(--sa-navigation-radius) !important;
+}
+
+@media (max-width: 899px) {
+  body { background: #f7f7f5; }
+  html, body { overflow-x: hidden; }
+  .sa-app-content { width: 100%; }
+  .sa-mobile-discover-home,
+  .sa-wishlist-page { min-height: calc(100dvh - 60px); }
+}
+
+/* Keep the public login surface focused on the working form. */
+.sa-auth-surface > .MuiBox-root { grid-template-columns: minmax(0, 1fr) !important; }
+.sa-auth-surface > .MuiBox-root > .MuiBox-root:first-child { display: none !important; }
+.sa-mobile-core-features { text-align: center; }
+.sa-mobile-core-features .MuiCardContent-root { text-align: center; }
+.sa-mobile-core-features .MuiCardContent-root > .MuiBox-root { margin-left: auto; margin-right: auto; }
+
+.dark body {
+  background:
+    radial-gradient(circle at 85% -10%, rgba(35, 128, 98, .13), transparent 30rem),
+    radial-gradient(circle at -10% 22%, rgba(7, 63, 86, .18), transparent 26rem),
+    #0e171b;
+}
+
+.dark .sa-app-main {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(35, 128, 98, .13), transparent 34rem),
+    radial-gradient(circle at 0% 32%, rgba(7, 63, 86, .15), transparent 30rem);
+}
+
+.dark .sa-surface-card { border-color: rgba(193, 223, 215, .11); box-shadow: none; }
+.dark .sa-soft-panel { background: linear-gradient(145deg, rgba(24, 39, 44, .96), rgba(19, 31, 36, .96)); }
+
+/* Document Vault security experience. The visual layer is intentionally
+   self-contained: it communicates trust and access state without changing
+   the vault's existing permission, upload, preview, sharing or audit flows. */
+.sa-document-vault-page { position: relative; }
+
+.sa-vault-security-console {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin: 0 0 22px;
+  padding: 22px 24px;
+  border: 1px solid rgba(103, 224, 238, .32);
+  border-radius: 24px;
+  color: #e8fbff;
+  background:
+    radial-gradient(circle at 86% -30%, rgba(110, 242, 255, .28), transparent 34%),
+    radial-gradient(circle at 4% 120%, rgba(41, 190, 144, .22), transparent 32%),
+    linear-gradient(130deg, #062b3b 0%, #0b5270 48%, #07364d 100%);
+  box-shadow: 0 22px 56px rgba(4, 48, 64, .22), inset 0 1px 0 rgba(255, 255, 255, .16);
+}
+
+.sa-vault-security-console::before,
+.sa-vault-security-console::after {
+  position: absolute;
+  content: '';
+  pointer-events: none;
+}
+
+.sa-vault-security-console::before {
+  inset: 0;
+  z-index: -1;
+  opacity: .24;
+  background-image: linear-gradient(rgba(173, 244, 255, .12) 1px, transparent 1px), linear-gradient(90deg, rgba(173, 244, 255, .12) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(90deg, black, transparent 72%);
+}
+
+.sa-vault-security-console::after {
+  top: 14%;
+  right: 8%;
+  width: 190px;
+  height: 190px;
+  border: 1px solid rgba(154, 239, 245, .22);
+  border-radius: 50%;
+  box-shadow: 0 0 0 18px rgba(120, 237, 243, .05), 0 0 0 38px rgba(120, 237, 243, .035);
+  animation: sa-vault-console-orbit 12s linear infinite;
+}
+
+.sa-vault-console-grid { position: absolute; inset: 0; pointer-events: none; }
+
+.sa-vault-console-emblem {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  flex: 0 0 auto;
+  width: 72px;
+  height: 72px;
+  place-items: center;
+  border: 1px solid rgba(149, 242, 248, .42);
+  border-radius: 22px;
+  color: #b9fbff;
+  background: linear-gradient(145deg, rgba(159, 242, 248, .22), rgba(0, 26, 43, .28));
+  box-shadow: 0 0 0 7px rgba(112, 231, 238, .07), 0 12px 28px rgba(1, 28, 40, .24), inset 0 1px 0 rgba(255, 255, 255, .18);
+}
+
+.sa-vault-console-emblem::after {
+  position: absolute;
+  inset: -12px;
+  border: 1px dashed rgba(142, 240, 244, .3);
+  border-radius: 28px;
+  content: '';
+  animation: sa-vault-emblem-pulse 3s ease-in-out infinite;
+}
+
+.sa-vault-console-emblem svg { font-size: 38px; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .25)); }
+
+.sa-vault-console-kicker {
+  color: rgba(211, 250, 255, .74);
+  font-size: 10px !important;
+  font-weight: 850 !important;
+  letter-spacing: .16em !important;
+}
+
+.sa-vault-live-chip {
+  height: 24px !important;
+  border: 1px solid rgba(122, 245, 190, .34) !important;
+  color: #b9ffdc !important;
+  background: rgba(46, 188, 127, .18) !important;
+  font-size: 9px !important;
+  font-weight: 850 !important;
+  letter-spacing: .08em;
+}
+
+.sa-vault-live-chip .MuiChip-icon { color: #7df2ba !important; font-size: 15px; }
+
+.sa-vault-console-title {
+  max-width: 680px;
+  margin-top: 8px !important;
+  color: #f4feff;
+  font-size: clamp(20px, 2.2vw, 30px) !important;
+  font-weight: 900 !important;
+  letter-spacing: -.045em !important;
+  line-height: 1.08 !important;
+}
+
+.sa-vault-console-description {
+  max-width: 700px;
+  margin-top: 8px !important;
+  color: rgba(221, 249, 253, .72);
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+}
+
+.sa-vault-console-signals { margin-top: 14px; color: rgba(220, 251, 255, .84); font-size: 10.5px; font-weight: 750; }
+.sa-vault-console-signals svg { width: 16px; height: 16px; color: #a4f8ed; }
+
+.sa-vault-console-stat {
+  position: relative;
+  z-index: 1;
+  min-width: 190px;
+  padding: 14px 16px;
+  border: 1px solid rgba(151, 239, 244, .24);
+  border-radius: 16px;
+  background: rgba(1, 28, 43, .28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+.sa-vault-console-stat p,
+.sa-vault-console-stat span { display: block; }
+.sa-vault-console-stat p,
+.sa-vault-console-stat > *:first-child { color: rgba(210, 249, 253, .6); font-size: 9px; font-weight: 850; letter-spacing: .14em; }
+.sa-vault-console-stat strong { display: block; margin-top: 5px; color: #a8ffd5; font-size: 18px; letter-spacing: .06em; }
+.sa-vault-console-stat span { margin-top: 3px; color: rgba(222, 249, 253, .66); font-size: 10px; }
+
+.sa-vault-unlock-overlay {
+  position: fixed;
+  z-index: 1600;
+  inset: 0;
+  display: grid;
+  overflow: hidden;
+  place-items: center;
+  color: #e9fdff;
+  background: #031a28;
+  animation: sa-vault-overlay-out .44s ease 1.46s forwards;
+}
+
+.sa-vault-unlock-overlay::before,
+.sa-vault-unlock-overlay::after {
+  position: absolute;
+  width: 46vw;
+  height: 46vw;
+  max-width: 620px;
+  max-height: 620px;
+  border: 1px solid rgba(102, 235, 243, .12);
+  border-radius: 50%;
+  content: '';
+  animation: sa-vault-ambient-pulse 4s ease-in-out infinite;
+}
+
+.sa-vault-unlock-overlay::after { width: 74vw; height: 74vw; animation-delay: -1.4s; }
+
+.sa-vault-unlock-grid {
+  position: absolute;
+  inset: -30%;
+  opacity: .23;
+  background-image: linear-gradient(rgba(112, 227, 238, .16) 1px, transparent 1px), linear-gradient(90deg, rgba(112, 227, 238, .16) 1px, transparent 1px);
+  background-size: 44px 44px;
+  transform: perspective(500px) rotateX(58deg) translateY(22%);
+  animation: sa-vault-grid-drift 8s linear infinite;
+}
+
+.sa-vault-unlock-scanline {
+  position: absolute;
+  top: -15%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(122, 247, 255, .9), transparent);
+  box-shadow: 0 0 18px rgba(122, 247, 255, .75);
+  animation: sa-vault-scanline 1.75s ease-in-out infinite;
+}
+
+.sa-vault-unlock-content { position: relative; z-index: 1; width: min(420px, calc(100vw - 40px)); text-align: center; }
+
+.sa-vault-unlock-orb {
+  position: relative;
+  display: grid;
+  width: 184px;
+  height: 184px;
+  place-items: center;
+}
+
+.sa-vault-unlock-ring,
+.sa-vault-unlock-core { position: absolute; display: grid; place-items: center; border-radius: 50%; }
+.sa-vault-unlock-ring { border: 1px solid rgba(116, 239, 244, .48); box-shadow: 0 0 18px rgba(93, 222, 229, .14); }
+.sa-vault-unlock-ring-one { inset: 14px; animation: sa-vault-ring-spin 6s linear infinite; border-style: dashed; }
+.sa-vault-unlock-ring-two { inset: 30px; border-color: rgba(101, 244, 187, .48); animation: sa-vault-ring-spin-reverse 4.6s linear infinite; }
+.sa-vault-unlock-ring-three { inset: 46px; border-color: rgba(147, 220, 255, .68); animation: sa-vault-ring-breathe 1.8s ease-in-out infinite; }
+
+.sa-vault-unlock-core {
+  width: 78px;
+  height: 78px;
+  border: 1px solid rgba(206, 255, 255, .78);
+  color: #c6ffff;
+  background: radial-gradient(circle at 35% 25%, rgba(145, 255, 243, .38), rgba(4, 50, 69, .94) 66%);
+  box-shadow: 0 0 0 8px rgba(119, 236, 244, .07), 0 0 36px rgba(81, 224, 237, .44), inset 0 1px 0 rgba(255, 255, 255, .3);
+}
+
+.sa-vault-unlock-core svg { position: absolute; font-size: 37px; }
+.sa-vault-lock-closed { animation: sa-vault-lock-close 1.45s ease forwards; }
+.sa-vault-lock-open { opacity: 0; transform: translateY(7px) scale(.74); animation: sa-vault-lock-open 1.45s ease forwards; }
+
+.sa-vault-unlock-chip {
+  border: 1px solid rgba(123, 240, 246, .35) !important;
+  color: #a8f8ff !important;
+  background: rgba(50, 171, 190, .13) !important;
+  font-size: 9px !important;
+  font-weight: 850 !important;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.sa-vault-unlock-chip .MuiChip-icon { color: #82f5ed !important; font-size: 15px; }
+.sa-vault-unlock-title { color: #f2ffff; font-size: clamp(21px, 4vw, 30px) !important; font-weight: 900 !important; letter-spacing: -.045em !important; }
+.sa-vault-unlock-subtitle { color: rgba(216, 249, 255, .62); font-size: 11px !important; }
+
+.sa-vault-unlock-progress { width: min(280px, 72vw); height: 3px; overflow: hidden; border-radius: 9px; background: rgba(127, 230, 236, .14); }
+.sa-vault-unlock-progress-bar { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #61e7ed, #8effc5); box-shadow: 0 0 13px #72f4f1; animation: sa-vault-progress 1.45s cubic-bezier(.6, 0, .25, 1) forwards; }
+.sa-vault-unlock-signals { color: rgba(194, 243, 248, .58); font-size: 9px; font-weight: 750; letter-spacing: .04em; }
+.sa-vault-signal-dot { width: 6px; height: 6px; border-radius: 50%; background: #79f5c2; box-shadow: 0 0 10px #79f5c2; }
+
+@keyframes sa-vault-overlay-out { to { opacity: 0; visibility: hidden; } }
+@keyframes sa-vault-console-orbit { to { transform: rotate(360deg); } }
+@keyframes sa-vault-emblem-pulse { 0%, 100% { opacity: .35; transform: scale(.96); } 50% { opacity: .9; transform: scale(1.04); } }
+@keyframes sa-vault-ambient-pulse { 0%, 100% { opacity: .28; transform: scale(.92); } 50% { opacity: .8; transform: scale(1.06); } }
+@keyframes sa-vault-grid-drift { to { transform: perspective(500px) rotateX(58deg) translate3d(-44px, 22%, 0); } }
+@keyframes sa-vault-scanline { 0% { transform: translateY(-10vh); opacity: 0; } 18%, 80% { opacity: 1; } 100% { transform: translateY(120vh); opacity: 0; } }
+@keyframes sa-vault-ring-spin { to { transform: rotate(360deg); } }
+@keyframes sa-vault-ring-spin-reverse { to { transform: rotate(-360deg); } }
+@keyframes sa-vault-ring-breathe { 0%, 100% { transform: scale(.9); opacity: .55; } 50% { transform: scale(1.08); opacity: 1; } }
+@keyframes sa-vault-lock-close { 0%, 48% { opacity: 1; transform: translateY(0) scale(1); } 72%, 100% { opacity: 0; transform: translateY(-7px) scale(.75); } }
+@keyframes sa-vault-lock-open { 0%, 52% { opacity: 0; transform: translateY(7px) scale(.74); } 78%, 100% { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes sa-vault-progress { 0% { width: 0; } 28% { width: 32%; } 64% { width: 68%; } 100% { width: 100%; } }
+
+@media (max-width: 899px) {
+  .sa-vault-security-console { margin-bottom: 16px; padding: 17px; border-radius: 20px; }
+  .sa-vault-console-emblem { width: 58px; height: 58px; border-radius: 18px; }
+  .sa-vault-console-emblem svg { font-size: 31px; }
+  .sa-vault-console-title { font-size: 22px !important; }
+  .sa-vault-console-description { font-size: 11.5px !important; }
+  .sa-vault-console-stat { width: 100%; min-width: 0; }
+  .sa-vault-console-signals { gap: 7px 12px !important; font-size: 9.5px; }
+  .sa-vault-unlock-orb { width: 154px; height: 154px; }
+  .sa-vault-unlock-core { width: 68px; height: 68px; }
+  .sa-vault-unlock-core svg { font-size: 31px; }
+  .sa-vault-unlock-signals { flex-wrap: wrap; justify-content: center; }
+}
+
+.dark .sa-vault-security-console { border-color: rgba(103, 224, 238, .38); }
+
+/* Mobile Document Drive: a calm, rounded, trust-first native-app surface. */
+.sa-vault-mobile-shell { display: none; }
+
+@media (max-width: 899px) {
+  .sa-document-vault-page {
+    min-height: calc(100dvh - 76px);
+    margin: -16px 0 0;
+    padding: 12px 12px 116px !important;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 84% 3%, rgba(255, 255, 255, .95), transparent 28%),
+      radial-gradient(circle at 0% 34%, rgba(149, 191, 255, .32), transparent 34%),
+      linear-gradient(160deg, #f0f5ff 0%, #e2ecff 49%, #d5e3fc 100%);
+  }
+
+  .sa-vault-mobile-shell { display: block; position: relative; min-height: calc(100dvh - 104px); }
+  .sa-vault-desktop-toolbar,
+  .sa-vault-desktop-console,
+  .sa-vault-desktop-workspace,
+  .sa-vault-mobile-bottom-nav { display: none !important; }
+  .sa-vault-upload-progress { position: relative; z-index: 3; }
+  .sa-vault-upload-progress:empty { display: none; }
+  .sa-vault-upload-progress .MuiPaper-root { border: 1px solid rgba(54, 103, 193, .14); border-radius: 18px !important; background: rgba(255, 255, 255, .86); box-shadow: 0 10px 26px rgba(64, 95, 151, .10); }
+
+  .sa-vault-mobile-topbar { min-height: 48px; margin-bottom: 12px; }
+  .sa-vault-mobile-icon-button { width: 38px; height: 38px; color: #14366d !important; background: rgba(255, 255, 255, .66) !important; border: 1px solid rgba(97, 132, 195, .16) !important; box-shadow: 0 7px 16px rgba(65, 93, 143, .09); }
+  .sa-vault-mobile-title { color: #112c59; font-size: 17px !important; font-weight: 900 !important; letter-spacing: -.035em !important; }
+  .sa-vault-mobile-subtitle { margin-top: 1px !important; color: #7184a4; font-size: 9.5px !important; font-weight: 750 !important; letter-spacing: .08em; text-transform: uppercase; }
+
+  .sa-vault-mobile-trust-card { position: relative; isolation: isolate; overflow: hidden; margin-bottom: 13px; padding: 15px; border: 1px solid rgba(121, 178, 255, .42); border-radius: 22px; color: #f7fbff; background: linear-gradient(132deg, #194bba 0%, #357ee8 54%, #67a5f1 100%); box-shadow: 0 16px 30px rgba(50, 103, 203, .23), inset 0 1px 0 rgba(255, 255, 255, .32); }
+  .sa-vault-mobile-trust-card::before { position: absolute; inset: -42% -10% auto auto; width: 190px; height: 190px; border: 1px solid rgba(255, 255, 255, .22); border-radius: 50%; content: ''; box-shadow: 0 0 0 18px rgba(255, 255, 255, .06), 0 0 0 38px rgba(255, 255, 255, .04); }
+  .sa-vault-mobile-trust-glow { position: absolute; inset: 0; pointer-events: none; opacity: .28; background-image: linear-gradient(rgba(255, 255, 255, .12) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .12) 1px, transparent 1px); background-size: 22px 22px; mask-image: linear-gradient(135deg, black, transparent 70%); }
+  .sa-vault-mobile-trust-icon { display: grid; width: 45px; height: 45px; flex: 0 0 auto; place-items: center; border: 1px solid rgba(255, 255, 255, .35); border-radius: 15px; background: rgba(255, 255, 255, .17); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .26); }
+  .sa-vault-mobile-trust-icon svg { font-size: 25px; }
+  .sa-vault-mobile-trust-kicker { color: rgba(239, 248, 255, .75); font-size: 8px !important; font-weight: 900 !important; letter-spacing: .15em !important; }
+  .sa-vault-mobile-trust-title { margin-top: 2px !important; color: #fff; font-size: 16px !important; font-weight: 900 !important; letter-spacing: -.025em !important; }
+  .sa-vault-mobile-trust-copy { margin-top: 2px !important; color: rgba(239, 248, 255, .8); font-size: 9.5px !important; line-height: 1.35 !important; }
+  .sa-vault-mobile-verified-chip { height: 23px !important; border: 1px solid rgba(220, 255, 239, .45) !important; color: #d9ffef !important; background: rgba(17, 131, 90, .28) !important; font-size: 8px !important; font-weight: 900 !important; letter-spacing: .1em; }
+  .sa-vault-mobile-verified-chip .MuiChip-icon { color: #a8ffd1 !important; font-size: 14px; }
+  .sa-vault-mobile-trust-signals { position: relative; z-index: 1; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .2); color: rgba(243, 251, 255, .82); font-size: 8.5px; font-weight: 800; }
+  .sa-vault-mobile-trust-signals span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .sa-vault-mobile-trust-signals svg { width: 13px; height: 13px; color: #c7ffe3; }
+
+  .sa-vault-mobile-search { margin-bottom: 16px; }
+  .sa-vault-mobile-search .MuiOutlinedInput-root { min-height: 43px; border: 1px solid rgba(105, 139, 202, .16); border-radius: 15px; color: #173261; background: rgba(255, 255, 255, .86); box-shadow: 0 9px 20px rgba(71, 101, 154, .08); }
+  .sa-vault-mobile-search .MuiOutlinedInput-notchedOutline { border: 0; }
+  .sa-vault-mobile-search input { font-size: 11px; font-weight: 650; }
+  .sa-vault-mobile-search input::placeholder { color: #8b9bb8; opacity: 1; }
+  .sa-vault-mobile-search .MuiInputAdornment-root .MuiSvgIcon-root { color: #6f8cc5; }
+  .sa-vault-mobile-search .MuiIconButton-root { color: #2e73d1; }
+
+  .sa-vault-mobile-section-heading { margin-bottom: 9px; }
+  .sa-vault-mobile-section-heading > div > .MuiTypography-root:first-child { color: #19376c; font-size: 14px; font-weight: 900; letter-spacing: -.025em; }
+  .sa-vault-mobile-section-heading > div > .MuiTypography-root:last-child { margin-top: 2px; color: #8092b1; font-size: 9px; font-weight: 750; }
+  .sa-vault-mobile-section-heading .MuiButton-root { min-width: auto; padding: 4px 8px; border-radius: 9px; color: #2d73d1; font-size: 9px; font-weight: 850; text-transform: none; }
+  .sa-vault-mobile-section-heading .MuiButton-startIcon { margin-right: 3px; }
+  .sa-vault-mobile-section-heading .MuiButton-startIcon svg { font-size: 14px; }
+  .sa-vault-mobile-folder-strip { display: flex; gap: 9px; margin: 0 -12px 17px; padding: 0 12px 4px; overflow-x: auto; scrollbar-width: none; }
+  .sa-vault-mobile-folder-strip::-webkit-scrollbar { display: none; }
+  .sa-vault-mobile-folder-card { width: 125px; min-width: 125px; padding: 11px; border: 1px solid rgba(102, 137, 201, .15); border-radius: 17px !important; cursor: pointer; background: rgba(255, 255, 255, .84); box-shadow: 0 8px 19px rgba(68, 94, 145, .08); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+  .sa-vault-mobile-folder-card:active, .sa-vault-mobile-folder-card.is-active { border-color: rgba(57, 121, 218, .58); box-shadow: 0 11px 23px rgba(54, 109, 204, .17); transform: translateY(-1px); }
+  .sa-vault-mobile-folder-icon { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 10px; color: #2e75d5; background: #e3efff; }
+  .sa-vault-mobile-folder-icon svg { font-size: 20px; }
+  .sa-vault-mobile-more-icon { color: #8d9db8; font-size: 16px; }
+  .sa-vault-mobile-folder-card > .MuiTypography-root:nth-last-child(2) { display: block; margin-top: 10px; color: #1c3765; font-size: 10.5px; font-weight: 900; }
+  .sa-vault-mobile-folder-card > .MuiTypography-root:last-child { margin-top: 3px; color: #8b9bb5; font-size: 8px; font-weight: 700; }
+
+  .sa-vault-mobile-files-heading { margin-top: 1px; }
+  .sa-vault-mobile-files-heading .MuiButton-root { color: #2e73d1; }
+  .sa-vault-mobile-file-list { min-height: 100px; }
+  .sa-vault-mobile-file-card { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 9px 10px; border: 1px solid rgba(101, 136, 198, .13); border-radius: 16px !important; cursor: pointer; background: rgba(255, 255, 255, .9); box-shadow: 0 7px 17px rgba(67, 94, 143, .07); transition: transform .18s ease, box-shadow .18s ease; }
+  .sa-vault-mobile-file-card:active { transform: scale(.985); box-shadow: 0 4px 10px rgba(67, 94, 143, .11); }
+  .sa-vault-mobile-file-icon { display: grid; width: 39px; height: 39px; flex: 0 0 auto; place-items: center; border-radius: 12px; background: #fff0ed; }
+  .sa-vault-mobile-file-icon.is-folder { background: #e4efff; }
+  .sa-vault-mobile-file-icon .MuiSvgIcon-root { font-size: 21px; }
+  .sa-vault-mobile-file-card > div:nth-child(2) > .MuiTypography-root:first-child { color: #213b68; font-size: 11px; font-weight: 850; }
+  .sa-vault-mobile-file-card > div:nth-child(2) > .MuiTypography-root:last-child { margin-top: 3px; color: #91a0b9; font-size: 8.5px; font-weight: 650; }
+  .sa-vault-mobile-file-lock { width: 13px !important; height: 13px !important; color: #5a9bdf; }
+  .sa-vault-mobile-chevron { color: #a8b4c8; font-size: 17px !important; }
+  .sa-vault-mobile-empty { display: grid; min-height: 118px; place-items: center; align-content: center; gap: 7px; color: #7184a4; text-align: center; font-size: 10px; }
+  .sa-vault-mobile-empty > .MuiSvgIcon-root { color: #7e9ad0; font-size: 36px; }
+  .sa-vault-mobile-empty .MuiButton-root { padding: 5px 10px; border-radius: 10px; color: #2e73d1; font-size: 9px; text-transform: none; }
+  .sa-vault-mobile-actions { display: flex; gap: 8px; margin-top: 15px; }
+  .sa-vault-mobile-actions .MuiButton-root { flex: 1; min-height: 35px; border: 1px solid rgba(69, 121, 201, .16); border-radius: 12px; color: #2d6dcc; background: rgba(255, 255, 255, .58); font-size: 9px; font-weight: 850; text-transform: none; }
+  .sa-vault-mobile-actions .MuiButton-startIcon { margin-right: 3px; }
+  .sa-vault-mobile-actions .MuiButton-startIcon svg { font-size: 15px; }
+
+  .sa-vault-mobile-bottom-nav { position: fixed; right: 0; bottom: 0; left: 0; z-index: 1200; display: grid; grid-template-columns: 1fr 1fr 1.15fr 1fr 1fr; align-items: center; min-height: 64px; padding: 6px 10px calc(6px + env(safe-area-inset-bottom)); border: 0; border-top: 1px solid rgba(123, 164, 224, .28); border-radius: 0; background: rgba(255, 255, 255, .92); box-shadow: 0 -12px 30px rgba(51, 88, 151, .16), inset 0 1px 0 rgba(255, 255, 255, .95); backdrop-filter: blur(20px); }
+  .sa-vault-mobile-bottom-nav button { display: grid; place-items: center; gap: 2px; min-width: 0; border: 0; color: #8a9bb7; background: transparent; cursor: pointer; font: inherit; }
+  .sa-vault-mobile-bottom-nav button svg { width: 18px; height: 18px; }
+  .sa-vault-mobile-bottom-nav button span { font-size: 8px; font-weight: 800; }
+  .sa-vault-mobile-bottom-nav button.is-active { color: #2d73d5; }
+  .sa-vault-mobile-bottom-nav .sa-vault-mobile-add { width: 43px; height: 43px; justify-self: center; border-radius: 50%; color: #fff; background: linear-gradient(145deg, #397ee4, #2457c8); box-shadow: 0 8px 16px rgba(42, 100, 207, .34), inset 0 1px 0 rgba(255, 255, 255, .36); }
+  .sa-vault-mobile-bottom-nav .sa-vault-mobile-add svg { width: 26px; height: 26px; }
+}
+
+/* Reference-style storage dashboard for phones and tablets. The authenticated
+   AppShell header and its global bottom app bar remain the only navigation
+   surfaces; the vault contributes content only. */
+@media (max-width: 1199px) {
+  .sa-document-vault-page {
+    min-height: calc(100dvh - 76px);
+    margin: -16px 0 0;
+    padding: 13px 14px 116px !important;
+    overflow: hidden;
+    color: #183153;
+    background:
+      radial-gradient(circle at 90% 0%, rgba(255, 255, 255, .92), transparent 29%),
+      radial-gradient(circle at 0% 43%, rgba(138, 196, 255, .27), transparent 35%),
+      linear-gradient(160deg, #f4f8ff 0%, #e7f0ff 54%, #dce9fb 100%);
+  }
+
+  .sa-vault-mobile-shell { display: block; position: relative; min-height: calc(100dvh - 104px); }
+  .sa-vault-desktop-toolbar,
+  .sa-vault-desktop-console,
+  .sa-vault-desktop-workspace { display: none !important; }
+  .sa-vault-upload-progress { position: relative; z-index: 3; }
+  .sa-vault-upload-progress:empty { display: none; }
+  .sa-vault-upload-progress .MuiPaper-root { border: 1px solid rgba(54, 103, 193, .14); border-radius: 16px !important; background: rgba(255, 255, 255, .86); box-shadow: 0 10px 26px rgba(64, 95, 151, .10); }
+
+  .sa-vault-mobile-search { margin-bottom: 17px; }
+  .sa-vault-mobile-search .MuiOutlinedInput-root { min-height: 41px; border: 1px solid rgba(105, 139, 202, .14); border-radius: 12px; color: #173261; background: rgba(255, 255, 255, .88); box-shadow: 0 8px 18px rgba(71, 101, 154, .07); }
+  .sa-vault-mobile-search .MuiOutlinedInput-notchedOutline { border: 0; }
+  .sa-vault-mobile-search input { font-size: 10.5px; font-weight: 650; }
+  .sa-vault-mobile-search input::placeholder { color: #8b9bb8; opacity: 1; }
+  .sa-vault-mobile-search .MuiInputAdornment-root .MuiSvgIcon-root { color: #6f8cc5; }
+  .sa-vault-mobile-search .MuiIconButton-root { color: #2e73d1; }
+
+  .sa-vault-mobile-section-heading { margin-bottom: 9px; }
+  .sa-vault-mobile-section-heading > div > .MuiTypography-root:first-child { color: #19376c; font-size: 13px; font-weight: 900; letter-spacing: -.025em; }
+  .sa-vault-mobile-section-heading > div > .MuiTypography-root:last-child { margin-top: 2px; color: #8092b1; font-size: 8.5px; font-weight: 750; }
+  .sa-vault-mobile-section-heading .MuiButton-root { min-width: auto; padding: 3px 7px; border-radius: 8px; color: #2d73d1; font-size: 8.5px; font-weight: 850; text-transform: none; }
+  .sa-vault-mobile-section-heading .MuiButton-startIcon { margin-right: 3px; }
+  .sa-vault-mobile-section-heading .MuiButton-startIcon svg { font-size: 13px; }
+  .sa-vault-mobile-category-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-bottom: 21px; }
+  .sa-vault-mobile-category-tile { display: flex; min-height: 78px; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 9px 3px 8px; border: 1px solid transparent; border-radius: 13px !important; cursor: pointer; text-align: center; background: transparent !important; box-shadow: none !important; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+  .sa-vault-mobile-category-tile.is-smart-folder { min-height: 86px; border-color: transparent; background: transparent !important; }
+  .sa-vault-mobile-category-tile:active, .sa-vault-mobile-category-tile.is-active { border-color: rgba(57, 121, 218, .55); box-shadow: 0 10px 21px rgba(54, 109, 204, .16); transform: translateY(-1px); }
+  .sa-vault-mobile-category-tile > .MuiTypography-root { display: -webkit-box; overflow: hidden; min-height: 19px; color: #415779; font-size: 8.5px; font-weight: 850; line-height: 1.1; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .sa-vault-mobile-category-icon { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 10px; }
+  .sa-vault-mobile-category-icon .MuiSvgIcon-root { font-size: 19px; }
+  .sa-vault-mobile-category-icon.is-image { color: #0cbbb9; background: #d9f8f4; }
+  .sa-vault-mobile-category-icon.is-video { color: #13a9dd; background: #daf2ff; }
+  .sa-vault-mobile-category-icon.is-audio { color: #079cca; background: #dff7ff; }
+  .sa-vault-mobile-category-icon.is-document { color: #2e7fd7; background: #e2efff; }
+  .sa-vault-mobile-category-icon.is-apk { color: #19b9b4; background: #e1f8f3; }
+  .sa-vault-mobile-category-icon.is-compressed { color: #2586d3; background: #e0f0ff; }
+  .sa-vault-mobile-category-icon.is-recent { color: #09b89b; background: #ddf8f1; }
+  .sa-vault-mobile-category-icon.is-shared { color: #1d9fd3; background: #e1f4ff; }
+  .sa-vault-mobile-category-icon.is-pan-card { color: #087ea4; background: #dff7ff; }
+  .sa-vault-mobile-category-icon.is-birth-certificate { color: #7c3aed; background: #f0e9ff; }
+  .sa-vault-mobile-category-icon.is-indian-passport { color: #2563eb; background: #e3edff; }
+  .sa-vault-mobile-category-icon.is-voter-id { color: #4f46e5; background: #e9e8ff; }
+  .sa-vault-mobile-category-icon.is-aadhaar-card { color: #0f9f8c; background: #dcfaf4; }
+  .sa-vault-mobile-category-icon.is-driving-licence { color: #b7791f; background: #fff3d5; }
+  .sa-vault-mobile-category-icon.is-land-patta { color: #4d8b18; background: #eaf7d9; }
+
+  .sa-vault-mobile-files-heading { margin-top: 1px; }
+  .sa-vault-mobile-files-heading .MuiButton-root { color: #2e73d1; }
+  .sa-vault-mobile-recent-list, .sa-vault-mobile-folder-list { display: block; min-height: 100px; overflow: visible; background: transparent; }
+  .sa-vault-mobile-recent-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .sa-vault-mobile-recent-card { display: flex; min-width: 0; min-height: 268px; flex-direction: column; justify-content: space-between; gap: 10px; padding: 10px !important; border: 1px solid rgba(102, 137, 201, .12) !important; border-radius: 14px !important; cursor: pointer; background: rgba(255, 255, 255, .88) !important; box-shadow: 0 8px 18px rgba(68, 94, 145, .08) !important; transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+  .sa-vault-mobile-recent-card:active, .sa-vault-mobile-recent-card:focus-visible { background: rgba(255, 255, 255, 1) !important; box-shadow: 0 11px 22px rgba(54, 109, 204, .14) !important; transform: translateY(-1px); outline: none; }
+  .sa-vault-mobile-recent-card-media { position: relative; height: 132px; overflow: hidden; flex: 0 0 auto; border-radius: 11px; }
+  .sa-vault-mobile-recent-card-media .MuiIconButton-root { position: absolute; top: 7px; right: 7px; z-index: 2; width: 29px; height: 29px; color: #fff; background: rgba(11, 38, 72, .58); box-shadow: 0 4px 10px rgba(13, 40, 74, .18); }
+  .sa-vault-mobile-recent-thumbnail { display: grid; width: 46px; height: 46px; overflow: hidden; flex: 0 0 auto; place-items: center; border: 1px solid rgba(65, 113, 192, .1); border-radius: 12px; color: #1769bc; background: linear-gradient(145deg, #e9f3ff, #dcecff); }
+  .sa-vault-mobile-recent-thumbnail.is-folder { color: #4086d9; background: linear-gradient(145deg, #edf4ff, #dceaff); }
+  .sa-vault-mobile-recent-thumbnail .MuiSvgIcon-root { font-size: 22px; }
+  .sa-vault-mobile-recent-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .sa-vault-mobile-recent-thumbnail.is-full { width: 100%; height: 100%; min-height: 100%; border: 0; border-radius: inherit; background: linear-gradient(145deg, #e9f3ff, #cfe1fa); }
+  .sa-vault-mobile-recent-thumbnail.is-full .MuiSvgIcon-root { font-size: 45px; opacity: .84; }
+  .sa-vault-mobile-recent-card > div:nth-child(2) > .MuiTypography-root:first-child { color: #294265; font-size: 10px; font-weight: 850; }
+  .sa-vault-mobile-recent-card > div:nth-child(2) > .MuiTypography-root:nth-child(2) { margin-top: 3px; color: #8a9bb6; font-size: 7.5px; font-weight: 650; }
+  .sa-vault-mobile-file-date { margin-top: 2px; color: #a3afc1; font-size: 7px !important; font-weight: 650; }
+  .sa-vault-mobile-file-lock { width: 12px !important; height: 12px !important; color: #5a9bdf; }
+  .sa-vault-mobile-chevron { color: #a8b4c8; font-size: 16px !important; }
+  .sa-vault-mobile-empty { display: grid; min-height: 118px; place-items: center; align-content: center; gap: 7px; color: #7184a4; text-align: center; font-size: 10px; }
+  .sa-vault-mobile-empty > .MuiSvgIcon-root { color: #7e9ad0; font-size: 36px; }
+  .sa-vault-mobile-empty .MuiButton-root { padding: 5px 10px; border-radius: 9px; color: #2e73d1; font-size: 9px; text-transform: none; }
+  .sa-vault-mobile-recent-card .sa-vault-card-share-button { width: calc(100% - 20px); margin: 0 10px 1px; }
+  .sa-vault-mobile-actions { display: flex; gap: 8px; margin-top: 15px; }
+  .sa-vault-mobile-actions .MuiButton-root { flex: 1; min-height: 34px; border: 1px solid rgba(69, 121, 201, .16); border-radius: 10px; color: #2d6dcc; background: rgba(255, 255, 255, .58); font-size: 8.5px; font-weight: 850; text-transform: none; }
+  .sa-vault-mobile-actions .MuiButton-startIcon { margin-right: 3px; }
+  .sa-vault-mobile-actions .MuiButton-startIcon svg { font-size: 14px; }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .sa-document-vault-page { padding-right: clamp(24px, 8vw, 90px) !important; padding-left: clamp(24px, 8vw, 90px) !important; }
+  .sa-vault-mobile-shell { max-width: 760px; margin: 0 auto; }
+  .sa-vault-mobile-category-grid { gap: 13px; }
+  .sa-vault-mobile-category-tile { min-height: 98px; gap: 8px; border-radius: 16px !important; }
+  .sa-vault-mobile-category-icon { width: 45px; height: 45px; border-radius: 13px; }
+  .sa-vault-mobile-category-icon .MuiSvgIcon-root { font-size: 25px; }
+  .sa-vault-mobile-category-tile > .MuiTypography-root { font-size: 11px; }
+  .sa-vault-mobile-recent-card { min-height: 322px; padding: 12px !important; }
+  .sa-vault-mobile-recent-card-media { height: 166px; border-radius: 14px; }
+  .sa-vault-mobile-recent-thumbnail { width: 56px; height: 56px; border-radius: 15px; }
+  .sa-vault-mobile-recent-card > div:nth-child(2) > .MuiTypography-root:first-child { font-size: 12px; }
+  .sa-vault-mobile-recent-card > div:nth-child(2) > .MuiTypography-root:nth-child(2) { font-size: 9px; }
+}
+
+.sa-vault-recent-card-media { position: relative; height: 154px; overflow: hidden; border-radius: 12px 12px 0 0; }
+.sa-vault-recent-card-media .MuiIconButton-root { position: absolute; top: 9px; right: 9px; z-index: 2; color: #fff; background: rgba(11, 38, 72, .58); box-shadow: 0 5px 12px rgba(13, 40, 74, .18); }
+.sa-vault-recent-card-media .MuiIconButton-root:hover { background: rgba(11, 38, 72, .78); }
+.sa-vault-recent-card-media .sa-vault-mobile-recent-thumbnail.is-full { width: 100%; height: 100%; min-height: 100%; border: 0; border-radius: inherit; background: linear-gradient(145deg, #e9f3ff, #cfe1fa); }
+.sa-vault-recent-card-media .sa-vault-mobile-recent-thumbnail.is-full .MuiSvgIcon-root { font-size: 52px; opacity: .84; }
+.sa-vault-card-share-button.MuiButton-root { width: calc(100% - 20px); min-height: 34px; margin: 0 10px 10px; border: 0; border-radius: 11px; color: #fff; background: linear-gradient(135deg, #116b96 0%, #167eab 52%, #2f9a91 100%); box-shadow: 0 6px 14px rgba(13, 99, 135, .23); font-size: 11px; font-weight: 850; text-transform: none; }
+.sa-vault-card-share-button.MuiButton-root:hover { background: linear-gradient(135deg, #0b587e 0%, #126e9a 52%, #268477 100%); box-shadow: 0 8px 17px rgba(13, 99, 135, .3); }
+.sa-vault-card-share-button.MuiButton-root.Mui-disabled { color: #8c9bb0; background: #e8edf4; box-shadow: none; }
+.sa-vault-share-file-icon { display: grid; width: 42px; height: 42px; place-items: center; flex: 0 0 auto; border-radius: 13px; background: #e6f3fb; }
+.sa-vault-share-create-button.MuiButton-root { min-height: 42px; border-radius: 12px; font-weight: 850; text-transform: none; }
+.sa-vault-share-channel.MuiButton-root { flex: 1 1 130px; min-height: 40px; border: 1px solid rgba(48, 101, 169, .16); border-radius: 12px; font-weight: 800; text-transform: none; }
+.sa-vault-share-channel.is-whatsapp.MuiButton-root { color: #138b5b; background: #e9fbf1; }
+.sa-vault-share-channel.is-messenger.MuiButton-root { color: #4267b2; background: #edf2ff; }
+.sa-vault-share-channel.is-telegram.MuiButton-root { color: #168ac0; background: #e7f7ff; }
+.sa-vault-share-channel.is-email.MuiButton-root { color: #a14f15; background: #fff2e7; }
+
+/* The global app bar is mounted on every authenticated route. CSS owns the
+   breakpoint so it remains visible even when the JS media-query has a stale
+   or desktop result during hydration. */
+.sa-global-mobile-bottom-navigation { display: none !important; }
+@media (max-width: 899px), (hover: none) and (pointer: coarse) {
+  .sa-global-mobile-bottom-navigation { display: flex !important; }
+  body:has(.sa-vault-mobile-shell) .sa-global-mobile-bottom-navigation { display: flex !important; }
+}
+@media (min-width: 900px) and (hover: hover) and (pointer: fine) {
+  .sa-global-mobile-bottom-navigation { display: none !important; }
+}
+@media (min-width: 900px) and (max-width: 1199px) {
+  body:has(.sa-vault-mobile-shell) .sa-global-mobile-bottom-navigation { display: flex !important; }
+}
+@media (max-width: 899px) {
+  .sa-global-mobile-bottom-navigation .MuiBottomNavigationAction-root { cursor: pointer; pointer-events: auto; color: #000 !important; }
+  .sa-global-mobile-bottom-navigation .MuiBottomNavigationAction-root:hover,
+  .sa-global-mobile-bottom-navigation .MuiBottomNavigationAction-root.Mui-selected { color: #0B6E96 !important; }
+  .sa-global-mobile-bottom-navigation .MuiBottomNavigationAction-label { display: block !important; visibility: visible !important; opacity: 1 !important; transform: none !important; color: #000 !important; font-size: 10px !important; }
+}
+@media (max-width: 899px) {
+  .sa-vault-mobile-shell {
+    min-height: 100dvh;
+    padding: 18px 16px 92px;
+    background: linear-gradient(155deg, #e4fbff 0%, #f7f4ff 44%, #fff 78%);
+  }
+  .sa-vault-mobile-search .MuiOutlinedInput-root {
+    min-height: 58px;
+    border: 1.5px solid #9b4de8;
+    border-radius: 22px;
+    background: rgba(255,255,255,.9);
+    box-shadow: 0 12px 28px rgba(128,71,220,.13);
+  }
+  .sa-vault-mobile-search input { font-size: 14px; font-weight: 500; }
+  .sa-vault-mobile-section-heading { margin-top: 24px; margin-bottom: 12px; }
+  .sa-vault-mobile-section-heading > div > .MuiTypography-root:first-child { font-size: 21px; color: #171b2b; letter-spacing: -.04em; }
+  .sa-vault-mobile-section-heading > div > .MuiTypography-root:last-child { font-size: 11px; color: #74748a; }
+  .sa-vault-mobile-category-grid { gap: 12px; margin-bottom: 26px; }
+  .sa-vault-mobile-category-tile { min-height: 0; aspect-ratio: 1; border: 1px solid rgba(255,255,255,.76) !important; border-radius: 50% !important; padding: 10px 7px !important; background: rgba(255,255,255,.36) !important; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 10px 24px rgba(62,55,113,.12), 0 1px 0 rgba(255,255,255,.85) inset; }
+  .sa-vault-mobile-category-tile:nth-child(1) { background: linear-gradient(145deg, rgba(255,98,126,.42), rgba(255,224,230,.5)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(2) { background: linear-gradient(145deg, rgba(255,174,64,.43), rgba(255,239,199,.54)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(3) { background: linear-gradient(145deg, rgba(174,106,255,.42), rgba(239,222,255,.55)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(4) { background: linear-gradient(145deg, rgba(69,177,247,.4), rgba(214,242,255,.58)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(5) { background: linear-gradient(145deg, rgba(60,209,181,.4), rgba(211,250,242,.58)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(6) { background: linear-gradient(145deg, rgba(104,143,255,.4), rgba(222,231,255,.58)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(7) { background: linear-gradient(145deg, rgba(255,133,204,.4), rgba(255,228,246,.58)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(8) { background: linear-gradient(145deg, rgba(109,221,255,.4), rgba(220,248,255,.58)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(9) { background: linear-gradient(145deg, rgba(145,126,255,.4), rgba(231,226,255,.58)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(10) { background: linear-gradient(145deg, rgba(76,227,201,.4), rgba(218,252,244,.58)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(11) { background: linear-gradient(145deg, rgba(255,206,104,.43), rgba(255,244,207,.58)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(12) { background: linear-gradient(145deg, rgba(141,222,91,.4), rgba(229,250,212,.58)) !important; }
+  .sa-vault-mobile-category-icon { width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,.42) !important; box-shadow: 0 4px 10px rgba(70,53,115,.1); }
+  .sa-vault-mobile-category-icon .MuiSvgIcon-root { color: #fff !important; font-size: 31px; }
+  .sa-vault-mobile-category-tile:nth-child(4n+2) .sa-vault-mobile-category-icon { background: linear-gradient(145deg,#ff6a00,#ffb000) !important; }
+  .sa-vault-mobile-category-tile:nth-child(4n+3) .sa-vault-mobile-category-icon { background: linear-gradient(145deg,#7628e9,#bd53ff) !important; }
+  .sa-vault-mobile-category-tile:nth-child(4n) .sa-vault-mobile-category-icon { background: linear-gradient(145deg,#1598e8,#6fcaff) !important; }
+  .sa-vault-mobile-category-tile > .MuiTypography-root { font-size: 10px; color: #5e5c6c; }
+  .sa-vault-mobile-recent-card { border-radius: 20px !important; background: rgba(255,255,255,.9) !important; box-shadow: 0 10px 24px rgba(62,55,113,.1) !important; }
+  .sa-vault-mobile-category-tile { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+  .sa-vault-mobile-category-tile:nth-child(1) .sa-vault-mobile-category-icon { background: linear-gradient(145deg, rgba(255,61,88,.92), rgba(255,150,115,.76)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(2) .sa-vault-mobile-category-icon { background: linear-gradient(145deg, rgba(255,106,0,.94), rgba(255,190,35,.78)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(3) .sa-vault-mobile-category-icon { background: linear-gradient(145deg, rgba(118,40,233,.94), rgba(189,83,255,.8)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(4) .sa-vault-mobile-category-icon { background: linear-gradient(145deg, rgba(21,152,232,.94), rgba(111,202,255,.8)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(5) .sa-vault-mobile-category-icon { background: linear-gradient(145deg, rgba(10,184,155,.94), rgba(88,230,204,.78)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(6) .sa-vault-mobile-category-icon { background: linear-gradient(145deg, rgba(76,79,224,.94), rgba(143,155,255,.8)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(7) .sa-vault-mobile-category-icon { background: linear-gradient(145deg, rgba(225,56,154,.94), rgba(255,124,207,.8)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(8) .sa-vault-mobile-category-icon { background: linear-gradient(145deg, rgba(0,170,190,.94), rgba(86,220,245,.8)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(9) .sa-vault-mobile-category-icon { background: linear-gradient(145deg, rgba(114,76,211,.94), rgba(170,142,255,.8)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(10) .sa-vault-mobile-category-icon { background: linear-gradient(145deg, rgba(0,154,102,.94), rgba(70,220,157,.8)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(11) .sa-vault-mobile-category-icon { background: linear-gradient(145deg, rgba(190,126,12,.94), rgba(255,210,83,.8)) !important; }
+  .sa-vault-mobile-category-tile:nth-child(12) .sa-vault-mobile-category-icon { background: linear-gradient(145deg, rgba(77,139,24,.94), rgba(153,225,77,.8)) !important; }
+  /* Mobile Quick Access uses bright white premium tiles with calm spacing,
+     filled circular icons and crisp centered titles. */
+  .sa-vault-mobile-category-tile,
+  .sa-vault-mobile-category-grid .sa-vault-mobile-category-tile:nth-child(n) { background: #fff !important; border: 1px solid rgba(42,62,92,.10) !important; border-radius: 15px !important; box-shadow: 0 9px 22px rgba(35,52,82,.09), 0 1px 0 rgba(255,255,255,.95) inset !important; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+  .sa-vault-mobile-category-tile:active,
+  .sa-vault-mobile-category-tile.is-active { border-color: rgba(42,126,218,.28) !important; box-shadow: 0 12px 25px rgba(35,91,165,.14), 0 1px 0 rgba(255,255,255,.98) inset !important; transform: translateY(-1px); }
+  .sa-vault-mobile-category-icon { border: 0 !important; }
+  .sa-vault-mobile-category-tile > .MuiTypography-root { display: -webkit-box; overflow: hidden; min-height: 22px; color: #233552; font-size: 10.5px; font-weight: 800; letter-spacing: -.01em; line-height: 1.18; text-align: center; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+}
