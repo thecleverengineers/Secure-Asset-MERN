@@ -78,14 +78,15 @@ function ListingCard({ property, compact = false, isWishlisted, onToggle }: { pr
 
   return (
     <Card
+      className="sa-interactive-card"
       variant="outlined"
       onClick={() => navigate(propertyOverviewPath(property))}
       onMouseEnter={() => { void queryClient.prefetchQuery(publicPropertyQueryOptions(property.slug || property._id)); }}
       onFocus={() => { void queryClient.prefetchQuery(publicPropertyQueryOptions(property.slug || property._id)); }}
-      sx={{ height: '100%', width: compact ? 226 : DESKTOP_MARKETPLACE_CARD_WIDTH, minWidth: compact ? 226 : DESKTOP_MARKETPLACE_CARD_WIDTH, flex: compact ? '0 0 226px' : '0 0 286px', p: compact ? .65 : .8, borderColor: 'rgba(13, 73, 96, .14)', borderRadius: '20px', overflow: 'visible', cursor: 'pointer', bgcolor: '#fff', boxShadow: '0 5px 16px rgba(19, 56, 77, .07)', transition: 'transform .2s, box-shadow .2s, border-color .2s', '&:hover': { transform: 'translateY(-4px)', borderColor: 'rgba(11, 82, 112, .3)', boxShadow: '0 14px 28px rgba(19, 56, 77, .13)' } }}
+      sx={{ height: '100%', width: compact ? 226 : DESKTOP_MARKETPLACE_CARD_WIDTH, minWidth: compact ? 226 : DESKTOP_MARKETPLACE_CARD_WIDTH, flex: compact ? '0 0 226px' : '0 0 286px', p: compact ? .65 : .8, borderColor: 'rgba(13, 73, 96, .14)', borderRadius: '22px', overflow: 'visible', cursor: 'pointer', bgcolor: '#fff', boxShadow: '0 7px 22px rgba(19, 56, 77, .075)', transition: 'transform .22s ease, box-shadow .22s ease, border-color .22s ease', '&:hover': { transform: 'translateY(-5px)', borderColor: 'rgba(11, 82, 112, .32)', boxShadow: '0 18px 36px rgba(19, 56, 77, .14)' } }}
     >
       <Box sx={{ position: 'relative' }}>
-        <Box sx={{ height: compact ? 172 : { xs: 190, md: 156, lg: 166 }, overflow: 'hidden', bgcolor: 'action.hover', borderRadius: '16px' }}>
+        <Box sx={{ height: compact ? 172 : { xs: 190, md: 166, lg: 176 }, overflow: 'hidden', bgcolor: 'action.hover', borderRadius: '16px' }}>
           <OptimizedImage
             src={property.images?.[0] || property.galleryCover || fallback}
             alt={property.title}
@@ -260,17 +261,17 @@ export default function MarketplacePage() {
   const mobileCategory = (label: string, icon: ReactNode, patch: Partial<PropertyFilters>) => <Chip clickable onClick={() => updateFilters(patch)} icon={icon as any} label={label} variant="outlined" sx={{ flex: '0 0 auto', height: 38, px: .5, borderColor: 'rgba(21,34,37,.16)', bgcolor: 'background.paper', boxShadow: '0 4px 10px rgba(15,23,42,.08)', '& .MuiChip-label': { fontSize: 13, fontWeight: 700 } }} />;
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: '#f5f7fa' }}>
-      <Box sx={{ display: { xs: 'none', md: 'block' }, borderBottom: '1px solid rgba(16, 62, 82, .1)', bgcolor: '#fff' }}>
-        <Container maxWidth="xl" sx={{ py: 2.4 }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', backgroundImage: 'radial-gradient(circle at 92% 2%, rgba(32,132,99,.10), transparent 30rem)' }}>
+      <Box sx={{ display: { xs: 'none', md: 'block' }, borderBottom: '1px solid rgba(255,255,255,.16)', color: '#fff', background: 'linear-gradient(118deg, #073f56 0%, #0a607a 66%, #197869 145%)', position: 'relative', overflow: 'hidden', '&::after': { content: '""', position: 'absolute', width: 280, height: 280, right: '8%', top: -210, borderRadius: '50%', bgcolor: 'rgba(255,255,255,.10)' } }}>
+        <Container maxWidth="xl" sx={{ py: 3.4, position: 'relative', zIndex: 1 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2}>
             <Box>
-              <Typography component="h1" sx={{ color: '#102d3c', fontSize: { md: 24, lg: 27 }, fontWeight: 900, letterSpacing: '-.04em' }}>{marketplaceTitle}</Typography>
-              <Typography sx={{ mt: .35, color: 'text.secondary', fontSize: 12.5 }}>Find a verified home, commercial space or plot that fits your needs.</Typography>
+              <Typography component="h1" sx={{ color: '#fff', fontSize: { md: 26, lg: 30 }, fontWeight: 820, letterSpacing: '-.045em' }}>{marketplaceTitle}</Typography>
+              <Typography sx={{ mt: .5, color: 'rgba(255,255,255,.76)', fontSize: 13 }}>Find a verified home, commercial space or plot that fits your needs.</Typography>
             </Box>
             <Stack direction="row" alignItems="center" gap={1.2}>
-              <Chip icon={<ApartmentRounded />} label={`${total} live listings`} sx={{ height: 34, borderRadius: 2.5, bgcolor: 'rgba(11, 82, 112, .07)', color: 'primary.main', fontWeight: 800 }} />
-              <ToggleButtonGroup exclusive value={filters.listingType} onChange={(_event, value) => value && updateFilters({ listingType: value })} size="small" sx={{ '& .MuiToggleButton-root': { px: 1.5, fontWeight: 850, textTransform: 'none' } }}>
+              <Chip icon={<ApartmentRounded />} label={`${total} live listings`} sx={{ height: 36, borderRadius: 2.5, bgcolor: 'rgba(255,255,255,.12)', color: '#fff', border: '1px solid rgba(255,255,255,.18)', fontWeight: 780, '& .MuiChip-icon': { color: '#fff' } }} />
+              <ToggleButtonGroup exclusive value={filters.listingType} onChange={(_event, value) => value && updateFilters({ listingType: value })} size="small" sx={{ p: .35, borderRadius: 3, bgcolor: 'rgba(255,255,255,.10)', '& .MuiToggleButton-root': { px: 1.6, color: 'rgba(255,255,255,.75)', border: 0, fontWeight: 780, textTransform: 'none', '&.Mui-selected': { color: '#073f56', bgcolor: '#fff', '&:hover': { bgcolor: '#fff' } } } }}>
                 <ToggleButton value="rent">Rent</ToggleButton>
                 <ToggleButton value="sale">Sale</ToggleButton>
                 <ToggleButton value="lease">Lease</ToggleButton>
@@ -280,16 +281,16 @@ export default function MarketplacePage() {
         </Container>
       </Box>
 
-      <Box sx={{ display: { xs: 'block', md: 'none' }, px: 1.5, pt: 2, pb: 10 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1.2}>
+      <Box sx={{ display: { xs: 'block', md: 'none' }, px: 1.5, pt: 1.5, pb: 10 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1.2} sx={{ mx: -1.5, mt: -1.5, px: 2, pt: 2.2, pb: 5.4, color: '#fff', background: 'linear-gradient(125deg, #073f56, #0a607a 68%, #197869 145%)', borderRadius: '0 0 28px 28px' }}>
           <Box>
-            <Typography component="h1" sx={{ color: '#102d3c', fontSize: 23, fontWeight: 900, letterSpacing: '-.045em', lineHeight: 1.08 }}>{marketplaceTitle}</Typography>
-            <Typography sx={{ mt: .65, color: 'text.secondary', fontSize: 12 }}>Find a space that fits your needs.</Typography>
+            <Typography component="h1" sx={{ color: '#fff', fontSize: 23, fontWeight: 820, letterSpacing: '-.045em', lineHeight: 1.08 }}>{marketplaceTitle}</Typography>
+            <Typography sx={{ mt: .65, color: 'rgba(255,255,255,.76)', fontSize: 12 }}>Find a verified space that fits your needs.</Typography>
           </Box>
-          <Chip label={`${total} live`} size="small" sx={{ mt: .25, fontWeight: 850, color: 'primary.main', bgcolor: 'rgba(11, 82, 112, .08)' }} />
+          <Chip label={`${total} live`} size="small" sx={{ mt: .25, fontWeight: 800, color: '#fff', bgcolor: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.20)' }} />
         </Stack>
 
-        <Box sx={{ mt: 2, p: 1, border: '1px solid rgba(13, 73, 96, .13)', borderRadius: '18px', bgcolor: '#fff', boxShadow: '0 7px 20px rgba(23, 60, 81, .07)' }}>
+        <Box sx={{ mt: -3.2, position: 'relative', zIndex: 1, p: 1, border: '1px solid rgba(13, 73, 96, .13)', borderRadius: '20px', bgcolor: 'rgba(255,255,255,.96)', backdropFilter: 'blur(16px)', boxShadow: '0 16px 36px rgba(23, 60, 81, .16)' }}>
           <TextField size="small" fullWidth placeholder="Search by property, area or city" value={filters.search || ''} onChange={(event) => updateFilters({ search: event.target.value })} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }} />
           <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: .85, mt: .85 }}>
             <TextField select size="small" label="Property type" value={filters.type || 'all'} onChange={(event) => updateFilters({ type: event.target.value })}>
@@ -321,7 +322,7 @@ export default function MarketplacePage() {
       </Box>
 
       <Container maxWidth="xl" sx={{ display: { xs: 'none', md: 'block' }, py: 3.25 }}>
-        <Box sx={{ p: 1.15, border: '1px solid rgba(13, 73, 96, .14)', borderRadius: '20px', bgcolor: '#fff', boxShadow: '0 8px 22px rgba(23, 60, 81, .07)' }}>
+        <Box sx={{ p: 1.25, border: '1px solid rgba(13, 73, 96, .14)', borderRadius: '22px', bgcolor: 'rgba(255,255,255,.96)', backdropFilter: 'blur(16px)', boxShadow: '0 12px 30px rgba(23, 60, 81, .085)' }}>
           <Box sx={{ display: 'grid', gridTemplateColumns: { md: 'minmax(230px, 1.45fr) minmax(165px, .8fr) minmax(170px, .8fr) auto', xl: 'minmax(320px, 1.65fr) minmax(180px, .75fr) minmax(180px, .75fr) auto' }, gap: 1 }}>
             <TextField size="small" placeholder="Search by property, area or city" value={filters.search || ''} onChange={(event) => updateFilters({ search: event.target.value })} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }} />
             <TextField select size="small" label="Property type" value={filters.type || 'all'} onChange={(event) => updateFilters({ type: event.target.value })}>

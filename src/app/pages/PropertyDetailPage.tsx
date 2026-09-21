@@ -20,6 +20,7 @@ import {
   Typography,
 } from '@mui/material';
 import BathtubRounded from '@mui/icons-material/BathtubRounded';
+import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded';
 import BedRounded from '@mui/icons-material/BedRounded';
 import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded';
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
@@ -36,6 +37,7 @@ import { publicPropertyQueryOptions } from '../queries/propertyQueries';
 import { useSite } from '../context/SiteContext';
 import { useWishlist } from '../context/WishlistContext';
 import OptimizedImage from '../components/shared/OptimizedImage';
+import InteractivePropertyTour from '../components/property/InteractivePropertyTour';
 import { WorkspaceSkeleton } from '../components/shared/PremiumSkeleton';
 import { sharePublicListing } from '../utils/publicShare';
 
@@ -249,6 +251,26 @@ export default function PropertyDetailPage() {
   return (
     <Box data-secureasset-rent-parent-surface={isRentListing ? 'rooms-only-v184' : 'full-property-v184'} sx={{ bgcolor: 'background.default', minHeight: '100vh', pb: 8 }}>
       <Container maxWidth="xl" sx={{ pt: 4 }}>
+        {!isRentListing && <Button
+          data-secureasset-property-overview-back="marketplace-v201"
+          startIcon={<ArrowBackRounded />}
+          variant="outlined"
+          onClick={() => navigate('/marketplace')}
+          sx={{ mb: 2, borderRadius: 2.5, fontWeight: 800 }}
+        >
+          Back to properties
+        </Button>}
+        {isRentListing && rentalUnits.length > 0 && <InteractivePropertyTour
+          property={property}
+          units={rentalUnits}
+          onBack={() => navigate('/marketplace')}
+          onView={(unit) => navigate(`/room_details/${unit._id}`)}
+          onBook={(unit) => navigate(`/app/apply_property/${property._id}?rentalUnit=${unit._id}`)}
+          onShare={() => void sharePublicListing({ title: shareTitle, imageUrl: shareImage, url: publicUrl })}
+          saved={saved}
+          onToggleSaved={() => void wishlist.toggle(wishlistListing)}
+        />}
+        <Box sx={{ display: isRentListing && rentalUnits.length > 0 ? 'none' : 'block' }}>
         <Stack direction="row" gap={1} flexWrap="wrap" mb={2}>
           <Chip color="primary" label={sentence(purpose)} />
           <Chip label={sentence(selected?.level || property.type)} />
@@ -271,6 +293,7 @@ export default function PropertyDetailPage() {
             {address || `${property.address?.city || 'Location'} — exact address available according to owner privacy settings`}
           </Typography>
         </Stack>
+        </Box>
 
         {!isRentListing && <Grid container spacing={3} mt={1}>
           <Grid size={{ xs: 12, lg: 8 }}>
@@ -319,7 +342,7 @@ export default function PropertyDetailPage() {
           </Grid>
         </Grid>}
 
-        {rentalUnits.length > 0 && <Paper id="available-rooms" data-secureasset-public-rental-room-cards="marketplace-style-v184" variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 4, mt: 3 }}>
+        {rentalUnits.length > 0 && !isRentListing && <Paper id="available-rooms" data-secureasset-public-rental-room-cards="marketplace-style-v184" variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 4, mt: 3 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={1} mb={2}><Box><Typography variant="h5" fontWeight={950}>{structure?.rentalStructureMode === 'floor' ? 'Available Rooms by floor' : 'Available Rooms & room directory'}</Typography><Typography color="text.secondary">Room prices and features are shown here. Locked rooms stay visible for details but cannot be booked.</Typography></Box><Chip color="success" label={`${rentalUnits.length} room${rentalUnits.length === 1 ? '' : 's'} listed`} /></Stack>
           {rentalFloorGroups.map((group) => <Box key={group.key} sx={{ mb: 2.5, '&:last-child': { mb: 0 } }}><Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} sx={{ mb: 1.2 }}><Typography variant="h6" fontWeight={900}>{group.floor ? `Floor ${group.floor.floorNumber} · ${group.floor.floorName}` : 'Rooms without a floor'}</Typography><Typography color="text.secondary" fontSize={13}>{group.units.length} room{group.units.length === 1 ? '' : 's'}</Typography></Stack><Grid container data-secureasset-room-grid="four-desktop-two-mobile-v199" spacing={{ xs: 1, sm: 1.5, md: 2 }}>{group.units.map((unit: any) => <Grid key={unit._id} size={{ xs: 6, sm: 6, md: 3 }}>{renderRentalRoomCard(unit)}</Grid>)}</Grid></Box>)}
         </Paper>}
