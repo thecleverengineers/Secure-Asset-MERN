@@ -11,6 +11,7 @@
     "start": "node scripts/start-after-migrations.js server/src/server.js",
     "seed": "node server/src/seeds/seed.js",
     "seed:admin": "node server/src/seeds/ensureAdmin.js",
+    "seed:landlord-global-portfolio": "node scripts/seed-landlord-global-portfolio.js",
     "check": "npm run schema:check && npm run route:check && npm run build && node scripts/check-server-syntax.js",
     "setup:local": "node scripts/setup-local.js",
     "db:check": "node scripts/check-mongodb.js",
