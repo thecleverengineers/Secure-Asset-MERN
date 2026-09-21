@@ -35,8 +35,8 @@
 html, body, #root { min-height: 100%; margin: 0; }
 body {
   background:
-    radial-gradient(circle at 85% -10%, rgba(35, 128, 98, .10), transparent 30rem),
-    radial-gradient(circle at -10% 22%, rgba(7, 63, 86, .075), transparent 26rem),
+    radial-gradient(circle at 88% -12%, rgba(32, 132, 99, .12), transparent 34rem),
+    radial-gradient(circle at -8% 28%, rgba(10, 96, 122, .09), transparent 30rem),
     var(--sa-app-background);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -46,8 +46,9 @@ a { color: inherit; text-decoration: none; }
 .sa-app-main {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 92% 0%, rgba(35, 128, 98, .08), transparent 34rem),
-    radial-gradient(circle at 0% 32%, rgba(7, 63, 86, .055), transparent 30rem);
+    radial-gradient(circle at 92% 0%, rgba(32, 132, 99, .10), transparent 38rem),
+    radial-gradient(circle at 0% 34%, rgba(10, 96, 122, .07), transparent 32rem),
+    linear-gradient(180deg, rgba(255,255,255,.38), transparent 18rem);
   background-color: var(--sa-page-background);
 }
 
@@ -108,23 +109,17 @@ a { color: inherit; text-decoration: none; }
   width: 100%;
   border: 1px solid var(--sa-border);
   border-radius: var(--sa-card-radius);
-  box-shadow: none !important;
+  background: var(--sa-paper);
+  box-shadow: 0 6px 22px rgba(18, 50, 57, .055);
 }
 
-/* Content surfaces are deliberately flat: borders, spacing and tonal contrast
-   create hierarchy without making every page look raised. Component-level
-   tokens use !important so older one-off sx elevation cannot reintroduce card
-   shadows after the flat workspace style is published. Dialogs, menus and
-   other overlays keep their separate depth rules. */
+/* Shared surfaces use quiet elevation and crisp borders. Interactive cards
+   opt into a stronger hover treatment without turning every panel into a
+   floating tile. */
 .MuiCard-root,
-.MuiCard-root:hover,
 .MuiTableContainer-root,
-.MuiTableContainer-root:hover,
-.sa-surface-card,
-.sa-surface-card:hover,
-.sa-surface-card:focus-within {
+.sa-surface-card {
   width: 100%;
-  box-shadow: none !important;
 }
 
 .MuiCard-root,
@@ -138,6 +133,22 @@ a { color: inherit; text-decoration: none; }
 
 .MuiOutlinedInput-root {
   border-radius: var(--sa-input-radius) !important;
+}
+
+.MuiOutlinedInput-root.Mui-focused {
+  background: var(--sa-paper);
+}
+
+.sa-interactive-card,
+button,
+a,
+[role='button'] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sa-interactive-card:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--sa-primary) 28%, transparent);
+  outline-offset: 3px;
 }
 
 .sa-app-main .MuiListItemButton-root,
@@ -243,10 +254,14 @@ a { color: inherit; text-decoration: none; }
 /* The default remains intentionally plain for headers and dialogs. The
    Design Studio updates the CSS variables below only after an administrator
    explicitly publishes a different visual system. */
-.sa-page-header,
 .MuiAppBar-root,
 [data-slot='drawer-content'] {
   border-radius: 0 !important;
+}
+
+.sa-page-header {
+  border-radius: var(--sa-page-card-radius, var(--sa-card-radius)) !important;
+  box-shadow: 0 10px 32px rgba(18, 50, 57, .075);
 }
 
 .MuiDialog-paper,
@@ -274,6 +289,37 @@ a { color: inherit; text-decoration: none; }
   .sa-app-content { width: 100%; }
   .sa-mobile-discover-home,
   .sa-wishlist-page { min-height: calc(100dvh - 60px); }
+  .sa-page-header {
+    border-radius: 0 0 22px 22px !important;
+    margin-top: -16px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sa-surface-card.sa-interactive-card:hover {
+    border-color: color-mix(in srgb, var(--sa-primary) 35%, var(--sa-border));
+    box-shadow: 0 18px 42px rgba(18, 50, 57, .11);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+@media print {
+.MuiCard-root,
+.MuiCard-root:hover,
+.MuiTableContainer-root,
+.MuiTableContainer-root:hover,
+.sa-surface-card,
+.sa-surface-card:hover {
+    box-shadow: none !important;
+  }
 }
 
 /* Keep the public login surface focused on the working form. */

@@ -26,14 +26,21 @@ body *,
 body *::before,
 body *::after {
   font-family: var(--sa-font-family) !important;
-  /* Product-wide typography contract: Open Sans regular only.  This wins
-     over legacy MUI variants and per-page sx weights without changing icons. */
-  font-weight: var(--sa-font-weight) !important;
 }
 
 body {
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Printed records stay uniformly regular for predictable legal-document
+   pagination; the interactive product keeps its full typographic hierarchy. */
+@media print {
+  body,
+  body * {
+    font-weight: var(--sa-font-weight) !important;
+  }
 }
 
 .open-sans-property-title {
