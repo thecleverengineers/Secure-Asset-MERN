@@ -26,6 +26,7 @@ import TrendingUpRounded from '@mui/icons-material/TrendingUpRounded';
 import ExploreRounded from '@mui/icons-material/ExploreRounded';
 import EngineeringRounded from '@mui/icons-material/EngineeringRounded';
 import RequestQuoteRounded from '@mui/icons-material/RequestQuoteRounded';
+import ArrowOutwardRounded from '@mui/icons-material/ArrowOutwardRounded';
 import { useAuth } from '../../context/AuthContext';
 import {
   getDashboardOverview, getLandlordOverview, getMySubscription, getMySurveyorSubscription,
@@ -95,16 +96,17 @@ function MetricCard({ label, value, Icon, detail, tone = 'primary' }: { label: s
     warning: { surface: 'rgba(183,121,31,.12)', color: 'warning.main' },
   };
   const colors = toneMap[tone];
-  return <Card className="sa-surface-card" elevation={0} sx={{ height: '100%', position: 'relative', overflow: 'hidden', transition: 'border-color .18s ease', '&:hover': { borderColor: 'primary.main' } }}>
-    <Box sx={{ position: 'absolute', width: 112, height: 112, right: -42, top: -46, borderRadius: '50%', bgcolor: colors.surface }} />
-    <CardContent sx={{ p: 2.15, '&:last-child': { pb: 2.15 }, position: 'relative' }}>
+  return <Card className="sa-surface-card sa-interactive-card" elevation={0} sx={{ height: '100%', position: 'relative', overflow: 'hidden', transition: 'border-color .18s ease' }}>
+    <Box sx={{ position: 'absolute', width: 122, height: 122, right: -46, top: -50, borderRadius: '50%', bgcolor: colors.surface }} />
+    <Box sx={{ position: 'absolute', left: 0, top: 18, bottom: 18, width: 3, borderRadius: '0 99px 99px 0', bgcolor: colors.color }} />
+    <CardContent sx={{ p: { xs: 1.8, md: 2.15 }, pl: { xs: 2, md: 2.35 }, '&:last-child': { pb: { xs: 1.8, md: 2.15 } }, position: 'relative' }}>
       <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1.25}>
         <Box sx={{ minWidth: 0 }}>
           <Typography color="text.secondary" sx={{ fontSize: 11.3, fontWeight: 780, letterSpacing: '.035em', textTransform: 'uppercase' }}>{label}</Typography>
           <Typography sx={{ mt: .7, fontSize: { xs: 23, lg: 27 }, lineHeight: 1, fontWeight: 900, letterSpacing: '-.055em', whiteSpace: 'nowrap' }}>{value}</Typography>
           {detail && <Typography color="text.secondary" sx={{ mt: .65, fontSize: 11.2 }}>{detail}</Typography>}
         </Box>
-        <Box sx={{ width: 42, height: 42, borderRadius: 3, display: 'grid', placeItems: 'center', bgcolor: colors.surface, color: colors.color, flexShrink: 0 }}><Icon fontSize="small" /></Box>
+        <Box sx={{ width: 42, height: 42, borderRadius: 3, display: 'grid', placeItems: 'center', bgcolor: colors.surface, color: colors.color, flexShrink: 0, border: '1px solid', borderColor: 'rgba(255,255,255,.62)' }}><Icon fontSize="small" /></Box>
       </Stack>
     </CardContent>
   </Card>;
@@ -117,25 +119,27 @@ function QuickLinkCard({ label, description, icon: Icon, onClick, tone = 0 }: { 
   ];
   const palette = palettes[tone % palettes.length];
   return <Button
+    className="sa-interactive-card"
     variant="outlined"
     fullWidth
     onClick={onClick}
     sx={{
-      minHeight: { xs: 148, md: 164 }, p: { xs: 1.5, md: 2 }, alignItems: 'center', justifyContent: 'center', textAlign: 'center', borderRadius: 3,
-      borderColor: 'divider', color: 'text.primary', bgcolor: 'background.paper',
-      '&:hover': { borderColor: 'primary.main', bgcolor: 'action.hover', transform: 'translateY(-2px)' },
+      minHeight: { xs: 148, md: 164 }, p: { xs: 1.55, md: 1.9 }, alignItems: 'stretch', justifyContent: 'flex-start', textAlign: 'center', borderRadius: 3,
+      borderColor: 'divider', color: 'text.primary', bgcolor: 'background.paper', position: 'relative', overflow: 'hidden',
+      '&:hover': { borderColor: 'primary.main', bgcolor: 'background.paper', transform: 'translateY(-3px)', boxShadow: '0 16px 34px rgba(18,50,57,.10)' },
     }}
   >
-    <Stack alignItems="center" spacing={.8} sx={{ width: '100%' }}>
-      <Box sx={{ width: { xs: 46, md: 52 }, height: { xs: 46, md: 52 }, display: 'grid', placeItems: 'center', borderRadius: 2.5, bgcolor: palette.surface, color: palette.color }}><Icon sx={{ fontSize: { xs: 24, md: 27 } }} /></Box>
-      <Typography sx={{ fontSize: { xs: 12.2, md: 13.4 }, fontWeight: 850, lineHeight: 1.25 }}>{label}</Typography>
-      <Typography color="text.secondary" sx={{ fontSize: { xs: 10.1, md: 10.8 }, lineHeight: 1.4 }}>{description}</Typography>
+    <ArrowOutwardRounded sx={{ position: 'absolute', top: 13, right: 13, fontSize: 17, color: 'text.disabled' }} />
+    <Stack alignItems="center" spacing={.8} sx={{ width: '100%', minWidth: 0 }}>
+      <Box sx={{ width: { xs: 42, md: 46 }, height: { xs: 42, md: 46 }, display: 'grid', placeItems: 'center', borderRadius: 2.5, bgcolor: palette.surface, color: palette.color }}><Icon sx={{ fontSize: { xs: 23, md: 25 } }} /></Box>
+      <Typography sx={{ pr: 1.5, fontSize: { xs: 12.2, md: 13.4 }, fontWeight: 820, lineHeight: 1.25 }}>{label}</Typography>
+      <Typography color="text.secondary" sx={{ fontSize: { xs: 10.1, md: 10.8 }, lineHeight: 1.45, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{description}</Typography>
     </Stack>
   </Button>;
 }
 
 function DashboardQuickLinks({ links, navigate }: { links: readonly DashboardQuickLink[]; navigate: (path: string) => void }) {
-  return <Paper className="sa-surface-card" elevation={0} sx={{ mt: 2, p: { xs: 2, md: 2.5 } }}>
+  return <Paper className="sa-surface-card" elevation={0} sx={{ mt: 2.3, p: { xs: 2, md: 2.5 } }}>
     <Stack alignItems="center" textAlign="center" sx={{ mb: 1.8 }}>
       <Typography className="sa-page-kicker">Quick links</Typography>
       <Typography variant="h6" sx={{ mt: .45 }}>Your workspace shortcuts</Typography>
