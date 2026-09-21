@@ -28,6 +28,7 @@ import { matchesDesignPath, normaliseDesignSystem } from '../designSystem';
 import { safeRecordArray } from '../utils/runtimeData';
 
 const publicIconByKey: Record<string, any> = {
+  home: HomeRoundedIcon,
   properties: StorefrontRoundedIcon,
   surveyors: EngineeringRoundedIcon,
   pricing: SellRoundedIcon,
@@ -36,6 +37,7 @@ const publicIconByKey: Record<string, any> = {
 };
 
 const fallbackNavigation = [
+  { key: 'home', label: 'Home', path: '/', icon: HomeRoundedIcon },
   { key: 'properties', label: 'Properties', path: '/marketplace', icon: StorefrontRoundedIcon },
   { key: 'surveyors', label: 'Surveyors', path: '/surveyors', icon: EngineeringRoundedIcon },
   { key: 'pricing', label: 'Pricing', path: '/pricing', icon: SellRoundedIcon },
@@ -78,9 +80,12 @@ export default function FrontLayout() {
   const faviconUrl = String(settings.faviconUrl || settings.design?.branding?.faviconUrl || '').trim();
   const design = useMemo(() => normaliseDesignSystem(settings.design), [settings.design]);
   const configuredNavigation = safeRecordArray(site.publicNavigation).filter((item) => String(item.key || '').trim() && String(item.path || '').trim());
-  const nav = configuredNavigation.length
+  const configuredOrFallbackNavigation = configuredNavigation.length
     ? configuredNavigation.map((item: any) => ({ key: String(item.key), label: String(item.label || item.key), path: String(item.path), icon: publicIconByKey[item.key] || StorefrontRoundedIcon }))
     : fallbackNavigation;
+  const nav = configuredOrFallbackNavigation.some((item) => item.path === '/' || item.key === 'home')
+    ? configuredOrFallbackNavigation
+    : [{ key: 'home', label: 'Home', path: '/', icon: HomeRoundedIcon }, ...configuredOrFallbackNavigation];
   const primary = design.colors?.primary || settings.brand?.primaryColor || '#0B5270';
   const headerColor = design.colors?.navigation || '#0B5270';
   const headerText = design.colors?.navigationText || '#FFFFFF';
