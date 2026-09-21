@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router';
 import {
@@ -7,37 +7,21 @@ import {
   Button,
   Card,
   CardContent,
-  CardMedia,
   Chip,
   Container,
-  Divider,
   Grid,
-  IconButton,
-  ImageList,
-  ImageListItem,
   Paper,
   Stack,
   Typography,
 } from '@mui/material';
-import BathtubRounded from '@mui/icons-material/BathtubRounded';
 import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded';
-import BedRounded from '@mui/icons-material/BedRounded';
-import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded';
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
-import DirectionsRounded from '@mui/icons-material/DirectionsRounded';
-import EmailRounded from '@mui/icons-material/EmailRounded';
-import FavoriteBorderRounded from '@mui/icons-material/FavoriteBorderRounded';
-import FavoriteRounded from '@mui/icons-material/FavoriteRounded';
-import LocationOnRounded from '@mui/icons-material/LocationOnRounded';
-import MeetingRoomRounded from '@mui/icons-material/MeetingRoomRounded';
-import ShareRounded from '@mui/icons-material/ShareRounded';
-import SquareFootRounded from '@mui/icons-material/SquareFootRounded';
-import WhatsApp from '@mui/icons-material/WhatsApp';
 import { publicPropertyQueryOptions } from '../queries/propertyQueries';
 import { useSite } from '../context/SiteContext';
 import { useWishlist } from '../context/WishlistContext';
 import OptimizedImage from '../components/shared/OptimizedImage';
 import InteractivePropertyTour from '../components/property/InteractivePropertyTour';
+import PremiumPropertyHero from '../components/property/PremiumPropertyHero';
 import { WorkspaceSkeleton } from '../components/shared/PremiumSkeleton';
 import { sharePublicListing } from '../utils/publicShare';
 
@@ -125,25 +109,16 @@ export default function PropertyDetailPage() {
   const wishlistKind = listing?.listingKind === 'space' ? 'space' : 'property';
   const wishlistId = String(wishlistListing?._id || property._id);
   const saved = wishlist.isWishlisted(wishlistId, wishlistKind);
-
-  const share = (kind: 'copy' | 'whatsapp' | 'email') => {
-    if (kind === 'copy') {
-      void navigator.clipboard.writeText(publicUrl);
-      return;
-    }
-    if (kind === 'whatsapp') {
-      window.open(`https://wa.me/?text=${encodeURIComponent(`${active.title || active.name} · ${isRentListing ? 'Rooms available' : money(price)} · ${publicUrl}`)}`, '_blank');
-      return;
-    }
-    window.location.href = `mailto:?subject=${encodeURIComponent(active.title || active.name)}&body=${encodeURIComponent(publicUrl)}`;
-  };
-
-  const detailRows: Array<[ReactNode, string, string]> = [
-    [<SquareFootRounded key="area-icon" />, 'Area', `${Number(active.area?.value || listing?.area || property.areas?.total || property.area || 0).toLocaleString()} ${active.area?.unit || listing?.areaUnit || property.areas?.unit || 'sqft'}`],
-    [<BedRounded key="bed-icon" />, 'Bedrooms', String(active.specifications?.bedroomCount ?? active.roomDetails?.bedrooms ?? listing?.bedrooms ?? property.roomDetails?.bedrooms ?? property.roomCounts?.bedrooms ?? '—')],
-    [<BathtubRounded key="bath-icon" />, 'Bathrooms', String(active.specifications?.bathroomCount ?? active.roomDetails?.bathrooms ?? listing?.bathrooms ?? property.roomDetails?.bathrooms ?? property.roomCounts?.bathrooms ?? '—')],
-    [<MeetingRoomRounded key="status-icon" />, 'Availability', sentence(active.availabilityStatus || active.status || property.status)],
-  ];
+  const hasInteractiveRoomTour = isRentListing && rentalUnits.length > 0;
+  const heroBedrooms = active.specifications?.bedroomCount ?? active.roomDetails?.bedrooms ?? listing?.bedrooms ?? property.roomDetails?.bedrooms ?? property.roomCounts?.bedrooms ?? property.specifications?.bedrooms ?? property.bedrooms;
+  const heroBathrooms = active.specifications?.bathroomCount ?? active.roomDetails?.bathrooms ?? listing?.bathrooms ?? property.roomDetails?.bathrooms ?? property.roomCounts?.bathrooms ?? property.specifications?.bathrooms ?? property.bathrooms;
+  const heroAreaValue = active.area?.value || listing?.area || property.areas?.total || property.area || 0;
+  const heroAreaUnit = active.area?.unit || listing?.areaUnit || property.areas?.unit || 'sqft';
+  const heroRooms = active.specifications?.rooms ?? property.specifications?.rooms ?? property.roomCounts?.rooms ?? property.roomDetails?.totalRooms;
+  const heroFurnishing = active.specifications?.furnishingStatus || property.specifications?.furnishingStatus || property.furnishing?.status;
+  const heroPriceLabel = normalizedPurpose === 'sale' ? 'Sale price' : isRentListing ? 'Monthly rent' : 'Lease amount';
+  const heroAvailability = sentence(active.availabilityStatus || active.status || property.status || 'available now');
+  const heroDeposit = Number(active.securityDeposit || property.pricing?.securityDeposit || 0);
 
   const occupancyRows: Array<[string, unknown]> = [
     ['Maximum occupants', active.specifications?.maximumOccupants ?? active.occupancyRules?.maxTotal ?? property.occupancyRules?.maxTotal],
@@ -248,19 +223,49 @@ export default function PropertyDetailPage() {
     </Card>;
   };
 
+  const premiumHero = <PremiumPropertyHero
+    title={sentence(shareTitle)}
+    purpose={sentence(purpose)}
+    propertyType={sentence(selected?.level || property.type)}
+    address={address || `${property.address?.city || 'Location'} — exact address available according to owner privacy settings`}
+    images={displayImages}
+    tourMedia={tourMedia}
+    floorPlanMedia={floorPlanMedia}
+    price={price}
+    priceLabel={heroPriceLabel}
+    priceSuffix={isRentListing ? '/ month' : undefined}
+    deposit={heroDeposit || undefined}
+    availableLabel={heroAvailability}
+    verified={Boolean(property.isVerified)}
+    urgentLabel={property.promotion?.urgentType && property.promotion.urgentType !== 'none' ? sentence(property.promotion.urgentType) : undefined}
+    bedrooms={heroBedrooms !== undefined && heroBedrooms !== null ? String(heroBedrooms) : undefined}
+    bathrooms={heroBathrooms !== undefined && heroBathrooms !== null ? String(heroBathrooms) : undefined}
+    area={heroAreaValue ? `${Number(heroAreaValue).toLocaleString()} ${heroAreaUnit}` : undefined}
+    roomCount={heroRooms !== undefined && heroRooms !== null ? String(heroRooms) : undefined}
+    furnishing={heroFurnishing ? sentence(heroFurnishing) : undefined}
+    amenities={[...(active.amenities || []), ...(property.amenities || [])].filter((value, index, array) => Boolean(value) && array.indexOf(value) === index)}
+    saved={saved}
+    onShare={() => void sharePublicListing({ title: shareTitle, imageUrl: shareImage, url: publicUrl })}
+    shareAction={<Button data-secureasset-public-property-share="public-listing-share-v200" variant="outlined" size="small" onClick={() => void sharePublicListing({ title: shareTitle, imageUrl: shareImage, url: publicUrl })} aria-label={`Share ${shareTitle}`} sx={{ minHeight: 38, borderColor: '#C9D9E2', color: '#163A54', fontWeight: 850, textTransform: 'none' }}>Share</Button>}
+    onToggleSaved={() => void wishlist.toggle(wishlistListing)}
+    onBook={() => navigate(`/app/apply_property/${property._id}${selected ? `?space=${selected._id}` : ''}`)}
+    bookingLabel="Book Now"
+    onScheduleVisit={() => navigate(`/app/schedule_visit/${property._id}${selected ? `?space=${selected._id}` : ''}`)}
+    onDirections={() => window.open(directions, '_blank')}
+  />;
+
   return (
-    <Box data-secureasset-rent-parent-surface={isRentListing ? 'rooms-only-v184' : 'full-property-v184'} sx={{ bgcolor: 'background.default', minHeight: '100vh', pb: 8 }}>
-      <Container maxWidth="xl" sx={{ pt: 4 }}>
-        {!isRentListing && <Button
+    <Box data-secureasset-rent-parent-surface={isRentListing ? 'rooms-only-v184' : 'full-property-v184'} data-secureasset-property-experience={hasInteractiveRoomTour ? 'interactive-tour-v203' : 'premium-property-v203'} sx={{ bgcolor: '#F4F8FA', minHeight: '100vh', pb: { xs: 5, md: 8 } }}>
+      <Container maxWidth="xl" sx={{ pt: { xs: 1.5, md: 3 } }}>
+        {!hasInteractiveRoomTour && <Button
           data-secureasset-property-overview-back="marketplace-v201"
           startIcon={<ArrowBackRounded />}
-          variant="outlined"
           onClick={() => navigate('/marketplace')}
-          sx={{ mb: 2, borderRadius: 2.5, fontWeight: 800 }}
+          sx={{ mb: 1.25, px: .5, color: '#173B55', fontWeight: 900, textTransform: 'none' }}
         >
-          Back to properties
+          Back to Marketplace
         </Button>}
-        {isRentListing && rentalUnits.length > 0 && <InteractivePropertyTour
+        {hasInteractiveRoomTour && <InteractivePropertyTour
           property={property}
           units={rentalUnits}
           onBack={() => navigate('/marketplace')}
@@ -270,84 +275,17 @@ export default function PropertyDetailPage() {
           saved={saved}
           onToggleSaved={() => void wishlist.toggle(wishlistListing)}
         />}
-        <Box sx={{ display: isRentListing && rentalUnits.length > 0 ? 'none' : 'block' }}>
-        <Stack direction="row" gap={1} flexWrap="wrap" mb={2}>
-          <Chip color="primary" label={sentence(purpose)} />
-          <Chip label={sentence(selected?.level || property.type)} />
-          {property.isVerified && <Chip color="success" icon={<CheckCircleRounded />} label="Verified listing" />}
-          {property.promotion?.urgentType && property.promotion.urgentType !== 'none' && <Chip color="error" label={sentence(property.promotion.urgentType)} />}
-        </Stack>
-
-        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'flex-start' }} gap={1.5}>
-          <Typography variant="h3" fontWeight={950} letterSpacing="-.04em">
-            {shareTitle}
-          </Typography>
-          <Stack direction="row" gap={1} alignItems="center" justifyContent="flex-end" sx={{ flexShrink: 0 }}>
-            <Button data-secureasset-public-property-share="public-listing-share-v200" variant="outlined" startIcon={<ShareRounded />} onClick={() => void sharePublicListing({ title: shareTitle, imageUrl: shareImage, url: publicUrl })} aria-label={`Share ${shareTitle}`}>Share</Button>
-            <IconButton aria-label={saved ? 'Remove from wishlist' : 'Add to wishlist'} onClick={() => void wishlist.toggle(wishlistListing)} sx={{ border: '1px solid', borderColor: 'divider', color: saved ? 'error.main' : 'text.primary' }}>{saved ? <FavoriteRounded /> : <FavoriteBorderRounded />}</IconButton>
-          </Stack>
-        </Stack>
-        <Stack direction="row" alignItems="center" gap={0.7} mt={1}>
-          <LocationOnRounded color="disabled" />
-          <Typography color="text.secondary">
-            {address || `${property.address?.city || 'Location'} — exact address available according to owner privacy settings`}
-          </Typography>
-        </Stack>
-        </Box>
-
         {!isRentListing && <Grid container spacing={3} mt={1}>
-          <Grid size={{ xs: 12, lg: 8 }}>
-            {displayImages.length ? (
-              <ImageList cols={displayImages.length > 1 ? 2 : 1} gap={10} sx={{ m: 0, borderRadius: 4, overflow: 'hidden' }}>
-                {displayImages.slice(0, 6).map((url: string, index: number) => (
-                  <ImageListItem key={`${url}-${index}`} cols={index === 0 && displayImages.length > 2 ? 2 : 1} rows={index === 0 && displayImages.length > 2 ? 2 : 1}>
-                    <OptimizedImage src={url || fallback} alt={`${property.title} ${index + 1}`} width={1200} height={index === 0 && displayImages.length > 2 ? 700 : 420} sizes="(max-width: 900px) 100vw, 66vw" style={{ objectFit: 'cover' }} />
-                  </ImageListItem>
-                ))}
-              </ImageList>
-            ) : <CardMedia component="img" height={500} image={fallback} loading="lazy" decoding="async" />}
-          </Grid>
-
-          <Grid size={{ xs: 12, lg: 4 }}>
-            <Paper variant="outlined" sx={{ p: 3, borderRadius: 4, position: { lg: 'sticky' }, top: { lg: 90 } }}>
-              <Typography color="text.secondary" fontSize={11} fontWeight={800}>{purpose === 'sale' ? 'SALE PRICE' : 'LEASE AMOUNT'}</Typography>
-              <Typography fontSize={37} fontWeight={950} color="primary">{money(price)}</Typography>
-              {(active.securityDeposit || property.pricing?.securityDeposit) ? (
-                <Typography color="text.secondary" fontSize={13}>
-                  Security deposit {money(Number(active.securityDeposit || property.pricing?.securityDeposit || 0))}
-                </Typography>
-              ) : null}
-              <Divider sx={{ my: 2.5 }} />
-              <Stack spacing={1.5}>
-                {detailRows.map(([icon, label, value]) => (
-                  <Stack key={label} direction="row" justifyContent="space-between">
-                    <Stack direction="row" gap={1} color="text.secondary">{icon}<Typography fontSize={13}>{label}</Typography></Stack>
-                    <Typography fontWeight={800} fontSize={13}>{value}</Typography>
-                  </Stack>
-                ))}
-              </Stack>
-              <Button fullWidth variant="contained" size="large" sx={{ mt: 3 }} onClick={() => navigate(`/app/apply_property/${property._id}${selected ? `?space=${selected._id}` : ''}`)}>Book Now</Button>
-              <Button fullWidth variant="outlined" size="large" startIcon={<CalendarMonthRounded />} sx={{ mt: 1 }} onClick={() => navigate(`/app/schedule_visit/${property._id}${selected ? `?space=${selected._id}` : ''}`)}>
-                Schedule site visit
-              </Button>
-              <Button fullWidth variant="outlined" startIcon={<DirectionsRounded />} sx={{ mt: 1 }} onClick={() => window.open(directions, '_blank')}>
-                Get directions
-              </Button>
-              <Stack direction="row" justifyContent="center" flexWrap="wrap" mt={2}>
-                <Button startIcon={<ShareRounded />} onClick={() => share('copy')}>Copy link</Button>
-                <Button startIcon={<WhatsApp />} onClick={() => share('whatsapp')}>WhatsApp</Button>
-                <Button startIcon={<EmailRounded />} onClick={() => share('email')}>Email</Button>
-              </Stack>
-            </Paper>
-          </Grid>
+          <Grid size={{ xs: 12 }}>{premiumHero}</Grid>
         </Grid>}
+        {isRentListing && !hasInteractiveRoomTour && premiumHero}
 
         {rentalUnits.length > 0 && !isRentListing && <Paper id="available-rooms" data-secureasset-public-rental-room-cards="marketplace-style-v184" variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 4, mt: 3 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={1} mb={2}><Box><Typography variant="h5" fontWeight={950}>{structure?.rentalStructureMode === 'floor' ? 'Available Rooms by floor' : 'Available Rooms & room directory'}</Typography><Typography color="text.secondary">Room prices and features are shown here. Locked rooms stay visible for details but cannot be booked.</Typography></Box><Chip color="success" label={`${rentalUnits.length} room${rentalUnits.length === 1 ? '' : 's'} listed`} /></Stack>
           {rentalFloorGroups.map((group) => <Box key={group.key} sx={{ mb: 2.5, '&:last-child': { mb: 0 } }}><Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} sx={{ mb: 1.2 }}><Typography variant="h6" fontWeight={900}>{group.floor ? `Floor ${group.floor.floorNumber} · ${group.floor.floorName}` : 'Rooms without a floor'}</Typography><Typography color="text.secondary" fontSize={13}>{group.units.length} room{group.units.length === 1 ? '' : 's'}</Typography></Stack><Grid container data-secureasset-room-grid="four-desktop-two-mobile-v199" spacing={{ xs: 1, sm: 1.5, md: 2 }}>{group.units.map((unit: any) => <Grid key={unit._id} size={{ xs: 6, sm: 6, md: 3 }}>{renderRentalRoomCard(unit)}</Grid>)}</Grid></Box>)}
         </Paper>}
 
-        <Grid container spacing={3} mt={1}>
+        <Grid container spacing={3} mt={{ xs: 2, md: 3 }}>
           <Grid size={{ xs: 12, lg: 8 }}>
             <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 4 }}>
               <Typography variant="h6" fontWeight={900}>About this listing</Typography>
