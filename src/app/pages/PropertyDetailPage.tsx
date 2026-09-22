@@ -207,6 +207,14 @@ export default function PropertyDetailPage() {
       {tag && <Chip label={tag} size="small" sx={{ flexShrink: 0, color: '#087A70', bgcolor: 'rgba(8, 122, 112, .10)', border: '1px solid rgba(8, 122, 112, .18)', fontWeight: 850, '& .MuiChip-label': { px: 1 } }} />}
     </Stack>
   );
+  const propertyLocationSection = mapEmbedUrl ? (
+    <Paper variant="outlined" sx={{ ...detailSectionSx, mt: useVakhitovskyPremiumDetails ? 2.5 : 3, overflow: 'hidden', ...(useVakhitovskyPremiumDetails ? {} : { p: 1 }) }}>
+      {useVakhitovskyPremiumDetails && <DetailSectionHeader icon={LocationOnRounded} title="Property location" subtitle={exactPublicLocation ? 'Map location shared publicly by the property owner.' : 'Location details are shared according to the owner’s privacy setting.'} />}
+      <Box sx={useVakhitovskyPremiumDetails ? { mt: 2, p: 1, border: '1px solid rgba(17, 62, 83, .12)', borderRadius: '1px', bgcolor: '#F8FBFC' } : undefined}>
+        <Box component="iframe" title={`${property.title} map`} src={mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" sx={{ border: 0, width: '100%', height: useVakhitovskyPremiumDetails ? { xs: 270, md: 360 } : 360, display: 'block', borderRadius: useVakhitovskyPremiumDetails ? '1px' : 3 }} />
+      </Box>
+    </Paper>
+  ) : null;
   const renderRows = (rows: Array<[string, unknown]>) => rows.filter(([, value]) => hasValue(value)).map(([label, value]) => {
     const valueLabel = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : sentence(String(value));
     return <Grid size={{ xs: 12, sm: 6 }} key={label}>
@@ -341,6 +349,7 @@ export default function PropertyDetailPage() {
           saved={saved}
           onToggleSaved={() => void wishlist.toggle(wishlistListing)}
         />}
+        {useVakhitovskyPremiumDetails && propertyLocationSection && <Box data-secureasset-property-location-priority="tour-following-v207" sx={{ width: '100%', px: { xs: 1.25, sm: 2, md: 3, lg: 4 } }}>{propertyLocationSection}</Box>}
         {!isRentListing && <Grid container spacing={3} mt={1}>
           <Grid size={{ xs: 12 }}>{premiumHero}</Grid>
         </Grid>}
@@ -444,14 +453,7 @@ export default function PropertyDetailPage() {
               </Paper>
             )}
 
-            {mapEmbedUrl && (
-              <Paper variant="outlined" sx={{ ...detailSectionSx, mt: useVakhitovskyPremiumDetails ? 2.5 : 3, overflow: 'hidden', ...(useVakhitovskyPremiumDetails ? {} : { p: 1 }) }}>
-                {useVakhitovskyPremiumDetails && <DetailSectionHeader icon={LocationOnRounded} title="Property location" subtitle={exactPublicLocation ? 'Map location shared publicly by the property owner.' : 'Location details are shared according to the owner’s privacy setting.'} />}
-                <Box sx={useVakhitovskyPremiumDetails ? { mt: 2, p: 1, border: '1px solid rgba(17, 62, 83, .12)', borderRadius: '1px', bgcolor: '#F8FBFC' } : undefined}>
-                  <Box component="iframe" title={`${property.title} map`} src={mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" sx={{ border: 0, width: '100%', height: useVakhitovskyPremiumDetails ? { xs: 270, md: 360 } : 360, display: 'block', borderRadius: useVakhitovskyPremiumDetails ? '1px' : 3 }} />
-                </Box>
-              </Paper>
-            )}
+            {!useVakhitovskyPremiumDetails && propertyLocationSection}
 
             {spaces.length > 0 && (
               <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 4, mt: 3 }}>
