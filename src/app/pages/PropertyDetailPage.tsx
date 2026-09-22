@@ -256,7 +256,11 @@ export default function PropertyDetailPage() {
 
   return (
     <Box data-secureasset-rent-parent-surface={isRentListing ? 'rooms-only-v184' : 'full-property-v184'} data-secureasset-property-experience={hasInteractiveRoomTour ? 'interactive-tour-v203' : 'premium-property-v203'} sx={{ bgcolor: '#F4F8FA', minHeight: '100vh', pb: { xs: 5, md: 8 } }}>
-      <Container maxWidth="xl" sx={{ pt: { xs: 1.5, md: 3 } }}>
+      <Container
+        maxWidth={hasInteractiveRoomTour ? false : 'xl'}
+        disableGutters={hasInteractiveRoomTour}
+        sx={{ pt: hasInteractiveRoomTour ? 0 : { xs: 1.5, md: 3 } }}
+      >
         {!hasInteractiveRoomTour && <Button
           data-secureasset-property-overview-back="marketplace-v201"
           startIcon={<ArrowBackRounded />}
