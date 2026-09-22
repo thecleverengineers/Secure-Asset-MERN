@@ -301,7 +301,23 @@ export default function PropertyDetailPage() {
   />;
 
   return (
-    <Box data-secureasset-rent-parent-surface={isRentListing ? 'rooms-only-v184' : 'full-property-v184'} data-secureasset-property-experience={hasInteractiveRoomTour ? 'interactive-tour-v203' : 'premium-property-v203'} sx={{ bgcolor: useVakhitovskyPremiumDetails ? '#FFFFFF' : '#F4F8FA', minHeight: '100vh', pb: { xs: 5, md: 8 } }}>
+    <Box
+      data-secureasset-rent-parent-surface={isRentListing ? 'rooms-only-v184' : 'full-property-v184'}
+      data-secureasset-property-experience={hasInteractiveRoomTour ? 'interactive-tour-v203' : 'premium-property-v203'}
+      sx={{
+        bgcolor: useVakhitovskyPremiumDetails ? '#FFFFFF' : '#F4F8FA',
+        minHeight: '100vh',
+        pb: { xs: 5, md: 8 },
+        ...(useVakhitovskyPremiumDetails ? {
+          fontFamily: '"Open Sans", Arial, sans-serif',
+          '& .MuiTypography-root, & .MuiButton-root, & .MuiChip-root, & .MuiChip-label, & .MuiTab-root': {
+            fontFamily: '"Open Sans", Arial, sans-serif',
+            fontWeight: '400 !important',
+            letterSpacing: 'normal',
+          },
+        } : {}),
+      }}
+    >
       <Container
         maxWidth={hasInteractiveRoomTour ? false : 'xl'}
         disableGutters={hasInteractiveRoomTour}
