@@ -109,6 +109,14 @@ export default function PremiumPropertyHero({
   ].filter(Boolean) as Array<{ Icon: typeof BedRounded; label: string; value: string }>;
   const media = tab === 'tour' ? tourMedia[0] : floorPlanMedia[0];
   const hasMedia = Boolean(media?.url);
+  // Keep the primary media within the visible device frame: wide enough to feel immersive,
+  // but never a fixed-height block that dominates short phones or smaller laptops.
+  const mediaFrameHeight = {
+    xs: 'clamp(230px, min(78vw, calc(100dvh - 250px)), 360px)',
+    sm: 'clamp(300px, min(58vw, calc(100dvh - 230px)), 430px)',
+    md: 'clamp(340px, min(44vw, calc(100dvh - 220px)), 500px)',
+    lg: 'clamp(380px, min(36vw, calc(100dvh - 190px)), 520px)',
+  };
 
   useEffect(() => {
     if (activeImage >= gallery.length) setActiveImage(0);
@@ -116,7 +124,7 @@ export default function PremiumPropertyHero({
 
   return (
     <Paper
-      data-secureasset-premium-property-hero="gallery-v203"
+      data-secureasset-premium-property-hero="gallery-v204"
       elevation={0}
       sx={{
         overflow: 'hidden',
@@ -168,7 +176,7 @@ export default function PremiumPropertyHero({
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1fr) 315px' }, gap: { xs: 1.5, lg: 2.25 }, mt: { xs: 1.5, md: 2.25 } }}>
           <Box sx={{ minWidth: 0 }}>
             {tab === 'photos' ? <>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'minmax(0, 1.65fr) minmax(135px, .65fr)' }, gap: 1, height: { xs: 330, sm: 420, md: 480 } }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'minmax(0, 1.65fr) minmax(135px, .65fr)' }, gap: 1, height: mediaFrameHeight }}>
                 <Box sx={{ position: 'relative', overflow: 'hidden', borderRadius: { xs: 3, md: 3.5 }, bgcolor: '#E1EAED' }}>
                   <OptimizedImage src={heroImage} alt={`${title} — image ${activeImage + 1}`} width={1600} height={1000} priority sizes="(max-width: 900px) 100vw, 65vw" style={{ objectFit: 'cover' }} />
                   <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(10,33,48,.01) 56%, rgba(10,33,48,.32))' }} />
@@ -181,7 +189,7 @@ export default function PremiumPropertyHero({
               <Stack direction="row" spacing={.85} sx={{ overflowX: 'auto', mt: 1.1, pb: .2, '&::-webkit-scrollbar': { height: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: '#C8D5DE', borderRadius: 9 } }}>
                 {gallery.map((image, index) => <Box component="button" type="button" key={`${image}-${index}`} onClick={() => setActiveImage(index)} aria-label={`View photo ${index + 1}`} sx={{ flex: '0 0 78px', height: 56, p: 0, border: activeImage === index ? '3px solid #00A78B' : '1px solid #DCE6EB', borderRadius: 1.8, overflow: 'hidden', cursor: 'pointer', bgcolor: '#E1EAED' }}><OptimizedImage src={image} alt="" width={160} height={112} sizes="120px" style={{ objectFit: 'cover' }} /></Box>)}
               </Stack>
-            </> : <Box sx={{ position: 'relative', minHeight: { xs: 330, sm: 420, md: 480 }, overflow: 'hidden', borderRadius: { xs: 3, md: 3.5 }, bgcolor: tab === 'floor-plan' ? '#F2F7F8' : '#123B4B', display: 'grid', placeItems: 'center' }}>
+            </> : <Box sx={{ position: 'relative', height: mediaFrameHeight, overflow: 'hidden', borderRadius: { xs: 3, md: 3.5 }, bgcolor: tab === 'floor-plan' ? '#F2F7F8' : '#123B4B', display: 'grid', placeItems: 'center' }}>
               {hasMedia && media.mediaType === 'video' ? <Box component="video" controls preload="metadata" src={media.url} poster={heroImage} sx={{ width: '100%', height: '100%', position: 'absolute', inset: 0, objectFit: 'cover', bgcolor: '#071E2C' }} /> : hasMedia && media.mediaType === 'image' ? <OptimizedImage src={media.url} alt={formatMediaName(media, tab === 'tour' ? 'Virtual property tour' : 'Floor plan')} width={1500} height={1000} sizes="(max-width: 900px) 100vw, 65vw" style={{ position: 'absolute', inset: 0, objectFit: tab === 'floor-plan' ? 'contain' : 'cover', padding: tab === 'floor-plan' ? 24 : 0 }} /> : <Box sx={{ position: 'absolute', inset: 0, background: tab === 'tour' ? `linear-gradient(120deg, rgba(5,26,38,.42), rgba(5,26,38,.12)), url(${heroImage}) center / cover` : 'linear-gradient(135deg, #E9F2F3, #F9FBFB)' }} />}
               {!hasMedia && <Stack alignItems="center" textAlign="center" spacing={1.2} sx={{ position: 'relative', zIndex: 1, maxWidth: 320, p: 3, color: tab === 'tour' ? '#fff' : '#163A54' }}>
                 {tab === 'tour' ? <PlayCircleFilledRounded sx={{ fontSize: 50 }} /> : <GridViewRounded sx={{ fontSize: 47, color: '#008C73' }} />}
