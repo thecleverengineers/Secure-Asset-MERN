@@ -349,11 +349,12 @@ export default function PropertyDetailPage() {
           saved={saved}
           onToggleSaved={() => void wishlist.toggle(wishlistListing)}
         />}
-        {useVakhitovskyPremiumDetails && propertyLocationSection && <Box data-secureasset-property-location-priority="tour-following-v207" sx={{ width: '100%', px: { xs: 1.25, sm: 2, md: 3, lg: 4 } }}>{propertyLocationSection}</Box>}
+        {hasInteractiveRoomTour && propertyLocationSection && <Box data-secureasset-property-location-priority="primary-content-following-v208" sx={{ width: '100%', px: { xs: 1.25, sm: 2, md: 3, lg: 4 } }}>{propertyLocationSection}</Box>}
         {!isRentListing && <Grid container spacing={3} mt={1}>
           <Grid size={{ xs: 12 }}>{premiumHero}</Grid>
         </Grid>}
         {isRentListing && !hasInteractiveRoomTour && premiumHero}
+        {!hasInteractiveRoomTour && propertyLocationSection}
 
         {rentalUnits.length > 0 && !isRentListing && <Paper id="available-rooms" data-secureasset-public-rental-room-cards="marketplace-style-v184" variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 4, mt: 3 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={1} mb={2}><Box><Typography variant="h5" fontWeight={950}>{structure?.rentalStructureMode === 'floor' ? 'Available Rooms by floor' : 'Available Rooms & room directory'}</Typography><Typography color="text.secondary">Room prices and features are shown here. Locked rooms stay visible for details but cannot be booked.</Typography></Box><Chip color="success" label={`${rentalUnits.length} room${rentalUnits.length === 1 ? '' : 's'} listed`} /></Stack>
@@ -452,8 +453,6 @@ export default function PropertyDetailPage() {
                 </Grid>
               </Paper>
             )}
-
-            {!useVakhitovskyPremiumDetails && propertyLocationSection}
 
             {spaces.length > 0 && (
               <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 4, mt: 3 }}>
