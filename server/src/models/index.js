@@ -44,6 +44,18 @@ const DeviceUnlockSchema = new Schema({
   authenticationChallengeExpiresAt: { type: Date, select: false },
 }, { _id: false });
 
+const VaultPinSchema = new Schema({
+  enabled: { type: Boolean, default: false },
+  pinHash: { type: String, select: false },
+  version: { type: Number, default: 0, min: 0 },
+  failedAttempts: { type: Number, default: 0, min: 0, select: false },
+  lockedUntil: { type: Date, select: false },
+  otpHash: { type: String, select: false },
+  otpExpiresAt: { type: Date, select: false },
+  otpAttempts: { type: Number, default: 0, min: 0, select: false },
+  otpLastSentAt: { type: Date, select: false },
+}, { _id: false });
+
 const PendingContactChangeSchema = new Schema({
   type: { type: String, enum: ['email', 'phone'] },
   value: String,
@@ -91,6 +103,7 @@ const UserSchema = new Schema({
     enabledAt: Date, lastVerifiedAt: Date,
   },
   deviceUnlock: { type: DeviceUnlockSchema, default: () => ({ enabled: false }), select: false },
+  vaultPin: { type: VaultPinSchema, default: () => ({ enabled: false }), select: false },
   pendingContactChange: { type: PendingContactChangeSchema, select: false },
   passwordResetTokenHash: { type: String, select: false },
   passwordResetExpiresAt: { type: Date, select: false },
@@ -129,6 +142,8 @@ UserSchema.methods.toJSON = function toJSON() {
   delete obj.password; delete obj.refreshTokens; delete obj.emailNormalized; delete obj.phoneNormalized; delete obj.otpHash; delete obj.otpExpiresAt; delete obj.otpPurpose; delete obj.otpAttempts; delete obj.otpLastSentAt; delete obj.passwordResetTokenHash;
   if (obj.twoFactor) { obj.twoFactorEnabled = Boolean(obj.twoFactor.enabled); delete obj.twoFactor.secretEncrypted; delete obj.twoFactor.pendingSecretEncrypted; delete obj.twoFactor.backupCodeHashes; }
   if (obj.deviceUnlock) { obj.deviceUnlockEnabled = Boolean(obj.deviceUnlock.enabled); delete obj.deviceUnlock; }
+  if (obj.vaultPin) { obj.vaultPinEnabled = Boolean(obj.vaultPin.enabled); delete obj.vaultPin; }
+  delete obj.vaultPin;
   delete obj.pendingContactChange;
   return obj;
 };

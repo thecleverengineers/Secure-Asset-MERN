@@ -42,6 +42,16 @@ export function verifyDeviceUnlockToken(token) {
   return payload;
 }
 
+export function signVaultPinUnlockToken(user) {
+  return jwt.sign({ sub: user._id.toString(), type: 'vault_pin_unlock', ver: Number(user.vaultPin?.version || 0) }, env.JWT_ACCESS_SECRET, { ...jwtOptions, expiresIn: '15m', jwtid: crypto.randomUUID() });
+}
+
+export function verifyVaultPinUnlockToken(token) {
+  const payload = jwt.verify(token, env.JWT_ACCESS_SECRET, { algorithms: ['HS512'], issuer: env.JWT_ISSUER, audience: env.JWT_AUDIENCE });
+  if (payload.type !== 'vault_pin_unlock') throw new Error('Invalid Document Vault unlock token type');
+  return payload;
+}
+
 export function verifyRefreshToken(token) {
   const payload = jwt.verify(token, env.JWT_REFRESH_SECRET, { algorithms: ['HS512'], issuer: env.JWT_ISSUER, audience: env.JWT_AUDIENCE });
   if (payload.type !== 'refresh') throw new Error('Invalid token type');

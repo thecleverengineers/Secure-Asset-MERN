@@ -25,6 +25,11 @@ export function safeUser(user) {
     value.deviceUnlockEnabled = Boolean(value.deviceUnlock.enabled);
     delete value.deviceUnlock;
   }
+  if (value.vaultPin) {
+    value.vaultPinEnabled = Boolean(value.vaultPin.enabled);
+    delete value.vaultPin;
+  }
+  delete value.vaultPin;
   delete value.pendingContactChange;
   return value;
 }

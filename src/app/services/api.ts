@@ -39,6 +39,7 @@ export const API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL);
 let refreshing: Promise<AuthSession | null> | null = null;
 let accessToken: string | null = null;
 let deviceUnlockToken: string | null = null;
+let vaultPinUnlockToken: string | null = null;
 type SessionBootstrap = { authenticated: boolean; user?: User | null; sessionId?: string; sessionExpiresAt?: string; absoluteExpiresAt?: string };
 
 function initialSessionBootstrap(): SessionBootstrap | null {
@@ -143,13 +144,16 @@ export function setSession(session: AuthSession, { broadcast = true } = {}) {
 export function clearSession({ broadcast = true } = {}) {
   accessToken = null;
   deviceUnlockToken = null;
+  vaultPinUnlockToken = null;
   currentUser = null;
   lastSessionEventAt = Date.now();
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('secureasset:session', { detail: { authenticated: false } }));
   if (broadcast) broadcastSession({ type: 'logout' });
 }
 export function setDeviceUnlockToken(token: string | null) { deviceUnlockToken = token || null; }
-export function clearDeviceUnlockToken() { deviceUnlockToken = null; }
+export function setVaultPinUnlockToken(token: string | null) { vaultPinUnlockToken = token || null; }
+export function hasVaultPinUnlockToken() { return Boolean(vaultPinUnlockToken); }
+export function clearDeviceUnlockToken() { deviceUnlockToken = null; vaultPinUnlockToken = null; }
 export function getCurrentUser(): User | null { return currentUser; }
 
 export async function renewSession(): Promise<AuthSession | null> {
@@ -195,7 +199,10 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
     const csrf = readCookie('sa_csrf');
     if (csrf) headers.set('X-SecureAsset-CSRF', csrf);
   }
-  if (deviceUnlockToken && path.startsWith('/drive')) headers.set('X-SecureAsset-Device-Unlock', deviceUnlockToken);
+  if (path.startsWith('/drive')) {
+    if (deviceUnlockToken) headers.set('X-SecureAsset-Device-Unlock', deviceUnlockToken);
+    if (vaultPinUnlockToken) headers.set('X-SecureAsset-Vault-Pin-Unlock', vaultPinUnlockToken);
+  }
   let res: Response;
   const timeoutMs = init.body instanceof FormData
     ? UPLOAD_REQUEST_TIMEOUT_MS
@@ -217,6 +224,7 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
   }
   if (res.status === 423 && path.startsWith('/drive')) {
     deviceUnlockToken = null;
+    vaultPinUnlockToken = null;
     window.dispatchEvent(new CustomEvent('secureasset:device-unlock-required'));
   }
   const contentType = res.headers.get('content-type') || '';
@@ -306,8 +314,19 @@ export async function publishMapStreetViewPhoto(file: File, metadata: { latitude
 }
 
 export type SecuritySession = { id: string; device?: string; ip?: string; createdAt?: string; lastUsedAt?: string; expiresAt?: string; absoluteExpiresAt?: string; current?: boolean; persistent?: boolean };
-export type SecurityOverview = { twoFactorEnabled: boolean; deviceUnlockEnabled: boolean; sessions: SecuritySession[] };
+export type SecurityOverview = { twoFactorEnabled: boolean; deviceUnlockEnabled: boolean; vaultPinEnabled: boolean; sessions: SecuritySession[] };
 export async function getSecurityOverview() { return request<ApiResponse<SecurityOverview>>('/auth/security'); }
+export async function requestVaultPinOtp() { return request<ApiResponse<{ maskedMobile: string }> & { developmentOtp?: string; deliveryWarning?: string }>('/auth/vault-pin/otp', { method: 'POST', body: JSON.stringify({}) }); }
+export async function setVaultPin(otp: string, pin: string) {
+  const result = await request<ApiResponse<{ vaultPinEnabled: boolean; token: string }>>('/auth/vault-pin/set', { method: 'POST', body: JSON.stringify({ otp, pin }) });
+  setVaultPinUnlockToken(result.data.token);
+  return result;
+}
+export async function unlockVaultPin(pin: string) {
+  const result = await request<ApiResponse<{ unlocked: boolean; token: string }>>('/auth/vault-pin/unlock', { method: 'POST', body: JSON.stringify({ pin }) });
+  setVaultPinUnlockToken(result.data.token);
+  return result;
+}
 export type AdminSession = SecuritySession & { rotation?: number; user?: { _id: string; name?: string; email?: string; role?: string; status?: string } | null };
 export async function getAdminSessions(limit = 100) { return request<ApiResponse<AdminSession[]>>(`/auth/admin/sessions?limit=${Math.min(200, Math.max(1, Math.round(limit)))}`); }
 export async function revokeAdminSession(sessionId: string) { return request<ApiResponse<null>>(`/auth/admin/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }); }
@@ -693,10 +712,12 @@ function driveRequestHeaders() {
   const csrf = readCookie('sa_csrf');
   if (csrf) headers.set('X-SecureAsset-CSRF', csrf);
   if (deviceUnlockToken) headers.set('X-SecureAsset-Device-Unlock', deviceUnlockToken);
+  if (vaultPinUnlockToken) headers.set('X-SecureAsset-Vault-Pin-Unlock', vaultPinUnlockToken);
   return headers;
 }
 function notifyVaultUnlockRequired() {
   deviceUnlockToken = null;
+  vaultPinUnlockToken = null;
   window.dispatchEvent(new CustomEvent('secureasset:device-unlock-required'));
 }
 async function fetchAuthenticatedBlob(path: string, message: string, retry = true): Promise<Blob> {

@@ -58,6 +58,7 @@ import {
   getDriveBreadcrumbs, getDriveComments, getDriveFile, getDriveItems, getDriveSharedWithMe, permanentlyDeleteDriveItem,
   revokeDrivePublicLink, setDriveFileApproval, shareDriveItem, updateDriveFile, updateDriveFolder, uploadDriveFile, uploadDriveVersion,
   beginDeviceUnlockAuthentication, clearDeviceUnlockToken, completeDeviceUnlockAuthentication, getSecurityOverview,
+  hasVaultPinUnlockToken, requestVaultPinOtp, setVaultPin as updateVaultPin, unlockVaultPin,
 } from '../../services/api';
 import { useActionDialog } from '../../components/shared/useActionDialog';
 import { useSite } from '../../context/SiteContext';
@@ -117,6 +118,11 @@ function formatBytes(bytes = 0) {
   if (!bytes) return '0 B'; const units = ['B', 'KB', 'MB', 'GB', 'TB']; const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
   return `${(bytes / 1024 ** index).toFixed(index > 1 ? 1 : 0)} ${units[index]}`;
 }
+function formatVaultDate(value?: string) {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
 function itemIcon(item: DriveItem) {
   if (item.itemType === 'folder') return <FolderRounded color="primary" />;
   if (item.category === 'image') return <ImageRounded color="success" />;
@@ -175,7 +181,7 @@ export default function DocumentVaultPage() {
   const [folders, setFolders] = useState<DriveItem[]>([]);
   const [files, setFiles] = useState<DriveItem[]>([]);
   const [breadcrumbs, setBreadcrumbs] = useState<DriveItem[]>([]);
-  const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [view, setView] = useState<'grid' | 'list'>('list');
   const [search, setSearch] = useState('');
   const [mobileCategory, setMobileCategory] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -199,6 +205,19 @@ export default function DocumentVaultPage() {
   const [vaultLocked, setVaultLocked] = useState(false);
   const [vaultLockRequired, setVaultLockRequired] = useState(false);
   const [vaultLockError, setVaultLockError] = useState('');
+  const [vaultPinEnabled, setVaultPinEnabled] = useState(false);
+  const [pinDialogOpen, setPinDialogOpen] = useState(false);
+  const [pinOtpSent, setPinOtpSent] = useState(false);
+  const [pinOtp, setPinOtp] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [pinMaskedMobile, setPinMaskedMobile] = useState('');
+  const [developmentPinOtp, setDevelopmentPinOtp] = useState('');
+  const [pinOtpBusy, setPinOtpBusy] = useState(false);
+  const [pinSaveBusy, setPinSaveBusy] = useState(false);
+  const [unlockPin, setUnlockPin] = useState('');
+  const [pinUnlockBusy, setPinUnlockBusy] = useState(false);
+  const [pinDialogError, setPinDialogError] = useState('');
   const vaultUnlockRun = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const scanRef = useRef<HTMLInputElement>(null);
@@ -478,27 +497,70 @@ export default function DocumentVaultPage() {
   const usage = bootstrap?.usage?.usedBytes || 0; const quota = bootstrap?.quotaBytes || 1; const percent = Math.min(100, usage / quota * 100);
   const mobileRecentLabel = selectedStorageDocument?.label || (mobileCategory ? mobileCategories.find((item) => item.category === mobileCategory)?.label || 'Filtered files' : 'Recent files');
 
+  function openVaultPinDialog() {
+    setPinOtpSent(false); setPinOtp(''); setNewPin(''); setConfirmPin(''); setDevelopmentPinOtp(''); setPinDialogError('');
+    setPinDialogOpen(true);
+  }
+
+  async function sendVaultPinOtp() {
+    setPinOtpBusy(true); setPinDialogError('');
+    try {
+      const response = await requestVaultPinOtp();
+      setPinMaskedMobile(response.data.maskedMobile); setDevelopmentPinOtp(response.developmentOtp || ''); setPinOtpSent(true);
+      toast.success(response.message || 'SMS verification code sent');
+    } catch (error: any) { setPinDialogError(error.message || 'Could not send the verification code'); }
+    finally { setPinOtpBusy(false); }
+  }
+
+  async function saveVaultPin() {
+    if (!/^\d{6}$/.test(newPin)) { setPinDialogError('Choose a six-digit security code'); return; }
+    if (newPin !== confirmPin) { setPinDialogError('The two security codes do not match'); return; }
+    if (!/^\d{6}$/.test(pinOtp)) { setPinDialogError('Enter the six-digit SMS verification code'); return; }
+    setPinSaveBusy(true); setPinDialogError('');
+    try {
+      const wasLocked = vaultLocked;
+      await updateVaultPin(pinOtp, newPin);
+      setVaultPinEnabled(true); setVaultLockRequired(true); setPinDialogOpen(false);
+      setPinOtpSent(false); setPinOtp(''); setNewPin(''); setConfirmPin(''); setDevelopmentPinOtp('');
+      toast.success(vaultPinEnabled ? 'Document Vault security code changed' : 'Document Vault is now protected');
+      if (wasLocked) { setVaultLocked(false); void beginVaultUnlock(); }
+    } catch (error: any) { setPinDialogError(error.message || 'Could not update the security code'); }
+    finally { setPinSaveBusy(false); }
+  }
+
+  async function unlockVaultWithPin() {
+    if (!/^\d{6}$/.test(unlockPin)) { setVaultLockError('Enter your six-digit Document Vault security code.'); return; }
+    setPinUnlockBusy(true); setVaultLockError('');
+    try {
+      await unlockVaultPin(unlockPin); setUnlockPin('');
+      await beginVaultUnlock();
+    } catch (error: any) { setVaultLockError(error.message || 'The security code could not be verified'); }
+    finally { setPinUnlockBusy(false); }
+  }
+
   async function beginVaultUnlock() {
     const runId = ++vaultUnlockRun.current;
-    const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
     setVaultLocked(false); setVaultLockError(''); setVaultUnlocking(true);
     try {
-      let deviceLockEnabled = false;
-      if (mobileOrTablet) {
-        const security = await getSecurityOverview();
-        deviceLockEnabled = Boolean(security.data.deviceUnlockEnabled);
-        setVaultLockRequired(deviceLockEnabled);
-        if (deviceLockEnabled) {
-          if (!deviceUnlockSupported()) throw new Error('Secure device unlock requires HTTPS and a phone or tablet with screen lock, fingerprint or face unlock enabled.');
-          const options = (await beginDeviceUnlockAuthentication()).data;
-          const credential = await navigator.credentials.get({ publicKey: authenticationOptionsForBrowser(options) });
-          await completeDeviceUnlockAuthentication(serializePublicKeyCredential(credential));
-        }
+      const security = await getSecurityOverview();
+      if (runId !== vaultUnlockRun.current) return;
+      const pinEnabled = Boolean(security.data.vaultPinEnabled);
+      const deviceLockEnabled = Boolean(mobileOrTablet && security.data.deviceUnlockEnabled);
+      setVaultPinEnabled(pinEnabled); setVaultLockRequired(pinEnabled || deviceLockEnabled);
+      if (pinEnabled && !hasVaultPinUnlockToken()) {
+        setVaultUnlocking(false); setVaultLocked(true); setVaultLockError('Enter your six-digit Document Vault security code to continue.');
+        return;
       }
-      await wait(deviceLockEnabled ? 650 : 1850);
+      if (deviceLockEnabled) {
+        if (!deviceUnlockSupported()) throw new Error('Secure device unlock requires HTTPS and a phone or tablet with screen lock, fingerprint or face unlock enabled.');
+        const options = (await beginDeviceUnlockAuthentication()).data;
+        const credential = await navigator.credentials.get({ publicKey: authenticationOptionsForBrowser(options) });
+        await completeDeviceUnlockAuthentication(serializePublicKeyCredential(credential));
+      }
+      if (runId !== vaultUnlockRun.current) return;
+      await load();
       if (runId !== vaultUnlockRun.current) return;
       setVaultUnlocking(false); setVaultLocked(false);
-      await load();
     } catch (error: any) {
       if (runId !== vaultUnlockRun.current) return;
       const message = error?.name === 'NotAllowedError' ? 'The device prompt was cancelled. Complete fingerprint, face unlock or screen lock to open the vault.' : error?.message || 'The vault could not verify this device.';
@@ -517,12 +579,12 @@ export default function DocumentVaultPage() {
   // phone/tablet vault is left idle or backgrounded, discard the in-memory
   // unlock token and require the platform authenticator again.
   useEffect(() => {
-    if (!mobileOrTablet || !vaultLockRequired || vaultUnlocking || vaultLocked) return undefined;
+    if ((!vaultPinEnabled && (!mobileOrTablet || !vaultLockRequired)) || vaultUnlocking || vaultLocked) return undefined;
     let timer: number | undefined;
     const lockVault = () => {
       if (timer) window.clearTimeout(timer);
       clearDeviceUnlockToken();
-      setVaultLockError('The vault was locked after inactivity. Verify this device to continue.');
+      setUnlockPin(''); setVaultLockError(vaultPinEnabled ? 'The vault was locked after inactivity. Enter your six-digit security code.' : 'The vault was locked after inactivity. Verify this device to continue.');
       setVaultLocked(true);
     };
     const armTimer = () => {
@@ -538,10 +600,10 @@ export default function DocumentVaultPage() {
       ['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach((eventName) => window.removeEventListener(eventName, armTimer));
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [mobileOrTablet, vaultLockRequired, vaultLocked, vaultUnlocking]);
+  }, [mobileOrTablet, vaultLockRequired, vaultLocked, vaultPinEnabled, vaultUnlocking]);
 
   return <Box className="sa-document-vault-page" aria-busy={vaultUnlocking || vaultLocked} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
-    {(vaultUnlocking || vaultLocked) && <Box className="sa-vault-unlock-overlay" role="status" aria-live="polite" aria-label="Unlocking secure document vault" data-vault-state={vaultLocked ? 'locked' : 'unlocking'}>
+    {(vaultUnlocking || vaultLocked) && <Box className="sa-vault-unlock-overlay" role={vaultLocked ? 'dialog' : 'status'} aria-modal={vaultLocked || undefined} aria-live="polite" aria-label="Unlocking secure document vault" data-vault-state={vaultLocked ? 'locked' : 'unlocking'}>
       <Box className="sa-vault-unlock-grid" />
       <Box className="sa-vault-unlock-scanline" />
       <Stack className="sa-vault-unlock-content" alignItems="center" spacing={2.2}>
@@ -556,22 +618,49 @@ export default function DocumentVaultPage() {
         </Box>
         <Stack alignItems="center" spacing={.8}>
           <Chip className="sa-vault-unlock-chip" icon={<SecurityRounded />} label="Secure access protocol" size="small" />
-          <Typography className="sa-vault-unlock-title">{vaultLocked ? 'Document Vault is locked' : vaultLockRequired ? 'Confirm your device security' : 'Unlocking your document vault'}</Typography>
-          <Typography className="sa-vault-unlock-subtitle">{vaultLocked ? vaultLockError : vaultLockRequired ? 'Use fingerprint, face unlock or your screen lock to continue' : 'Verifying session, permissions and protected storage'}</Typography>
+          <Typography className="sa-vault-unlock-title">{vaultLocked ? 'Document Vault is locked' : vaultLockRequired ? 'Confirm your security' : 'Unlocking your document vault'}</Typography>
+          <Typography className="sa-vault-unlock-subtitle">{vaultLocked ? vaultLockError : vaultPinEnabled ? 'Enter your six-digit security code to continue' : vaultLockRequired ? 'Use fingerprint, face unlock or your screen lock to continue' : 'Verifying your session and protected storage'}</Typography>
         </Stack>
-        {vaultLocked ? <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><Button className="sa-light-button" variant="contained" startIcon={<LockOpenRounded />} onClick={() => void beginVaultUnlock()} sx={{ bgcolor: '#8effc5', color: '#073a4c', '&:hover': { bgcolor: '#c1ffdf' } }}>Try device unlock again</Button><Button variant="outlined" onClick={() => window.location.assign('/app/security')} sx={{ color: 'white', borderColor: 'rgba(255,255,255,.4)' }}>Open Security</Button></Stack> : <Box className="sa-vault-unlock-progress"><Box className="sa-vault-unlock-progress-bar" /></Box>}
+        {vaultLocked && vaultPinEnabled ? <Stack className="sa-vault-pin-unlock-form" alignItems="center" spacing={1.2}>
+          <TextField className="sa-vault-pin-input" fullWidth autoFocus value={unlockPin} onChange={(event) => setUnlockPin(event.target.value.replace(/\D/g, '').slice(0, 6))} onKeyDown={(event) => { if (event.key === 'Enter') void unlockVaultWithPin(); }} type="password" label="6-digit security code" inputProps={{ inputMode: 'numeric', maxLength: 6, autoComplete: 'one-time-code', 'aria-label': 'Six-digit Document Vault security code' }} />
+          <Button className="sa-vault-pin-unlock-button" fullWidth variant="contained" startIcon={<LockOpenRounded />} disabled={pinUnlockBusy || unlockPin.length !== 6} onClick={() => void unlockVaultWithPin()}>{pinUnlockBusy ? 'Verifying code…' : 'Unlock Document Vault'}</Button>
+          <Button size="small" onClick={openVaultPinDialog} sx={{ color: 'rgba(232,250,255,.82)', textTransform: 'none' }}>Change or reset code with SMS verification</Button>
+        </Stack> : vaultLocked ? <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><Button className="sa-light-button" variant="contained" startIcon={<LockOpenRounded />} onClick={() => void beginVaultUnlock()} sx={{ bgcolor: '#8effc5', color: '#073a4c', '&:hover': { bgcolor: '#c1ffdf' } }}>Try device unlock again</Button><Button variant="outlined" onClick={() => window.location.assign('/app/security')} sx={{ color: 'white', borderColor: 'rgba(255,255,255,.4)' }}>Open Security</Button></Stack> : <Box className="sa-vault-unlock-progress"><Box className="sa-vault-unlock-progress-bar" /></Box>}
         <Stack direction="row" spacing={2.2} className="sa-vault-unlock-signals">
-          <Stack direction="row" alignItems="center" spacing={.55}><Box className="sa-vault-signal-dot" /> {vaultLockRequired ? 'Device verification required' : 'Identity verified'}</Stack>
+          <Stack direction="row" alignItems="center" spacing={.55}><Box className="sa-vault-signal-dot" /> {vaultLocked ? 'Vault access paused' : vaultLockRequired ? 'Security verification required' : 'Identity verified'}</Stack>
           <Stack direction="row" alignItems="center" spacing={.55}><Box className="sa-vault-signal-dot" /> Access scope checked</Stack>
         </Stack>
       </Stack>
     </Box>}
+    <ProfessionalDialog className="sa-vault-pin-dialog" open={pinDialogOpen} onClose={() => !pinSaveBusy && setPinDialogOpen(false)} fullWidth maxWidth="xs" enableMinimize={false} enableMaximize={false} sx={{ zIndex: 1700 }}>
+      <DialogTitle sx={{ fontWeight: 900 }}>{vaultPinEnabled ? 'Change vault security code' : 'Protect the Document Vault'}</DialogTitle>
+      <DialogContent dividers>
+        <Stack spacing={1.6} sx={{ mt: .5 }}>
+          <Alert severity="info">We’ll verify your registered mobile with a one-time code from Fast2SMS before saving this six-digit security code.</Alert>
+          {pinDialogError && <Alert severity="error">{pinDialogError}</Alert>}
+          {pinOtpSent && <>
+            <Alert severity="success">Verification code sent to {pinMaskedMobile || 'your registered mobile'}.</Alert>
+            {developmentPinOtp && <Alert severity="warning">Development OTP: <strong>{developmentPinOtp}</strong></Alert>}
+            <TextField fullWidth autoFocus label="SMS verification code" value={pinOtp} onChange={(event) => setPinOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} inputProps={{ inputMode: 'numeric', maxLength: 6, autoComplete: 'one-time-code' }} />
+            <TextField fullWidth label="New six-digit security code" type="password" value={newPin} onChange={(event) => setNewPin(event.target.value.replace(/\D/g, '').slice(0, 6))} inputProps={{ inputMode: 'numeric', maxLength: 6, autoComplete: 'new-password' }} />
+            <TextField fullWidth label="Confirm security code" type="password" value={confirmPin} onChange={(event) => setConfirmPin(event.target.value.replace(/\D/g, '').slice(0, 6))} inputProps={{ inputMode: 'numeric', maxLength: 6, autoComplete: 'new-password' }} />
+            <Button size="small" disabled={pinOtpBusy} onClick={() => void sendVaultPinOtp()}>{pinOtpBusy ? 'Sending…' : 'Send a new verification code'}</Button>
+          </>}
+          {!pinOtpSent && <Button fullWidth variant="outlined" startIcon={<SecurityRounded />} disabled={pinOtpBusy} onClick={() => void sendVaultPinOtp()}>{pinOtpBusy ? 'Sending verification code…' : 'Send verification code'}</Button>}
+        </Stack>
+      </DialogContent>
+      <DialogActions><Button onClick={() => setPinDialogOpen(false)} disabled={pinSaveBusy}>Cancel</Button><Button variant="contained" disabled={!pinOtpSent || pinSaveBusy || pinOtp.length !== 6 || newPin.length !== 6 || confirmPin.length !== 6} onClick={() => void saveVaultPin()}>{pinSaveBusy ? 'Saving…' : vaultPinEnabled ? 'Change security code' : 'Protect vault'}</Button></DialogActions>
+    </ProfessionalDialog>
     <Box className="sa-vault-mobile-shell" aria-label="SecureAsset mobile and tablet document drive">
+      <Stack className="sa-vault-mobile-titlebar" direction="row" alignItems="center" justifyContent="space-between">
+        <Box><Typography className="sa-vault-mobile-page-title">Document vault</Typography><Typography className="sa-vault-mobile-page-caption">Secure records workspace</Typography></Box>
+        <Tooltip title={vaultPinEnabled ? 'Change vault security code' : 'Protect the vault'}><IconButton className="sa-vault-security-action" aria-label={vaultPinEnabled ? 'Change vault security code' : 'Protect the vault'} onClick={openVaultPinDialog}><SecurityRounded /></IconButton></Tooltip>
+      </Stack>
       <TextField className="sa-vault-mobile-search" fullWidth size="small" placeholder="Search your documents" value={search} onChange={(e) => setSearch(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment>, endAdornment: <InputAdornment position="end"><IconButton size="small" aria-label="Upload files" onClick={() => inputRef.current?.click()}><CloudUploadRounded fontSize="small" /></IconButton></InputAdornment> }} />
 
       <Stack direction="row" alignItems="center" justifyContent="space-between" className="sa-vault-mobile-section-heading">
         <Box><Typography>Quick Access</Typography><Typography>Tap a category to open its protected files</Typography></Box>
-        <Button onClick={() => setFolderDialog(true)} startIcon={<AddRounded />}>Folder</Button>
+        <Stack direction="row" spacing={.6} alignItems="center"><Button onClick={() => setFolderDialog(true)} startIcon={<AddRounded />}>Folder</Button></Stack>
       </Stack>
       <Box className="sa-vault-mobile-category-grid" data-secureasset-document-vault-storage-categories="four-icon-cards-v160" data-secureasset-document-vault-storage-categories-v187="document-essentials-v187" data-secureasset-document-vault-storage-documents="pan-birth-passport-voter-aadhaar-driving-land-patta-v187" data-secureasset-document-vault-quick-access="transparent-cards-v205" data-secureasset-document-vault-quick-access-mobile="white-premium-cards-v213">
         {mobileCategories.map((item) => {
@@ -604,12 +693,15 @@ export default function DocumentVaultPage() {
       </IconButton>
     </Tooltip>
 
-    <Stack data-secureasset-document-vault-toolbar="compact-v151" className="sa-vault-desktop-toolbar" direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} justifyContent="space-between" gap={1.2} sx={{ mb: 2 }}>
-      <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" useFlexGap>
-        <Chip size="small" color="success" icon={<VerifiedRounded />} label={`${formatBytes(usage)} protected`} />
-        <Typography color="text.secondary" sx={{ fontSize: 13 }}>Private document workspace</Typography>
-      </Stack>
+    <Stack data-secureasset-document-vault-toolbar="compact-v151" data-secureasset-document-vault-layout="record-workspace-v1" className="sa-vault-desktop-toolbar" direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} justifyContent="space-between" gap={1.5} sx={{ mb: 2 }}>
+      <Box className="sa-vault-page-heading">
+        <Typography className="sa-vault-page-eyebrow">SECURE RECORDS WORKSPACE</Typography>
+        <Typography className="sa-vault-page-title">Document vault</Typography>
+        <Typography className="sa-vault-page-description">Private document workspace for property, tenancy, identity, and legal records.</Typography>
+      </Box>
       <Stack direction="row" spacing={.8} flexWrap="wrap" useFlexGap>
+        <Chip size="small" color="success" icon={<VerifiedRounded />} label={`${formatBytes(usage)} protected`} />
+        <Button size="small" variant="outlined" startIcon={<SecurityRounded />} onClick={openVaultPinDialog}>{vaultPinEnabled ? 'Change security' : 'Protect vault'}</Button>
         <Button size="small" variant="outlined" startIcon={<AddRounded />} onClick={() => setFolderDialog(true)}>New folder</Button>
         <Button size="small" variant="outlined" startIcon={<CameraAltRounded />} onClick={() => scanRef.current?.click()}>Scan securely to PNG</Button>
         <Button size="small" variant="contained" startIcon={<CloudUploadRounded />} onClick={() => inputRef.current?.click()}>Upload files</Button>
@@ -644,7 +736,16 @@ export default function DocumentVaultPage() {
 
         {loading ? <Box sx={{ py: 12, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box> : filtered.length === 0 ? <Box sx={{ py: 12, px: 3, textAlign: 'center' }}><FolderOpenRounded sx={{ fontSize: 62, color: 'text.disabled' }} /><Typography variant="h6" sx={{ fontWeight: 800, mt: 1 }}>Nothing here yet</Typography><Typography color="text.secondary">Upload files or create a folder to get started.</Typography></Box> : view === 'grid' ?
           <Box className="sa-vault-recent-grid" sx={{ p: 2, display: 'grid', gridTemplateColumns: { xs: 'repeat(2,minmax(0,1fr))', md: 'repeat(4,minmax(0,1fr))' }, gap: 1.5 }}>{filtered.map((item) => <Paper key={`${item.itemType}-${item._id}`} className="sa-vault-recent-card" variant="outlined" onDoubleClick={() => itemAction(item, 'open')} sx={{ p: 0, borderRadius: 3, cursor: 'pointer', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: '.18s', '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 } }}><Box className="sa-vault-recent-card-media"><VaultRecentThumbnail item={item} full /><IconButton size="small" aria-label={`Open actions for ${item.name}`} onClick={(event) => { event.stopPropagation(); setMenu({ anchor: event.currentTarget, item }); }}><MoreVertRounded fontSize="small" /></IconButton></Box><Box sx={{ px: 1.5, pt: 1.4, minWidth: 0, flex: 1 }}><Typography noWrap sx={{ fontWeight: 800, fontSize: 13.5 }}>{item.name}</Typography><Typography variant="caption" color="text.secondary">{item.itemType === 'folder' ? 'Folder' : formatBytes(item.sizeBytes)}</Typography><Stack direction="row" gap={.5} sx={{ mt: 1.2 }} flexWrap="wrap">{visibilityChip(item)}{item.starred && <StarRounded color="warning" sx={{ fontSize: 20 }} />}{item.immutable && <VerifiedRounded color="success" sx={{ fontSize: 20 }} />}</Stack></Box><Button className="sa-vault-card-share-button" fullWidth startIcon={<VaultConfiguredIcon source={design.iconAssets.globalShare} fallback={<ShareRounded />} />} disabled={item.itemType === 'folder'} onClick={(event) => { event.stopPropagation(); void instantShare(item); }}>Share</Button></Paper>)}</Box> :
-          <Box>{filtered.map((item) => <Box key={`${item.itemType}-${item._id}`} onDoubleClick={() => itemAction(item, 'open')} sx={{ px: 2, py: 1.3, display: 'grid', gridTemplateColumns: '42px minmax(150px,1fr) 120px 125px 42px', gap: 1, alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider', cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}><Box>{itemIcon(item)}</Box><Box><Typography noWrap sx={{ fontWeight: 750, fontSize: 13.5 }}>{item.name}</Typography><Typography variant="caption" color="text.secondary">{item.description || item.category || 'Folder'}</Typography></Box><Box>{visibilityChip(item)}</Box><Typography variant="caption" color="text.secondary">{item.itemType === 'folder' ? '—' : formatBytes(item.sizeBytes)}</Typography><IconButton size="small" onClick={(e) => setMenu({ anchor: e.currentTarget, item })}><MoreVertRounded fontSize="small" /></IconButton></Box>)}</Box>}
+          <Box className="sa-vault-record-list" data-secureasset-document-vault-records="list-v1" role="table">
+            <Box className="sa-vault-record-list-head" role="row"><Typography role="columnheader">Document</Typography><Typography role="columnheader">Access</Typography><Typography role="columnheader">Modified</Typography><Typography role="columnheader">Size</Typography><Typography role="columnheader" aria-label="Actions" /></Box>
+            {filtered.map((item) => <Box key={`${item.itemType}-${item._id}`} className="sa-vault-record-row" role="row" tabIndex={0} onDoubleClick={() => void itemAction(item, 'open')} onKeyDown={(event) => { if (event.key === 'Enter') void itemAction(item, 'open'); }}>
+              <Box className="sa-vault-record-document" role="cell"><VaultRecentThumbnail item={item} /><Box className="sa-vault-record-name"><Typography noWrap>{item.name}</Typography><Typography noWrap>{item.description || (item.itemType === 'folder' ? 'Protected folder' : item.category || 'Document')}</Typography></Box></Box>
+              <Box role="cell">{visibilityChip(item)}{item.immutable && <VerifiedRounded color="success" sx={{ ml: .5, fontSize: 17, verticalAlign: 'middle' }} />}</Box>
+              <Typography className="sa-vault-record-date" role="cell">{formatVaultDate(item.updatedAt || item.createdAt)}</Typography>
+              <Typography className="sa-vault-record-size" role="cell">{item.itemType === 'folder' ? '—' : formatBytes(item.sizeBytes)}</Typography>
+              <IconButton size="small" aria-label={`Actions for ${item.name}`} onClick={(event) => { event.stopPropagation(); setMenu({ anchor: event.currentTarget, item }); }}><MoreVertRounded fontSize="small" /></IconButton>
+            </Box>)}
+          </Box>}
       </Paper>
     </Box>
 

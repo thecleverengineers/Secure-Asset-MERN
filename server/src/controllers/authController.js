@@ -5,7 +5,7 @@ import { User, AuditLog, SiteSetting } from '../models/index.js';
 import { ApiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import {
-  hashToken,
+  hashToken, signVaultPinUnlockToken,
   signTwoFactorChallenge, verifyTwoFactorChallenge, signDeviceUnlockToken,
 } from '../utils/tokens.js';
 import { env } from '../config/env.js';
@@ -63,6 +63,8 @@ const contactChangeSchema = z.object({
   value: z.string().trim().min(3).max(160),
   currentPassword: z.string().min(8).max(128),
 }).strict();
+const vaultPinOtpSchema = z.object({ otp: z.string().regex(/^\d{6}$/), pin: z.string().regex(/^\d{6}$/) }).strict();
+const vaultPinUnlockSchema = z.object({ pin: z.string().regex(/^\d{6}$/) }).strict();
 
 async function audit(req, user, action, updatedValue) {
   await AuditLog.create({ user: user._id, role: user.role, action, module: 'auth', recordId: user._id, updatedValue, ip: req.ip, device: req.get('user-agent') });
@@ -390,6 +392,103 @@ export const resetDeviceUnlock = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { deviceUnlockEnabled: false }, message: 'Device unlock reset. Set it up again on a trusted device.' });
 });
 
+export const requestVaultPinOtp = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select('+vaultPin +vaultPin.otpHash +vaultPin.otpExpiresAt +vaultPin.otpAttempts +vaultPin.otpLastSentAt');
+  const mobile = normalizeIndianMobile(user?.phone);
+  if (!user || !mobile) throw new ApiError(422, 'Add a valid mobile number to your account before protecting the Document Vault');
+  const lastSentAt = user.vaultPin?.otpLastSentAt ? new Date(user.vaultPin.otpLastSentAt).getTime() : 0;
+  if (lastSentAt && Date.now() - lastSentAt < 60_000) throw new ApiError(429, 'Wait one minute before requesting another vault security OTP');
+
+  const otp = generatedOtp();
+  user.vaultPin ||= { enabled: false };
+  user.vaultPin.otpHash = await bcrypt.hash(otp, 12);
+  user.vaultPin.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  user.vaultPin.otpAttempts = 0;
+  user.vaultPin.otpLastSentAt = new Date();
+  await user.save({ validateModifiedOnly: true });
+
+  let deliveryWarning = '';
+  try {
+    await sendFast2SmsOtp({ mobile, otp, name: user.name });
+  } catch (error) {
+    if (env.NODE_ENV === 'production') {
+      user.vaultPin.otpHash = undefined;
+      user.vaultPin.otpExpiresAt = undefined;
+      user.vaultPin.otpLastSentAt = undefined;
+      await user.save({ validateModifiedOnly: true });
+      throw new ApiError(503, error.message);
+    }
+    deliveryWarning = error.message;
+  }
+
+  res.json({
+    success: true,
+    data: { maskedMobile: maskMobile(mobile) },
+    message: `Vault security OTP sent to ${maskMobile(mobile)}`,
+    ...(env.NODE_ENV !== 'production' && { developmentOtp: otp, deliveryWarning }),
+  });
+});
+
+export const setVaultPin = asyncHandler(async (req, res) => {
+  const parsed = vaultPinOtpSchema.safeParse(req.body);
+  if (!parsed.success) throw new ApiError(422, 'Enter the six-digit SMS verification code and a six-digit vault security code');
+  const user = await User.findById(req.user._id).select('+vaultPin +vaultPin.pinHash +vaultPin.otpHash +vaultPin.otpExpiresAt +vaultPin.otpAttempts +vaultPin.otpLastSentAt +vaultPin.failedAttempts +vaultPin.lockedUntil');
+  const pinState = user?.vaultPin;
+  const valid = Boolean(pinState?.otpHash && pinState.otpExpiresAt && pinState.otpExpiresAt > new Date() && Number(pinState.otpAttempts || 0) < 5 && await bcrypt.compare(parsed.data.otp, pinState.otpHash));
+  if (!valid) {
+    if (pinState?.otpHash) {
+      pinState.otpAttempts = Number(pinState.otpAttempts || 0) + 1;
+      if (pinState.otpAttempts >= 5) {
+        pinState.otpHash = undefined;
+        pinState.otpExpiresAt = undefined;
+      }
+      await user.save({ validateModifiedOnly: true });
+    }
+    throw new ApiError(401, 'The SMS verification code is invalid or expired');
+  }
+
+  const wasEnabled = Boolean(pinState.enabled);
+  pinState.pinHash = await bcrypt.hash(parsed.data.pin, 12);
+  pinState.enabled = true;
+  pinState.version = Number(pinState.version || 0) + 1;
+  pinState.failedAttempts = 0;
+  pinState.lockedUntil = undefined;
+  pinState.otpHash = undefined;
+  pinState.otpExpiresAt = undefined;
+  pinState.otpAttempts = 0;
+  await user.save({ validateModifiedOnly: true });
+  await audit(req, user, wasEnabled ? 'vault_pin:changed' : 'vault_pin:enabled');
+  res.json({ success: true, data: { vaultPinEnabled: true, token: signVaultPinUnlockToken(user) }, message: wasEnabled ? 'Document Vault security code changed' : 'Document Vault security enabled' });
+});
+
+export const unlockVaultPin = asyncHandler(async (req, res) => {
+  const parsed = vaultPinUnlockSchema.safeParse(req.body);
+  if (!parsed.success) throw new ApiError(422, 'Enter your six-digit Document Vault security code');
+  const user = await User.findById(req.user._id).select('+vaultPin +vaultPin.pinHash +vaultPin.failedAttempts +vaultPin.lockedUntil');
+  const pinState = user?.vaultPin;
+  if (!user || !pinState?.enabled || !pinState.pinHash) throw new ApiError(409, 'Document Vault security is not configured');
+  const now = Date.now();
+  const lockedUntil = pinState.lockedUntil ? new Date(pinState.lockedUntil).getTime() : 0;
+  if (lockedUntil > now) throw new ApiError(423, 'Too many incorrect codes. Change your security code using SMS verification or try again later.');
+
+  const valid = await bcrypt.compare(parsed.data.pin, pinState.pinHash);
+  if (!valid) {
+    pinState.failedAttempts = Number(pinState.failedAttempts || 0) + 1;
+    if (pinState.failedAttempts >= 5) {
+      pinState.failedAttempts = 0;
+      pinState.lockedUntil = new Date(now + 15 * 60 * 1000);
+    }
+    await user.save({ validateModifiedOnly: true });
+    throw new ApiError(401, pinState.lockedUntil ? 'Too many incorrect codes. Change your security code using SMS verification or try again later.' : 'The Document Vault security code is incorrect');
+  }
+
+  pinState.failedAttempts = 0;
+  pinState.lockedUntil = undefined;
+  await user.save({ validateModifiedOnly: true });
+  await audit(req, user, 'vault_pin:unlocked');
+  res.json({ success: true, data: { unlocked: true, token: signVaultPinUnlockToken(user) }, message: 'Document Vault unlocked' });
+});
+
 export const requestContactChange = asyncHandler(async (req, res) => {
   const parsed = contactChangeSchema.safeParse(req.body);
   if (!parsed.success) throw new ApiError(422, 'Enter a valid contact type, value and current password');
@@ -502,10 +601,10 @@ export const resetPassword = asyncHandler(async (req, res) => {
 });
 
 export const getSecurityOverview = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id).select('+refreshTokens +deviceUnlock');
+  const user = await User.findById(req.user._id).select('+refreshTokens +deviceUnlock +vaultPin');
   const current = currentSessionId(req);
   const sessions = await listServerSessions(req.user._id, current);
-  res.json({ success: true, data: { twoFactorEnabled: Boolean(user.twoFactor?.enabled), deviceUnlockEnabled: Boolean(user.deviceUnlock?.enabled && user.deviceUnlock?.credentials?.length), sessions } });
+  res.json({ success: true, data: { twoFactorEnabled: Boolean(user.twoFactor?.enabled), deviceUnlockEnabled: Boolean(user.deviceUnlock?.enabled && user.deviceUnlock?.credentials?.length), vaultPinEnabled: Boolean(user.vaultPin?.enabled), sessions } });
 });
 
 export const beginTwoFactorSetup = asyncHandler(async (req, res) => {

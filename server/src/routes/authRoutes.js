@@ -6,7 +6,7 @@ import {
   sendOtp, verifyOtp, forgotPassword, resetPassword, getSecurityOverview, beginTwoFactorSetup,
   enableTwoFactor, disableTwoFactor, regenerateBackupCodes, revokeSession, revokeOtherSessions,
   beginDeviceUnlockSetup, completeDeviceUnlockSetup, beginDeviceUnlockAuthentication, completeDeviceUnlockAuthentication,
-  resetDeviceUnlock, requestContactChange, verifyContactChange,
+  resetDeviceUnlock, requestVaultPinOtp, setVaultPin, unlockVaultPin, requestContactChange, verifyContactChange,
 } from '../controllers/authController.js';
 import { listAdminSessions, revokeAdminSession, revokeAdminUserSessions } from '../controllers/adminSessionController.js';
 import { authenticate, authorize } from '../middleware/auth.js';
@@ -36,6 +36,9 @@ router.post('/device-unlock/setup/verify', authenticate, credentialLimiter, comp
 router.post('/device-unlock/authentication/options', authenticate, standardLimiter, beginDeviceUnlockAuthentication);
 router.post('/device-unlock/authentication/verify', authenticate, credentialLimiter, completeDeviceUnlockAuthentication);
 router.delete('/device-unlock', authenticate, credentialLimiter, resetDeviceUnlock);
+router.post('/vault-pin/otp', authenticate, otpRequestLimiter, requestVaultPinOtp);
+router.post('/vault-pin/set', authenticate, otpVerifyLimiter, setVaultPin);
+router.post('/vault-pin/unlock', authenticate, credentialLimiter, unlockVaultPin);
 router.post('/contact-change/request', authenticate, credentialLimiter, requestContactChange);
 router.post('/contact-change/verify', authenticate, otpVerifyLimiter, verifyContactChange);
 router.post('/send-otp', otpRequestLimiter, sendOtp);

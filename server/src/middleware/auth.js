@@ -1,5 +1,5 @@
 import { User } from '../models/index.js';
-import { verifyAccessToken, verifyDeviceUnlockToken } from '../utils/tokens.js';
+import { verifyAccessToken, verifyDeviceUnlockToken, verifyVaultPinUnlockToken } from '../utils/tokens.js';
 import { ApiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { syncTenantEntitlements } from '../services/tenantEntitlements.js';
@@ -68,14 +68,19 @@ function isMobileOrTabletRequest(req) {
   return /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk|Kindle/i.test(req.get('user-agent') || '');
 }
 
-// Mobile vault APIs are closed until the client proves the registered
-// platform authenticator. Desktop users keep the existing workspace flow;
-// the mobile lock is an additional device-bound gate, not a replacement for
-// normal session authentication.
+// Configured vault codes gate Drive APIs on every device. Registered
+// platform authenticators remain an additional mobile device-bound check.
 export const requireDeviceUnlock = asyncHandler(async (req, _res, next) => {
-  if (!isMobileOrTabletRequest(req)) return next();
-  const user = await User.findById(req.user._id).select('+deviceUnlock');
-  if (!user?.deviceUnlock?.enabled || !user.deviceUnlock.credentials?.length) return next();
+  const mobileRequest = isMobileOrTabletRequest(req);
+  const user = await User.findById(req.user._id).select('+deviceUnlock +vaultPin');
+  if (user?.vaultPin?.enabled) {
+    const token = req.get('x-secureasset-vault-pin-unlock');
+    if (!token) throw new ApiError(423, 'Enter your six-digit code to unlock the Document Vault');
+    let payload;
+    try { payload = verifyVaultPinUnlockToken(token); } catch { throw new ApiError(423, 'Document Vault security session expired. Enter your code again.'); }
+    if (String(payload.sub) !== String(req.user._id) || Number(payload.ver) !== Number(user.vaultPin.version || 0)) throw new ApiError(423, 'Document Vault security code changed. Unlock the vault again.');
+  }
+  if (!mobileRequest || !user?.deviceUnlock?.enabled || !user.deviceUnlock.credentials?.length) return next();
   const token = req.get('x-secureasset-device-unlock');
   if (!token) throw new ApiError(423, 'Device unlock is required before accessing the mobile Document Vault');
   let payload;

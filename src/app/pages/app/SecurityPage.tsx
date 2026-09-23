@@ -48,7 +48,7 @@ export default function SecurityPage() {
   const { user, refreshUser } = useAuth();
   const theme = useTheme();
   const mobileOrTablet = useMediaQuery(theme.breakpoints.down('lg'));
-  const [data, setData] = useState<SecurityOverview>({ twoFactorEnabled: false, deviceUnlockEnabled: false, sessions: [] });
+  const [data, setData] = useState<SecurityOverview>({ twoFactorEnabled: false, deviceUnlockEnabled: false, vaultPinEnabled: false, sessions: [] });
   const [adminSessions, setAdminSessions] = useState<AdminSession[]>([]);
   const [adminSessionsLoading, setAdminSessionsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
