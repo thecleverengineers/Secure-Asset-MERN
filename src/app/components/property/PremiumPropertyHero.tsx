@@ -62,6 +62,7 @@ type PropertyHeroProps = {
 };
 
 type HeroTab = 'photos' | 'tour' | 'floor-plan';
+const HERO_RADIUS = '3px';
 
 function formatMediaName(item: any, fallbackName: string) {
   return String(item?.caption || item?.altText || fallbackName).trim();
@@ -101,6 +102,7 @@ export default function PremiumPropertyHero({
   const [tab, setTab] = useState<HeroTab>('photos');
   const [activeImage, setActiveImage] = useState(0);
   const heroImage = gallery[Math.min(activeImage, gallery.length - 1)] || fallback;
+  const hasGalleryRail = gallery.length > 1;
   const stats = [
     bedrooms ? { Icon: BedRounded, label: 'Bedrooms', value: bedrooms } : null,
     bathrooms ? { Icon: BathtubRounded, label: 'Bathrooms', value: bathrooms } : null,
@@ -110,12 +112,12 @@ export default function PremiumPropertyHero({
   const media = tab === 'tour' ? tourMedia[0] : floorPlanMedia[0];
   const hasMedia = Boolean(media?.url);
   // Keep the primary media within the visible device frame: wide enough to feel immersive,
-  // but never a fixed-height block that dominates short phones or smaller laptops.
+  // without cropping the surrounding UI off smaller phones or shorter laptop screens.
   const mediaFrameHeight = {
-    xs: 'clamp(230px, min(78vw, calc(100dvh - 250px)), 360px)',
-    sm: 'clamp(300px, min(58vw, calc(100dvh - 230px)), 430px)',
-    md: 'clamp(340px, min(44vw, calc(100dvh - 220px)), 500px)',
-    lg: 'clamp(380px, min(36vw, calc(100dvh - 190px)), 520px)',
+    xs: 'clamp(220px, min(76vw, calc(100svh - 244px)), 350px)',
+    sm: 'clamp(300px, min(58vw, calc(100svh - 232px)), 430px)',
+    md: 'clamp(340px, min(44vw, calc(100svh - 220px)), 500px)',
+    lg: 'clamp(380px, min(36vw, calc(100svh - 198px)), 520px)',
   };
 
   useEffect(() => {
@@ -128,21 +130,22 @@ export default function PremiumPropertyHero({
       elevation={0}
       sx={{
         overflow: 'hidden',
-        borderRadius: { xs: 3.5, md: 4.5 },
+        borderRadius: HERO_RADIUS,
         border: '1px solid #E0E9EE',
         bgcolor: '#FBFDFE',
         boxShadow: '0 24px 72px rgba(16, 42, 67, .10)',
+        '& .MuiButton-root, & .MuiIconButton-root, & .MuiChip-root': { borderRadius: HERO_RADIUS },
       }}
     >
       <Box sx={{ p: { xs: 1.5, sm: 2.25, md: 3 } }}>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" alignItems={{ md: 'flex-start' }} gap={1.5}>
           <Box sx={{ minWidth: 0 }}>
             <Stack direction="row" gap={.7} flexWrap="wrap" sx={{ mb: 1.1 }}>
-              <Chip label={purpose} size="small" sx={{ bgcolor: '#E1F7F2', color: '#00745E', fontWeight: 900, borderRadius: 1.5 }} />
-              {propertyType && <Chip label={propertyType} size="small" variant="outlined" sx={{ borderColor: '#D5E1E8', color: '#3B5568', fontWeight: 750, borderRadius: 1.5 }} />}
-              <Chip label={availableLabel} size="small" sx={{ bgcolor: '#ECF9F1', color: '#167353', fontWeight: 850, borderRadius: 1.5 }} />
-              {verified && <Chip icon={<CheckCircleRounded sx={{ fontSize: '15px !important' }} />} label="Verified listing" size="small" sx={{ bgcolor: '#EDF4FF', color: '#265C9E', fontWeight: 850, borderRadius: 1.5 }} />}
-              {urgentLabel && <Chip label={urgentLabel} size="small" sx={{ bgcolor: '#FFF0EB', color: '#B64A2C', fontWeight: 850, borderRadius: 1.5 }} />}
+              <Chip label={purpose} size="small" sx={{ bgcolor: '#E1F7F2', color: '#00745E', fontWeight: 900 }} />
+              {propertyType && <Chip label={propertyType} size="small" variant="outlined" sx={{ borderColor: '#D5E1E8', color: '#3B5568', fontWeight: 750 }} />}
+              <Chip label={availableLabel} size="small" sx={{ bgcolor: '#ECF9F1', color: '#167353', fontWeight: 850 }} />
+              {verified && <Chip icon={<CheckCircleRounded sx={{ fontSize: '15px !important' }} />} label="Verified listing" size="small" sx={{ bgcolor: '#EDF4FF', color: '#265C9E', fontWeight: 850 }} />}
+              {urgentLabel && <Chip label={urgentLabel} size="small" sx={{ bgcolor: '#FFF0EB', color: '#B64A2C', fontWeight: 850 }} />}
             </Stack>
             <Typography component="h1" sx={{ color: '#102A43', fontWeight: 950, fontSize: { xs: 28, sm: 36, lg: 42 }, lineHeight: 1.04, letterSpacing: '-.045em' }}>
               {title}
@@ -166,7 +169,7 @@ export default function PremiumPropertyHero({
           variant="scrollable"
           scrollButtons={false}
           aria-label="Property media"
-          sx={{ mt: { xs: 1.8, md: 2.4 }, minHeight: 44, borderBottom: '1px solid #E0E9EE', '& .MuiTabs-indicator': { height: 3, borderRadius: 3, bgcolor: '#008C73' }, '& .MuiTab-root': { minHeight: 44, minWidth: { xs: 105, sm: 130 }, px: 1.2, textTransform: 'none', color: '#718397', fontSize: { xs: 11.5, sm: 12.5 }, fontWeight: 800 }, '& .Mui-selected': { color: '#007C66 !important' } }}
+          sx={{ mt: { xs: 1.8, md: 2.4 }, minHeight: 44, borderBottom: '1px solid #E0E9EE', '& .MuiTabs-indicator': { height: 3, borderRadius: HERO_RADIUS, bgcolor: '#008C73' }, '& .MuiTab-root': { minHeight: 44, minWidth: { xs: 105, sm: 130 }, px: 1.2, borderRadius: HERO_RADIUS, textTransform: 'none', color: '#718397', fontSize: { xs: 11.5, sm: 12.5 }, fontWeight: 800 }, '& .Mui-selected': { color: '#007C66 !important' } }}
         >
           <Tab value="photos" icon={<ImageRounded sx={{ fontSize: 17 }} />} iconPosition="start" label={`Photos (${gallery.length})`} />
           <Tab value="tour" icon={<ViewInArRounded sx={{ fontSize: 17 }} />} iconPosition="start" label="Interactive tour" />
@@ -176,21 +179,21 @@ export default function PremiumPropertyHero({
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1fr) 315px' }, gap: { xs: 1.5, lg: 2.25 }, mt: { xs: 1.5, md: 2.25 } }}>
           <Box sx={{ minWidth: 0 }}>
             {tab === 'photos' ? <>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'minmax(0, 1.65fr) minmax(135px, .65fr)' }, gap: 1, height: mediaFrameHeight }}>
-                <Box sx={{ position: 'relative', overflow: 'hidden', borderRadius: { xs: 3, md: 3.5 }, bgcolor: '#E1EAED' }}>
-                  <OptimizedImage src={heroImage} alt={`${title} — image ${activeImage + 1}`} width={1600} height={1000} priority sizes="(max-width: 900px) 100vw, 65vw" style={{ objectFit: 'cover' }} />
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: hasGalleryRail ? 'minmax(0, 1.65fr) minmax(135px, .65fr)' : 'minmax(0, 1fr)' }, gap: 1, height: mediaFrameHeight, minWidth: 0 }}>
+                <Box sx={{ position: 'relative', minWidth: 0, overflow: 'hidden', borderRadius: HERO_RADIUS, bgcolor: '#E1EAED' }}>
+                  <OptimizedImage src={heroImage} alt={`${title} — image ${activeImage + 1}`} width={1600} height={1000} priority sizes="(max-width: 599px) 100vw, (max-width: 1199px) 92vw, 65vw" style={{ objectFit: 'cover', objectPosition: 'center', maxWidth: '100%' }} />
                   <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(10,33,48,.01) 56%, rgba(10,33,48,.32))' }} />
                   <Chip icon={<ImageRounded sx={{ fontSize: '16px !important' }} />} label={`${activeImage + 1} / ${gallery.length}`} size="small" sx={{ position: 'absolute', left: 13, bottom: 13, bgcolor: 'rgba(8,29,42,.80)', color: '#fff', fontWeight: 850, backdropFilter: 'blur(10px)', '& .MuiChip-icon': { color: '#fff' } }} />
                 </Box>
-                <Box sx={{ display: { xs: 'none', sm: 'grid' }, gridTemplateRows: 'repeat(2, minmax(0, 1fr))', gap: 1 }}>
-                  {gallery.slice(1, 3).map((image, index) => <Box component="button" type="button" key={`${image}-${index}`} onClick={() => setActiveImage(index + 1)} aria-label={`Show photo ${index + 2}`} sx={{ position: 'relative', p: 0, border: activeImage === index + 1 ? '3px solid #00A78B' : 0, overflow: 'hidden', borderRadius: 3, bgcolor: '#E1EAED', cursor: 'pointer', '&:hover img': { transform: 'scale(1.04)' } }}><OptimizedImage src={image} alt={`${title} — image ${index + 2}`} width={650} height={450} sizes="25vw" style={{ objectFit: 'cover', transition: 'transform .24s ease' }} />{index === 1 && gallery.length > 3 && <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', bgcolor: 'rgba(9,32,46,.46)', color: '#fff' }}><Typography fontWeight={950} fontSize={17}>+{gallery.length - 3} photos</Typography></Box>}</Box>)}
-                </Box>
+                {hasGalleryRail && <Box sx={{ display: { xs: 'none', sm: 'grid' }, gridTemplateRows: 'repeat(2, minmax(0, 1fr))', gap: 1, minWidth: 0 }}>
+                  {gallery.slice(1, 3).map((image, index) => <Box component="button" type="button" key={`${image}-${index}`} onClick={() => setActiveImage(index + 1)} aria-label={`Show photo ${index + 2}`} sx={{ position: 'relative', p: 0, border: activeImage === index + 1 ? '3px solid #00A78B' : 0, overflow: 'hidden', borderRadius: HERO_RADIUS, bgcolor: '#E1EAED', cursor: 'pointer', '&:hover img': { transform: 'scale(1.04)' } }}><OptimizedImage src={image} alt={`${title} — image ${index + 2}`} width={650} height={450} sizes="(max-width: 1199px) 28vw, 22vw" style={{ objectFit: 'cover', objectPosition: 'center', transition: 'transform .24s ease' }} />{index === 1 && gallery.length > 3 && <Box sx={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', bgcolor: 'rgba(9,32,46,.46)', color: '#fff' }}><Typography fontWeight={950} fontSize={17}>+{gallery.length - 3} photos</Typography></Box>}</Box>)}
+                </Box>}
               </Box>
-              <Stack direction="row" spacing={.85} sx={{ overflowX: 'auto', mt: 1.1, pb: .2, '&::-webkit-scrollbar': { height: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: '#C8D5DE', borderRadius: 9 } }}>
-                {gallery.map((image, index) => <Box component="button" type="button" key={`${image}-${index}`} onClick={() => setActiveImage(index)} aria-label={`View photo ${index + 1}`} sx={{ flex: '0 0 78px', height: 56, p: 0, border: activeImage === index ? '3px solid #00A78B' : '1px solid #DCE6EB', borderRadius: 1.8, overflow: 'hidden', cursor: 'pointer', bgcolor: '#E1EAED' }}><OptimizedImage src={image} alt="" width={160} height={112} sizes="120px" style={{ objectFit: 'cover' }} /></Box>)}
+              <Stack direction="row" spacing={.85} sx={{ overflowX: 'auto', mt: 1.1, pb: .2, scrollSnapType: 'x proximity', '&::-webkit-scrollbar': { height: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: '#C8D5DE', borderRadius: HERO_RADIUS } }}>
+                {gallery.map((image, index) => <Box component="button" type="button" key={`${image}-${index}`} onClick={() => setActiveImage(index)} aria-label={`View photo ${index + 1}`} sx={{ flex: { xs: '0 0 66px', sm: '0 0 78px' }, height: { xs: 48, sm: 56 }, p: 0, border: activeImage === index ? '3px solid #00A78B' : '1px solid #DCE6EB', borderRadius: HERO_RADIUS, overflow: 'hidden', cursor: 'pointer', bgcolor: '#E1EAED', scrollSnapAlign: 'start' }}><OptimizedImage src={image} alt="" width={160} height={112} sizes="(max-width: 599px) 66px, 78px" style={{ objectFit: 'cover', objectPosition: 'center' }} /></Box>)}
               </Stack>
-            </> : <Box sx={{ position: 'relative', height: mediaFrameHeight, overflow: 'hidden', borderRadius: { xs: 3, md: 3.5 }, bgcolor: tab === 'floor-plan' ? '#F2F7F8' : '#123B4B', display: 'grid', placeItems: 'center' }}>
-              {hasMedia && media.mediaType === 'video' ? <Box component="video" controls preload="metadata" src={media.url} poster={heroImage} sx={{ width: '100%', height: '100%', position: 'absolute', inset: 0, objectFit: 'cover', bgcolor: '#071E2C' }} /> : hasMedia && media.mediaType === 'image' ? <OptimizedImage src={media.url} alt={formatMediaName(media, tab === 'tour' ? 'Virtual property tour' : 'Floor plan')} width={1500} height={1000} sizes="(max-width: 900px) 100vw, 65vw" style={{ position: 'absolute', inset: 0, objectFit: tab === 'floor-plan' ? 'contain' : 'cover', padding: tab === 'floor-plan' ? 24 : 0 }} /> : <Box sx={{ position: 'absolute', inset: 0, background: tab === 'tour' ? `linear-gradient(120deg, rgba(5,26,38,.42), rgba(5,26,38,.12)), url(${heroImage}) center / cover` : 'linear-gradient(135deg, #E9F2F3, #F9FBFB)' }} />}
+            </> : <Box sx={{ position: 'relative', height: mediaFrameHeight, minWidth: 0, overflow: 'hidden', borderRadius: HERO_RADIUS, bgcolor: tab === 'floor-plan' ? '#F2F7F8' : '#123B4B', display: 'grid', placeItems: 'center' }}>
+              {hasMedia && media.mediaType === 'video' ? <Box component="video" controls preload="metadata" src={media.url} poster={heroImage} sx={{ width: '100%', height: '100%', position: 'absolute', inset: 0, display: 'block', objectFit: 'cover', objectPosition: 'center', bgcolor: '#071E2C' }} /> : hasMedia && media.mediaType === 'image' ? <OptimizedImage src={media.url} alt={formatMediaName(media, tab === 'tour' ? 'Virtual property tour' : 'Floor plan')} width={1500} height={1000} sizes="(max-width: 599px) 100vw, (max-width: 1199px) 92vw, 65vw" style={{ position: 'absolute', inset: 0, objectFit: tab === 'floor-plan' ? 'contain' : 'cover', objectPosition: 'center', padding: tab === 'floor-plan' ? 'clamp(12px, 3vw, 24px)' : 0 }} /> : <Box sx={{ position: 'absolute', inset: 0, background: tab === 'tour' ? `linear-gradient(120deg, rgba(5,26,38,.42), rgba(5,26,38,.12)), url(${heroImage}) center / cover` : 'linear-gradient(135deg, #E9F2F3, #F9FBFB)' }} />}
               {!hasMedia && <Stack alignItems="center" textAlign="center" spacing={1.2} sx={{ position: 'relative', zIndex: 1, maxWidth: 320, p: 3, color: tab === 'tour' ? '#fff' : '#163A54' }}>
                 {tab === 'tour' ? <PlayCircleFilledRounded sx={{ fontSize: 50 }} /> : <GridViewRounded sx={{ fontSize: 47, color: '#008C73' }} />}
                 <Typography fontSize={18} fontWeight={950}>{tab === 'tour' ? 'Tour media is being prepared' : 'No public floor plan yet'}</Typography>
@@ -200,13 +203,13 @@ export default function PremiumPropertyHero({
             </Box>}
 
             <Stack direction="row" flexWrap="wrap" gap={{ xs: 1, sm: 1.4 }} sx={{ mt: 1.6 }}>
-              {stats.map(({ Icon, label, value }) => <Stack key={label} direction="row" alignItems="center" gap={.9} sx={{ minWidth: { xs: 'calc(50% - 4px)', sm: 116 }, px: 1.15, py: .9, borderRadius: 2, bgcolor: '#F4F8FA', border: '1px solid #E4ECEF' }}><Icon sx={{ fontSize: 19, color: '#0B5270' }} /><Box><Typography fontSize={12.5} fontWeight={900} lineHeight={1.05}>{value}</Typography><Typography fontSize={9.5} color="text.secondary">{label}</Typography></Box></Stack>)}
-              {furnishing && <Stack direction="row" alignItems="center" gap={.9} sx={{ minWidth: { xs: 'calc(50% - 4px)', sm: 150 }, px: 1.15, py: .9, borderRadius: 2, bgcolor: '#F4F8FA', border: '1px solid #E4ECEF' }}><ApartmentRounded sx={{ fontSize: 19, color: '#0B5270' }} /><Box><Typography fontSize={12.5} fontWeight={900} lineHeight={1.05}>{furnishing}</Typography><Typography fontSize={9.5} color="text.secondary">Furnishing</Typography></Box></Stack>}
+              {stats.map(({ Icon, label, value }) => <Stack key={label} direction="row" alignItems="center" gap={.9} sx={{ minWidth: { xs: 'calc(50% - 4px)', sm: 116 }, px: 1.15, py: .9, borderRadius: HERO_RADIUS, bgcolor: '#F4F8FA', border: '1px solid #E4ECEF' }}><Icon sx={{ fontSize: 19, color: '#0B5270' }} /><Box><Typography fontSize={12.5} fontWeight={900} lineHeight={1.05}>{value}</Typography><Typography fontSize={9.5} color="text.secondary">{label}</Typography></Box></Stack>)}
+              {furnishing && <Stack direction="row" alignItems="center" gap={.9} sx={{ minWidth: { xs: 'calc(50% - 4px)', sm: 150 }, px: 1.15, py: .9, borderRadius: HERO_RADIUS, bgcolor: '#F4F8FA', border: '1px solid #E4ECEF' }}><ApartmentRounded sx={{ fontSize: 19, color: '#0B5270' }} /><Box><Typography fontSize={12.5} fontWeight={900} lineHeight={1.05}>{furnishing}</Typography><Typography fontSize={9.5} color="text.secondary">Furnishing</Typography></Box></Stack>}
             </Stack>
             {amenities.length > 0 && <Stack direction="row" gap={.7} flexWrap="wrap" sx={{ mt: 1.45 }}>{amenities.slice(0, 6).map((amenity) => <Chip key={amenity} label={amenity} size="small" variant="outlined" sx={{ borderColor: '#D6E5E8', color: '#3E5B6D', fontWeight: 700, bgcolor: '#fff' }} />)}</Stack>}
           </Box>
 
-          <Paper elevation={0} sx={{ alignSelf: 'start', position: { lg: 'sticky' }, top: { lg: 92 }, border: '1px solid #DCE8ED', borderRadius: 3.5, p: { xs: 1.75, md: 2.2 }, bgcolor: '#fff', boxShadow: '0 14px 34px rgba(16,42,67,.08)' }}>
+          <Paper elevation={0} sx={{ alignSelf: 'start', position: { lg: 'sticky' }, top: { lg: 92 }, border: '1px solid #DCE8ED', borderRadius: HERO_RADIUS, p: { xs: 1.75, md: 2.2 }, bgcolor: '#fff', boxShadow: '0 14px 34px rgba(16,42,67,.08)' }}>
             <Typography sx={{ color: '#6E8495', fontSize: 10.5, fontWeight: 900, letterSpacing: '.08em' }}>{priceLabel.toUpperCase()}</Typography>
             <Stack direction="row" alignItems="baseline" gap={.55} sx={{ mt: .35 }}><Typography sx={{ color: '#102A43', fontWeight: 950, fontSize: { xs: 29, md: 32 }, letterSpacing: '-.04em' }}>{price > 0 ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(price) : 'On request'}</Typography>{price > 0 && priceSuffix && <Typography color="text.secondary" fontSize={12} fontWeight={750}>{priceSuffix}</Typography>}</Stack>
             {deposit && <Typography sx={{ color: '#708597', fontSize: 11.5, mt: .4 }}>Security deposit {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(deposit)}</Typography>}
