@@ -839,6 +839,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
   const [imageFiles, setImageFiles] = useState<Record<string, File | null>>({});
   const [options, setOptions] = useState<Record<string, any[]>>({});
   const [actionAnchor, setActionAnchor] = useState<null | HTMLElement>(null);
+  const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(null);
   const [actionRow, setActionRow] = useState<any>(null);
   const [rentPaymentDialog, setRentPaymentDialog] = useState<any>(null);
   const [rentPaymentForm, setRentPaymentForm] = useState({ method: 'upi', transactionId: '', proofUrl: '', notes: '' });
@@ -1205,12 +1206,28 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
 
   const compactTenantApplicationView = isTenantApplications;
   const compactRequestedResourceView = isMyListings || COMPACT_RESOURCE_MODULES.has(module);
+  function exportResource(format: 'csv' | 'xlsx' | 'pdf') {
+    setExportMenuAnchor(null);
+    void downloadReport(module, format).catch((error) => setError(error.message));
+  }
   const pageActions = <Stack direction="row" spacing={.8} flexWrap="wrap" useFlexGap>
-    <Button size="small" variant="outlined" startIcon={<FileDownloadRounded />} onClick={() => downloadReport(module, 'csv').catch((e) => setError(e.message))}>CSV</Button>
-    <Button size="small" variant="outlined" startIcon={<FileDownloadRounded />} onClick={() => downloadReport(module, 'xlsx').catch((e) => setError(e.message))}>Excel</Button>
-    <Button size="small" variant="outlined" startIcon={<FileDownloadRounded />} onClick={() => downloadReport(module, 'pdf').catch((e) => setError(e.message))}>PDF</Button>
+    {module !== 'tenancies' && <>
+      <Button size="small" variant="outlined" startIcon={<FileDownloadRounded />} onClick={() => downloadReport(module, 'csv').catch((e) => setError(e.message))}>CSV</Button>
+      <Button size="small" variant="outlined" startIcon={<FileDownloadRounded />} onClick={() => downloadReport(module, 'xlsx').catch((e) => setError(e.message))}>Excel</Button>
+      <Button size="small" variant="outlined" startIcon={<FileDownloadRounded />} onClick={() => downloadReport(module, 'pdf').catch((e) => setError(e.message))}>PDF</Button>
+    </>}
     <Button size="small" variant="outlined" startIcon={<RefreshRounded />} onClick={() => load()}>Refresh</Button>
-    {canCreate && <Button size="small" className={module === 'properties' ? undefined : 'sa-submit-button'} variant="contained" startIcon={module === 'documents' ? <UploadFileRounded /> : <AddRounded />} onClick={() => module === 'properties' ? navigate('/app/add_property') : openDialog('create')}>{module === 'documents' ? 'Upload' : `Add ${config.singular}`}</Button>}
+    {canCreate && <Button size="small" className={module === 'properties' ? undefined : 'sa-submit-button'} variant="contained" startIcon={module === 'documents' ? <UploadFileRounded /> : <AddRounded />} onClick={() => module === 'properties' ? navigate('/app/add_property') : openDialog('create')}>{module === 'documents' ? 'Upload' : module === 'tenancies' ? 'Add tenant' : `Add ${config.singular}`}</Button>}
+    {module === 'tenancies' && <Tooltip title="Export records">
+      <IconButton
+        size="small"
+        aria-label="Tenancy export options"
+        aria-haspopup="menu"
+        aria-expanded={Boolean(exportMenuAnchor)}
+        onClick={(event) => setExportMenuAnchor(event.currentTarget)}
+        sx={{ width: 36, height: 36, border: '1px solid rgba(11,82,112,.18)', borderRadius: 2, color: '#0B5270', bgcolor: '#fff' }}
+      ><MoreVertRounded fontSize="small" /></IconButton>
+    </Tooltip>}
   </Stack>;
 
   return <Box data-secureasset-applications-filter="applications-filter-v66" data-secureasset-application-list={module === 'applications' ? 'record-frame-v1' : undefined} data-secureasset-clickable-records="clickable-records-v70" data-secureasset-property-visibility="property-visibility-v71" data-secureasset-application-actions="direct-decision-v76" data-secureasset-surveyor-profile-source={module === 'surveyor-profiles' ? 'live-resource-api-v208' : undefined} data-secureasset-surveyor-profile-navigation={module === 'surveyor-profiles' ? 'admin-detail-v210' : undefined} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
@@ -1527,6 +1544,18 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
       {config.statuses && canEdit && module !== 'subscriptions' && !isManagedRentalPayment(actionRow) && (module === 'applications' ? applicationStatusOptions(actionRow) : config.statuses).map((item) => <MenuItem key={item} onClick={() => changeStatus(item)}>{optionText(item)}</MenuItem>)}
       {canEdit && module !== 'subscriptions' && !isManagedRentalPayment(actionRow) && <MenuItem sx={{ color: '#D97706' }} onClick={() => { setActionAnchor(null); openDialog('edit', actionRow); }}>Edit</MenuItem>}
       {canDelete && <MenuItem sx={{ color: 'error.main' }} onClick={() => { setActionAnchor(null); remove(actionRow); }}><DeleteOutlineRounded fontSize="small" sx={{ mr: 1 }} />Delete</MenuItem>}
+    </Menu>
+
+    <Menu
+      anchorEl={exportMenuAnchor}
+      open={Boolean(exportMenuAnchor)}
+      onClose={() => setExportMenuAnchor(null)}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+    >
+      <MenuItem onClick={() => exportResource('csv')}><FileDownloadRounded fontSize="small" sx={{ mr: 1 }} />Export CSV</MenuItem>
+      <MenuItem onClick={() => exportResource('xlsx')}><FileDownloadRounded fontSize="small" sx={{ mr: 1 }} />Export Excel</MenuItem>
+      <MenuItem onClick={() => exportResource('pdf')}><FileDownloadRounded fontSize="small" sx={{ mr: 1 }} />Export PDF</MenuItem>
     </Menu>
 
     {module === 'properties' && dialog && dialog.mode !== 'view' && <PropertyFormWizard
