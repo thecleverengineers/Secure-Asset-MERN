@@ -43,7 +43,7 @@ import PropertyFormWizard from '../../components/property/PropertyFormWizard';
 import ApplicationAgreementPanel from '../../components/application/ApplicationAgreementPanel';
 import LocationFields from '../../components/shared/LocationFields';
 import { PropertyContextBanner, PropertyDataBlock, PropertySectionHeader } from '../../components/property/PropertyWorkspacePrimitives';
-import PropertyPortfolioMobileCard from '../../components/property/PropertyPortfolioMobileCard';
+import PropertyPortfolioCard from '../../components/property/PropertyPortfolioCard';
 
 type Field = { name: string; label: string; type?: 'text' | 'number' | 'date' | 'time' | 'datetime' | 'textarea' | 'select' | 'boolean' | 'radio' | 'array' | 'json' | 'reference' | 'password' | 'image'; options?: string[]; reference?: string; required?: boolean };
 
@@ -1176,13 +1176,33 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
           onRemove={() => remove(row)}
         />)}
       </Stack>
-    ) : mobile ? (
-      <Stack spacing={1.2} data-secureasset-property-mobile-list={module === 'properties' ? 'portfolio-v154' : undefined}>
-        {module === 'properties' ? rows.map((row) => <PropertyPortfolioMobileCard
+    ) : isMyListings ? (
+      <Box
+        data-secureasset-my-listings-grid="amenity-dashboard-v1"
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(3, minmax(0, 1fr))' },
+          gap: { xs: 1.2, md: 1.8 },
+          alignItems: 'stretch',
+        }}
+      >
+        {rows.map((row) => <PropertyPortfolioCard
           key={row._id}
           row={row}
           onOpen={() => openRecord(row)}
           onEdit={canEdit ? () => openDialog('edit', row) : undefined}
+          onManageRooms={() => navigate(`/app/my-listings/${encodeURIComponent(row._id)}/rooms`)}
+          onMore={(event) => { setActionAnchor(event.currentTarget); setActionRow(row); }}
+        />)}
+      </Box>
+    ) : mobile ? (
+      <Stack spacing={1.2} data-secureasset-property-mobile-list={module === 'properties' ? 'portfolio-v154' : undefined}>
+        {module === 'properties' ? rows.map((row) => <PropertyPortfolioCard
+          key={row._id}
+          row={row}
+          onOpen={() => openRecord(row)}
+          onEdit={canEdit ? () => openDialog('edit', row) : undefined}
+          onManageRooms={() => navigate(`/app/my-listings/${encodeURIComponent(row._id)}/rooms`)}
           onMore={(event) => { event.stopPropagation(); setActionAnchor(event.currentTarget); setActionRow(row); }}
         />) : rows.map((row) => {
           const clickable = Boolean(row?._id);
