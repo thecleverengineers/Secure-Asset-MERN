@@ -30,7 +30,6 @@ import { WorkspaceSkeleton } from '../components/shared/PremiumSkeleton';
 import { sharePublicListing } from '../utils/publicShare';
 
 const fallback = 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1400&q=85';
-const vakhitovskyOverviewSlug = 'vakhitovsky-contemporary-residence-sa-r-rus-kzn-16';
 const money = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value || 0);
 const sentence = (value: string) => String(value || '').replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 const flatten = (nodes: any[]): any[] => nodes.flatMap((node) => [node, ...flatten(node.children || [])]);
@@ -47,7 +46,8 @@ export default function PropertyDetailPage() {
   const error = propertyQuery.error instanceof Error ? propertyQuery.error.message : propertyQuery.error ? 'Could not load this property.' : '';
 
   const property = structure?.property || listing;
-  const useVakhitovskyPremiumDetails = String(slug || '').trim().toLowerCase() === vakhitovskyOverviewSlug;
+  // Keep the public property overview experience consistent for every listing.
+  const useVakhitovskyPremiumDetails = true;
   const selected = structure?.selectedSpace || ((listing as any)?.listingKind === 'space' ? listing : null);
   const spaces = useMemo(() => flatten(structure?.spaces || []), [structure]);
   const rentalUnits = structure?.rentalUnits || [];
