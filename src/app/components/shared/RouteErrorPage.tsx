@@ -33,7 +33,7 @@ export default function RouteErrorPage() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 3, bgcolor: 'background.default' }}>
+    <Box className="sa-reference-content" sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 3, bgcolor: 'background.default' }}>
       <Paper elevation={0} sx={{ width: '100%', maxWidth: 560, p: { xs: 3, sm: 5 }, border: '1px solid', borderColor: 'divider', borderRadius: 5 }}>
         <Alert severity={chunkFailure ? 'info' : 'error'} sx={{ mb: 3 }}>{status ? `Error ${status}` : 'SecureAsset'} · {errorCode}</Alert>
         <Typography variant="h4" sx={{ fontWeight: 950, letterSpacing: '-.035em' }}>{title}</Typography>

@@ -37,7 +37,7 @@ const RentalManagementAdminPage = lazyWithRetry(() => import('./pages/app/Rental
 const SurveyorProfileAdminPage = lazyWithRetry(() => import('./pages/app/SurveyorProfileAdminPage'));
 
 function AccessDenied() {
-  return <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 3 }}><Box sx={{ textAlign: 'center', maxWidth: 480 }}><Alert severity="error" sx={{ mb: 2 }}>Access denied</Alert><Typography variant="h4" sx={{ fontWeight: 900 }}>You do not have access to this module.</Typography><Button href="/app/dashboard" variant="contained" sx={{ mt: 3 }}>Return to dashboard</Button></Box></Box>;
+  return <Box className="sa-reference-content" sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 3 }}><Box sx={{ textAlign: 'center', maxWidth: 480 }}><Alert severity="error" sx={{ mb: 2 }}>Access denied</Alert><Typography variant="h4" sx={{ fontWeight: 900 }}>You do not have access to this module.</Typography><Button href="/app/dashboard" variant="contained" sx={{ mt: 3 }}>Return to dashboard</Button></Box></Box>;
 }
 
 function LegacyPropertyActionRedirect({ target }: { target: 'apply_property' | 'schedule_visit' }) {

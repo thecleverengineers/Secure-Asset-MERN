@@ -140,13 +140,13 @@ export type DesignSystem = {
 export const DEFAULT_DESIGN_SYSTEM: DesignSystem = {
   preset: 'secureasset',
   colors: {
-    appBackground: '#F3F7F6', paper: '#FFFFFF', textPrimary: '#10272D', textSecondary: '#607579', border: '#DCE6E3',
-    navigation: '#0B5270', navigationText: '#FFFFFF', primary: '#0A607A', secondary: '#E86F51', success: '#208463',
+    appBackground: '#F7F7F5', paper: '#FFFFFF', textPrimary: '#152225', textSecondary: '#68777A', border: '#E6E9E6',
+    navigation: '#0B5270', navigationText: '#FFFFFF', primary: '#0B5270', secondary: '#E86F51', success: '#008C73',
     submit: '#66752D', edit: '#D97706', danger: '#C74343', icon: '#0A607A',
   },
-  typography: { fontFamily: OPEN_SANS_FONT_NAME, baseSize: 14, headingWeight: 800, lineHeight: 1.55 },
-  layout: { density: 'comfortable', contentMaxWidth: 1580, appBarHeight: 72, sidebarWidth: 292, collapsedSidebarWidth: 82, pagePadding: 32, mobilePagePadding: 16 },
-  borders: { width: 1, style: 'solid', cardRadius: 20, buttonRadius: 13, inputRadius: 14, navigationRadius: 13, modalRadius: 0, modalBorderWidth: 1 },
+  typography: { fontFamily: OPEN_SANS_FONT_NAME, baseSize: 16, headingWeight: 400, lineHeight: 1.5 },
+  layout: { density: 'comfortable', contentMaxWidth: 1360, appBarHeight: 72, sidebarWidth: 292, collapsedSidebarWidth: 82, pagePadding: 32, mobilePagePadding: 16 },
+  borders: { width: 1, style: 'solid', cardRadius: 1, buttonRadius: 1, inputRadius: 1, navigationRadius: 12, modalRadius: 1, modalBorderWidth: 1 },
   shadows: { card: 'subtle', modal: 'floating', navigation: 'soft', button: 'subtle' },
   icons: { size: 20, navSize: 18, color: '#0B5270', rounded: true },
   effects: { enableHoverLift: true, enableGlassNavigation: true, cardPadding: 24, buttonHeight: 40 },
@@ -273,7 +273,7 @@ export function normaliseDesignSystem(input?: Record<string, any> | null): Desig
     typography: {
       fontFamily: OPEN_SANS_FONT_NAME,
       baseSize: number(typography.baseSize, DEFAULT_DESIGN_SYSTEM.typography.baseSize, 12, 20),
-      headingWeight: number(typography.headingWeight, DEFAULT_DESIGN_SYSTEM.typography.headingWeight, 600, 900),
+      headingWeight: number(typography.headingWeight, DEFAULT_DESIGN_SYSTEM.typography.headingWeight, 400, 900),
       lineHeight: decimal(typography.lineHeight, DEFAULT_DESIGN_SYSTEM.typography.lineHeight, 1.2, 2),
     },
     layout: {

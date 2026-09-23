@@ -50,7 +50,7 @@ export default function PropertyDetailPage() {
 
   const property = structure?.property || listing;
   // Keep the public property overview experience consistent for every listing.
-  const useVakhitovskyPremiumDetails = true;
+  const usePremiumPropertyDetails = true;
   const selected = structure?.selectedSpace || ((listing as any)?.listingKind === 'space' ? listing : null);
   const spaces = useMemo(() => flatten(structure?.spaces || []), [structure]);
   const rentalUnits = structure?.rentalUnits || [];
@@ -182,7 +182,7 @@ export default function PropertyDetailPage() {
   ];
   const nearbyRows = Object.entries(nearby).map(([key, value]) => [sentence(key), value] as [string, unknown]);
   const hasValue = (value: unknown) => value !== undefined && value !== null && value !== '';
-  const detailSectionSx = useVakhitovskyPremiumDetails ? {
+  const detailSectionSx = usePremiumPropertyDetails ? {
     p: { xs: 2, md: 3 },
     borderRadius: '1px',
     borderColor: 'rgba(17, 62, 83, .16)',
@@ -201,7 +201,7 @@ export default function PropertyDetailPage() {
     bgcolor: '#F8FBFC',
   };
   const DetailSectionHeader = ({ icon: Icon, title, subtitle, tag }: { icon: any; title: string; subtitle: string; tag?: string }) => (
-    !useVakhitovskyPremiumDetails ? <Typography variant="h6" fontWeight={900}>{title}</Typography> :
+    !usePremiumPropertyDetails ? <Typography variant="h6" fontWeight={900}>{title}</Typography> :
     <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1.25}>
       <Stack direction="row" alignItems="center" gap={1.2}>
         <Box sx={{ width: 38, height: 38, display: 'grid', placeItems: 'center', flexShrink: 0, color: '#087A70', bgcolor: 'rgba(8, 122, 112, .10)', border: '1px solid rgba(8, 122, 112, .17)', borderRadius: '1px' }}>
@@ -216,14 +216,14 @@ export default function PropertyDetailPage() {
     </Stack>
   );
   const propertyLocationSection = (
-    <Paper variant="outlined" sx={{ ...detailSectionSx, mt: useVakhitovskyPremiumDetails ? 2.5 : 3, overflow: 'hidden', ...(useVakhitovskyPremiumDetails ? {} : { p: 1 }) }}>
-      {useVakhitovskyPremiumDetails && <DetailSectionHeader icon={LocationOnRounded} title="Property location" subtitle={exactPublicLocation ? 'Map location shared publicly by the property owner.' : 'Location details are shared according to the owner’s privacy setting.'} />}
-      {mapEmbedUrl ? <Box sx={useVakhitovskyPremiumDetails ? { mt: 2, p: 1, border: '1px solid rgba(17, 62, 83, .12)', borderRadius: '1px', bgcolor: '#F8FBFC' } : undefined}>
-        <Box component="iframe" title={`${property.title} map`} src={mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" sx={{ border: 0, width: '100%', height: useVakhitovskyPremiumDetails ? { xs: 270, md: 360 } : 360, display: 'block', borderRadius: useVakhitovskyPremiumDetails ? '1px' : 3 }} />
-      </Box> : <Stack direction="row" alignItems="flex-start" gap={1.25} sx={useVakhitovskyPremiumDetails ? { mt: 2, p: { xs: 1.35, md: 1.65 }, border: '1px solid rgba(17, 62, 83, .12)', borderRadius: '1px', bgcolor: '#F8FBFC' } : { p: 1.25 }}>
+    <Paper variant="outlined" sx={{ ...detailSectionSx, mt: usePremiumPropertyDetails ? 2.5 : 3, overflow: 'hidden', ...(usePremiumPropertyDetails ? {} : { p: 1 }) }}>
+      {usePremiumPropertyDetails && <DetailSectionHeader icon={LocationOnRounded} title="Property location" subtitle={exactPublicLocation ? 'Map location shared publicly by the property owner.' : 'Location details are shared according to the owner’s privacy setting.'} />}
+      {mapEmbedUrl ? <Box sx={usePremiumPropertyDetails ? { mt: 2, p: 1, border: '1px solid rgba(17, 62, 83, .12)', borderRadius: '1px', bgcolor: '#F8FBFC' } : undefined}>
+        <Box component="iframe" title={`${property.title} map`} src={mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" sx={{ border: 0, width: '100%', height: usePremiumPropertyDetails ? { xs: 270, md: 360 } : 360, display: 'block', borderRadius: usePremiumPropertyDetails ? '1px' : 3 }} />
+      </Box> : <Stack direction="row" alignItems="flex-start" gap={1.25} sx={usePremiumPropertyDetails ? { mt: 2, p: { xs: 1.35, md: 1.65 }, border: '1px solid rgba(17, 62, 83, .12)', borderRadius: '1px', bgcolor: '#F8FBFC' } : { p: 1.25 }}>
         <Box sx={{ width: 36, height: 36, display: 'grid', placeItems: 'center', flexShrink: 0, color: '#087A70', bgcolor: 'rgba(8, 122, 112, .10)', borderRadius: '1px' }}><LocationOnRounded sx={{ fontSize: 20 }} /></Box>
         <Box>
-          <Typography fontWeight={useVakhitovskyPremiumDetails ? 700 : 800} sx={{ color: '#153B54' }}>{locationSummary || 'Location details are available on request.'}</Typography>
+          <Typography fontWeight={usePremiumPropertyDetails ? 700 : 800} sx={{ color: '#153B54' }}>{locationSummary || 'Location details are available on request.'}</Typography>
           <Typography color="text.secondary" fontSize={13} sx={{ mt: .35, lineHeight: 1.5 }}>{exactPublicLocation ? 'The property owner has made this location available publicly.' : 'Exact address details remain protected until the configured application or site-visit stage.'}</Typography>
         </Box>
       </Stack>}
@@ -232,7 +232,7 @@ export default function PropertyDetailPage() {
   const renderRows = (rows: Array<[string, unknown]>) => rows.filter(([, value]) => hasValue(value)).map(([label, value]) => {
     const valueLabel = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : sentence(String(value));
     return <Grid size={{ xs: 12, sm: 6 }} key={label}>
-      {useVakhitovskyPremiumDetails ? <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1.5} sx={detailTileSx}>
+      {usePremiumPropertyDetails ? <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1.5} sx={detailTileSx}>
         <Stack direction="row" alignItems="center" gap={.8} sx={{ minWidth: 0 }}>
           <Box sx={{ width: 6, height: 6, flexShrink: 0, bgcolor: '#0B8B7E', borderRadius: '50%' }} />
           <Typography color="text.secondary" fontSize={13}>{label}</Typography>
@@ -327,17 +327,9 @@ export default function PropertyDetailPage() {
       data-secureasset-rent-parent-surface={isRentListing ? 'rooms-only-v184' : 'full-property-v184'}
       data-secureasset-property-experience={hasInteractiveRoomTour ? 'interactive-tour-v203' : 'premium-property-v203'}
       sx={{
-        bgcolor: useVakhitovskyPremiumDetails ? '#FFFFFF' : '#F4F8FA',
+        bgcolor: usePremiumPropertyDetails ? '#FFFFFF' : '#F4F8FA',
         minHeight: '100vh',
         pb: { xs: 5, md: 8 },
-        ...(useVakhitovskyPremiumDetails ? {
-          fontFamily: '"Open Sans", Arial, sans-serif',
-          '& .MuiTypography-root, & .MuiButton-root, & .MuiChip-root, & .MuiChip-label, & .MuiTab-root': {
-            fontFamily: '"Open Sans", Arial, sans-serif',
-            fontWeight: '400 !important',
-            letterSpacing: 'normal',
-          },
-        } : {}),
       }}
     >
       <Container
@@ -377,25 +369,25 @@ export default function PropertyDetailPage() {
 
         <Box
           data-secureasset-property-detail-sections="full-width-premium-v205"
-          sx={useVakhitovskyPremiumDetails ? { mt: { xs: 2, md: 3 }, width: '100%', px: { xs: 1.25, sm: 2, md: 3, lg: 4 }, py: { xs: 1.25, md: 2.25 }, borderTop: '1px solid rgba(17, 62, 83, .10)', borderBottom: '1px solid rgba(17, 62, 83, .10)' } : { mt: { xs: 2, md: 3 } }}
+          sx={usePremiumPropertyDetails ? { mt: { xs: 2, md: 3 }, width: '100%', px: { xs: 1.25, sm: 2, md: 3, lg: 4 }, py: { xs: 1.25, md: 2.25 }, borderTop: '1px solid rgba(17, 62, 83, .10)', borderBottom: '1px solid rgba(17, 62, 83, .10)' } : { mt: { xs: 2, md: 3 } }}
         >
-        <Grid container spacing={useVakhitovskyPremiumDetails ? { xs: 1.5, md: 2.5 } : 3}>
+        <Grid container spacing={usePremiumPropertyDetails ? { xs: 1.5, md: 2.5 } : 3}>
           <Grid size={{ xs: 12, lg: 8 }}>
             <Paper variant="outlined" sx={detailSectionSx}>
               <DetailSectionHeader icon={HomeWorkRounded} title="About this listing" subtitle="A clear overview of the home, its character and included amenities." tag="Listing overview" />
-              <Box sx={useVakhitovskyPremiumDetails ? { mt: 2, p: { xs: 1.35, md: 1.75 }, borderLeft: '3px solid #0B8B7E', bgcolor: '#F3FAF8' } : { mt: 1 }}>
+              <Box sx={usePremiumPropertyDetails ? { mt: 2, p: { xs: 1.35, md: 1.75 }, borderLeft: '3px solid #0B8B7E', bgcolor: '#F3FAF8' } : { mt: 1 }}>
                 <Typography color="text.secondary" lineHeight={1.82} sx={{ fontSize: { xs: 14, md: 14.5 } }}>{active.description || property.description || 'The owner has not added a description yet.'}</Typography>
               </Box>
               {(active.amenities || property.amenities || []).length > 0 && (
                 <>
-                  {useVakhitovskyPremiumDetails ? <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} mt={2.5}>
+                  {usePremiumPropertyDetails ? <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} mt={2.5}>
                     <Typography fontWeight={950} sx={{ color: '#0D2D45' }}>Included amenities</Typography>
                     <Typography color="text.secondary" fontSize={12}>Selected property highlights</Typography>
                   </Stack> : <Typography variant="h6" fontWeight={900} mt={3}>Amenities</Typography>}
-                  <Stack direction="row" gap={useVakhitovskyPremiumDetails ? .85 : 1} flexWrap="wrap" mt={useVakhitovskyPremiumDetails ? 1.25 : 1.5}>
+                  <Stack direction="row" gap={usePremiumPropertyDetails ? .85 : 1} flexWrap="wrap" mt={usePremiumPropertyDetails ? 1.25 : 1.5}>
                     {[...(active.amenities || []), ...(property.amenities || [])]
                       .filter((value, index, array) => array.indexOf(value) === index)
-                      .map((item: string) => <Chip key={item} icon={<CheckCircleRounded />} label={item} variant={useVakhitovskyPremiumDetails ? undefined : 'outlined'} sx={useVakhitovskyPremiumDetails ? { color: '#12435B', bgcolor: '#F8FBFC', border: '1px solid rgba(17, 62, 83, .14)', fontWeight: 750, '& .MuiChip-icon': { color: '#0B8B7E' } } : undefined} />)}
+                      .map((item: string) => <Chip key={item} icon={<CheckCircleRounded />} label={item} variant={usePremiumPropertyDetails ? undefined : 'outlined'} sx={usePremiumPropertyDetails ? { color: '#12435B', bgcolor: '#F8FBFC', border: '1px solid rgba(17, 62, 83, .14)', fontWeight: 750, '& .MuiChip-icon': { color: '#0B8B7E' } } : undefined} />)}
                   </Stack>
                 </>
               )}
@@ -423,9 +415,9 @@ export default function PropertyDetailPage() {
               </>}
             </Paper>}
 
-            <Paper variant="outlined" sx={{ ...detailSectionSx, mt: useVakhitovskyPremiumDetails ? 2.5 : 3 }}>
+            <Paper variant="outlined" sx={{ ...detailSectionSx, mt: usePremiumPropertyDetails ? 2.5 : 3 }}>
               <DetailSectionHeader icon={TuneRounded} title="Property specifications" subtitle="Layout, size and ownership information at a glance." />
-              <Grid container spacing={useVakhitovskyPremiumDetails ? 1.15 : 1.5} mt={useVakhitovskyPremiumDetails ? 1.5 : .5}>{renderRows(specificationRows)}</Grid>
+              <Grid container spacing={usePremiumPropertyDetails ? 1.15 : 1.5} mt={usePremiumPropertyDetails ? 1.5 : .5}>{renderRows(specificationRows)}</Grid>
             </Paper>
 
             <Paper variant="outlined" data-secureasset-property-detail-tabs="post-specifications-v211" sx={{ ...detailSectionSx, mt: 2.5 }}>
@@ -500,17 +492,17 @@ export default function PropertyDetailPage() {
           </Grid>
 
           <Grid size={{ xs: 12, lg: 4 }}>
-            <Paper variant="outlined" sx={{ ...detailSectionSx, ...(useVakhitovskyPremiumDetails ? { position: { lg: 'sticky' }, top: { lg: 88 } } : { p: 3 }) }}>
+            <Paper variant="outlined" sx={{ ...detailSectionSx, ...(usePremiumPropertyDetails ? { position: { lg: 'sticky' }, top: { lg: 88 } } : { p: 3 }) }}>
               <DetailSectionHeader icon={SecurityRounded} title="Occupancy rules" subtitle="Clear living guidelines set by the property owner." />
-              <Stack spacing={useVakhitovskyPremiumDetails ? 1 : 1.2} mt={2}>
+              <Stack spacing={usePremiumPropertyDetails ? 1 : 1.2} mt={2}>
                 {occupancyRows.map(([label, value]) => (
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1.25} key={label} sx={useVakhitovskyPremiumDetails ? detailTileSx : undefined}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1.25} key={label} sx={usePremiumPropertyDetails ? detailTileSx : undefined}>
                     <Typography color="text.secondary" fontSize={13}>{label}</Typography>
-                    <Typography fontWeight={useVakhitovskyPremiumDetails ? 850 : 800} fontSize={13} textAlign="right" sx={useVakhitovskyPremiumDetails ? { color: '#153B54' } : undefined}>{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? 'Not specified')}</Typography>
+                    <Typography fontWeight={usePremiumPropertyDetails ? 850 : 800} fontSize={13} textAlign="right" sx={usePremiumPropertyDetails ? { color: '#153B54' } : undefined}>{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? 'Not specified')}</Typography>
                   </Stack>
                 ))}
               </Stack>
-              {useVakhitovskyPremiumDetails ? <Box sx={{ mt: 2, p: 1.45, color: '#FFFFFF', bgcolor: '#12364D', borderLeft: '3px solid #11A994' }}>
+              {usePremiumPropertyDetails ? <Box sx={{ mt: 2, p: 1.45, color: '#FFFFFF', bgcolor: '#12364D', borderLeft: '3px solid #11A994' }}>
                 <Typography fontWeight={900} fontSize={12.5}>Privacy protected</Typography>
                 <Typography sx={{ mt: .4, color: 'rgba(255,255,255,.78)', fontSize: 12, lineHeight: 1.55 }}>Sensitive owner, tenant and exact-location information remains private until the configured application or site-visit stage.</Typography>
               </Box> : <Alert severity="info" sx={{ mt: 2 }}>Sensitive owner, tenant and exact-location information remains private until the configured application or site-visit stage.</Alert>}

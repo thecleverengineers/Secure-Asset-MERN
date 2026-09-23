@@ -8,18 +8,19 @@
   --sa-navigation-text: #ffffff;
   --sa-primary: #0b5270;
   --sa-icon: #0b5270;
-  --sa-card-radius: 18px;
-  --sa-button-radius: 12px;
-  --sa-input-radius: 13px;
+  --sa-card-radius: 1px;
+  --sa-button-radius: 1px;
+  --sa-input-radius: 1px;
   --sa-navigation-radius: 12px;
-  --sa-modal-radius: 0px;
-  --sa-content-max-width: 1580px;
+  --sa-modal-radius: 1px;
+  --sa-content-max-width: 1360px;
+  --sa-reference-max-width: 1360px;
   --sa-page-background: #f7f7f5;
   --sa-page-surface: #ffffff;
-  --sa-page-max-width: 1580px;
+  --sa-page-max-width: 1360px;
   --sa-page-padding: 32px;
-  --sa-page-card-radius: 18px;
-  --sa-page-button-radius: 12px;
+  --sa-page-card-radius: 1px;
+  --sa-page-button-radius: 1px;
   --sa-editor-grid-spacing: 8px;
   --sa-motion-duration: 160ms;
   --sa-motion-easing: ease;
@@ -34,10 +35,7 @@
 }
 html, body, #root { min-height: 100%; margin: 0; }
 body {
-  background:
-    radial-gradient(circle at 88% -12%, rgba(32, 132, 99, .12), transparent 34rem),
-    radial-gradient(circle at -8% 28%, rgba(10, 96, 122, .09), transparent 30rem),
-    var(--sa-app-background);
+  background: var(--sa-app-background);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -45,16 +43,65 @@ a { color: inherit; text-decoration: none; }
 
 .sa-app-main {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 92% 0%, rgba(32, 132, 99, .10), transparent 38rem),
-    radial-gradient(circle at 0% 34%, rgba(10, 96, 122, .07), transparent 32rem),
-    linear-gradient(180deg, rgba(255,255,255,.38), transparent 18rem);
-  background-color: var(--sa-page-background);
+  background: var(--sa-page-background);
 }
 
 .sa-app-content {
   width: min(100%, var(--sa-page-max-width));
   margin-inline: auto;
+}
+
+/* Route content follows the typography and quiet, square surfaces used by
+   the interactive property overview. Site and workspace navigation retain
+   their own layout and emphasis outside this scope. */
+.sa-reference-content {
+  min-width: 0;
+  color: var(--sa-text-primary);
+  font-family: var(--sa-font-family), Arial, sans-serif;
+}
+
+.sa-reference-content .MuiContainer-root {
+  max-width: min(100%, var(--sa-reference-max-width));
+}
+
+.sa-reference-content .sa-app-content {
+  width: min(100%, var(--sa-reference-max-width));
+}
+
+.sa-reference-content .MuiTypography-root,
+.sa-reference-content .MuiButton-root,
+.sa-reference-content .MuiChip-root,
+.sa-reference-content .MuiChip-label,
+.sa-reference-content .MuiTab-root {
+  font-family: var(--sa-font-family), Arial, sans-serif !important;
+  font-weight: 400 !important;
+  letter-spacing: normal !important;
+}
+
+.sa-reference-content h1,
+.sa-reference-content h2,
+.sa-reference-content h3,
+.sa-reference-content h4,
+.sa-reference-content h5,
+.sa-reference-content h6 {
+  font-family: var(--sa-font-family), Arial, sans-serif !important;
+  font-weight: 400 !important;
+  letter-spacing: normal !important;
+}
+
+.sa-reference-content .MuiPaper-root,
+.sa-reference-content .MuiCard-root,
+.sa-reference-content .sa-surface-card,
+.sa-reference-content .MuiButton-root:not(.MuiIconButton-root),
+.sa-reference-content .MuiChip-root,
+.sa-reference-content .MuiIconButton-root,
+.sa-reference-content .MuiOutlinedInput-root {
+  border-radius: 1px !important;
+}
+
+.sa-reference-content .MuiPaper-outlined,
+.sa-reference-content .MuiCard-root {
+  border-color: #E2E9EE;
 }
 
 /* Authentication is a primary application surface, not a floating card.
@@ -260,8 +307,9 @@ a,
 }
 
 .sa-page-header {
-  border-radius: var(--sa-page-card-radius, var(--sa-card-radius)) !important;
-  box-shadow: 0 10px 32px rgba(18, 50, 57, .075);
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 .MuiDialog-paper,
@@ -284,14 +332,13 @@ a,
 }
 
 @media (max-width: 899px) {
-  body { background: #f7f7f5; }
+  body { background: var(--sa-app-background); }
   html, body { overflow-x: hidden; }
   .sa-app-content { width: 100%; }
   .sa-mobile-discover-home,
   .sa-wishlist-page { min-height: calc(100dvh - 60px); }
   .sa-page-header {
-    border-radius: 0 0 22px 22px !important;
-    margin-top: -16px;
+    margin-top: 0;
   }
 }
 
@@ -330,16 +377,11 @@ a,
 .sa-mobile-core-features .MuiCardContent-root > .MuiBox-root { margin-left: auto; margin-right: auto; }
 
 .dark body {
-  background:
-    radial-gradient(circle at 85% -10%, rgba(35, 128, 98, .13), transparent 30rem),
-    radial-gradient(circle at -10% 22%, rgba(7, 63, 86, .18), transparent 26rem),
-    #0e171b;
+  background: var(--sa-app-background);
 }
 
 .dark .sa-app-main {
-  background:
-    radial-gradient(circle at 92% 0%, rgba(35, 128, 98, .13), transparent 34rem),
-    radial-gradient(circle at 0% 32%, rgba(7, 63, 86, .15), transparent 30rem);
+  background: var(--sa-page-background);
 }
 
 .dark .sa-surface-card { border-color: rgba(193, 223, 215, .11); box-shadow: none; }

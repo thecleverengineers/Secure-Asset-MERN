@@ -68,7 +68,7 @@ import { getAppConfiguration, getMySubscription, getMySurveyorSubscription, getU
 import type { UserRole } from '../../services/types';
 import { useSite } from '../../context/SiteContext';
 import { useRealtime } from '../../context/RealtimeContext';
-import { matchesDesignPath, normaliseDesignSystem } from '../../designSystem';
+import { normaliseDesignSystem } from '../../designSystem';
 import { resolveIconComponent } from '../../iconResolver';
 import { safeRecordArray } from '../../utils/runtimeData';
 
@@ -461,24 +461,23 @@ export default function AppShell() {
     });
     return () => { mounted = false; };
   }, [refreshUser, user?._id, user?.role, user?.landlordEnabled, user?.surveyorEnabled, user?.activeMode]);
-  const pageDesign = useMemo(() => design.pageDesigns.find((page) => page.enabled && matchesDesignPath(page.path, location.pathname)), [design.pageDesigns, location.pathname]);
   useEffect(() => {
     const root = document.documentElement;
     const values: Record<string, string> = {
-      '--sa-page-background': pageDesign?.background || design.colors.appBackground,
-      '--sa-page-surface': pageDesign?.surface || design.colors.paper,
-      '--sa-page-max-width': `${pageDesign?.maxWidth || design.layout.contentMaxWidth}px`,
-      '--sa-page-padding': `${pageDesign?.padding ?? design.layout.pagePadding}px`,
-      '--sa-page-card-radius': `${pageDesign?.cardRadius ?? design.borders.cardRadius}px`,
-      '--sa-page-button-radius': `${pageDesign?.buttonRadius ?? design.borders.buttonRadius}px`,
-      '--sa-page-mobile-padding': `${pageDesign?.mobile.padding ?? design.layout.mobilePagePadding}px`,
-      '--sa-page-tablet-padding': `${pageDesign?.tablet.padding ?? Math.max(design.layout.mobilePagePadding + 6, 20)}px`,
-      '--sa-page-desktop-padding': `${pageDesign?.desktop.padding ?? design.layout.pagePadding}px`,
+      '--sa-page-background': design.colors.appBackground,
+      '--sa-page-surface': design.colors.paper,
+      '--sa-page-max-width': `${design.layout.contentMaxWidth}px`,
+      '--sa-page-padding': `${design.layout.pagePadding}px`,
+      '--sa-page-card-radius': `${design.borders.cardRadius}px`,
+      '--sa-page-button-radius': `${design.borders.buttonRadius}px`,
+      '--sa-page-mobile-padding': `${design.layout.mobilePagePadding}px`,
+      '--sa-page-tablet-padding': `${Math.max(design.layout.mobilePagePadding + 6, 20)}px`,
+      '--sa-page-desktop-padding': `${design.layout.pagePadding}px`,
       '--sa-editor-grid-spacing': `${design.motion.gridSpacing}px`,
     };
     Object.entries(values).forEach(([key, value]) => root.style.setProperty(key, value));
     return () => { Object.keys(values).forEach((key) => root.style.removeProperty(key)); };
-  }, [design, pageDesign]);
+  }, [design]);
   useEffect(() => realtime.subscribe('notification:new', () => setUnread((count) => count + 1)), [realtime.subscribe]);
   useEffect(() => {
     const wantsDashboard = location.pathname === '/app' || location.pathname === '/app/dashboard';
@@ -681,7 +680,7 @@ export default function AppShell() {
 
       <Drawer variant={isMobile ? 'temporary' : 'permanent'} open={isMobile ? mobileOpen : true} onClose={() => setMobileOpen(false)} ModalProps={{ keepMounted: true }} sx={{ '& .MuiDrawer-paper': { width: isMobile ? drawerWidth : width, boxSizing: 'border-box', borderRight: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', transition: 'width .2s', overflowX: 'hidden', boxShadow: isMobile ? '16px 0 48px rgba(7,46,59,.18)' : '6px 0 24px rgba(7,46,59,.045)' } }}>{drawerContent}</Drawer>
 
-      <Box component="main" id="sa-main-content" tabIndex={-1} sx={{ ml: { md: `${width}px` }, pt: `${design.layout.appBarHeight}px`, pb: { xs: 13, md: 6 }, minHeight: '100vh', transition: 'margin .2s', outline: 'none' }}>
+      <Box component="main" id="sa-main-content" className="sa-reference-content" tabIndex={-1} sx={{ ml: { md: `${width}px` }, pt: `${design.layout.appBarHeight}px`, pb: { xs: 13, md: 6 }, minHeight: '100vh', transition: 'margin .2s', outline: 'none' }}>
         <Box className="sa-app-content" sx={{ pt: { xs: 2, md: 3 } }}>
           <Outlet />
         </Box>

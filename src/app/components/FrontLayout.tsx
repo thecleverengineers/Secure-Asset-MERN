@@ -24,7 +24,7 @@ import { LogoMark, resolveSiteLogoUrl } from './premium/LogoMark';
 import { UniversalSearchDialog } from './public/UniversalSearch';
 import { useAuth } from '../context/AuthContext';
 import { useSite } from '../context/SiteContext';
-import { matchesDesignPath, normaliseDesignSystem } from '../designSystem';
+import { normaliseDesignSystem } from '../designSystem';
 import { safeRecordArray } from '../utils/runtimeData';
 
 const publicIconByKey: Record<string, any> = {
@@ -93,24 +93,23 @@ export default function FrontLayout() {
   const navigationRadius = Number(design.borders?.navigationRadius ?? 12);
   const headerHeight = Number(design.layout?.appBarHeight ?? 72);
   const isAuthRoute = location.pathname === '/login' || location.pathname === '/reset-password';
-  const pageDesign = design.pageDesigns.find((page) => page.enabled && matchesDesignPath(page.path, location.pathname));
   useEffect(() => {
     const root = document.documentElement;
     const values: Record<string, string> = {
-      '--sa-page-background': pageDesign?.background || design.colors.appBackground,
-      '--sa-page-surface': pageDesign?.surface || design.colors.paper,
-      '--sa-page-max-width': `${pageDesign?.maxWidth || design.layout.contentMaxWidth}px`,
-      '--sa-page-padding': `${pageDesign?.padding ?? design.layout.pagePadding}px`,
-      '--sa-page-card-radius': `${pageDesign?.cardRadius ?? design.borders.cardRadius}px`,
-      '--sa-page-button-radius': `${pageDesign?.buttonRadius ?? design.borders.buttonRadius}px`,
-      '--sa-page-mobile-padding': `${pageDesign?.mobile.padding ?? design.layout.mobilePagePadding}px`,
-      '--sa-page-tablet-padding': `${pageDesign?.tablet.padding ?? Math.max(design.layout.mobilePagePadding + 6, 20)}px`,
-      '--sa-page-desktop-padding': `${pageDesign?.desktop.padding ?? design.layout.pagePadding}px`,
+      '--sa-page-background': design.colors.appBackground,
+      '--sa-page-surface': design.colors.paper,
+      '--sa-page-max-width': `${design.layout.contentMaxWidth}px`,
+      '--sa-page-padding': `${design.layout.pagePadding}px`,
+      '--sa-page-card-radius': `${design.borders.cardRadius}px`,
+      '--sa-page-button-radius': `${design.borders.buttonRadius}px`,
+      '--sa-page-mobile-padding': `${design.layout.mobilePagePadding}px`,
+      '--sa-page-tablet-padding': `${Math.max(design.layout.mobilePagePadding + 6, 20)}px`,
+      '--sa-page-desktop-padding': `${design.layout.pagePadding}px`,
       '--sa-editor-grid-spacing': `${design.motion.gridSpacing}px`,
     };
     Object.entries(values).forEach(([key, value]) => root.style.setProperty(key, value));
     return () => Object.keys(values).forEach((key) => root.style.removeProperty(key));
-  }, [design, pageDesign]);
+  }, [design]);
   const isRegisterRoute = location.pathname === '/login' && new URLSearchParams(location.search).get('mode') === 'register';
   const accountAction = currentUser
     ? { label: 'Dashboard', path: '/app/dashboard' }
@@ -368,7 +367,7 @@ export default function FrontLayout() {
 
       <UniversalSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
 
-      <Box component="main" sx={{ flex: 1, display: 'flex', flexDirection: 'column', pt: { xs: '60px', md: `${headerHeight}px` }, pb: { xs: '72px', md: 0 } }}>
+      <Box component="main" className="sa-reference-content" sx={{ flex: 1, display: 'flex', flexDirection: 'column', pt: { xs: '60px', md: `${headerHeight}px` }, pb: { xs: '72px', md: 0 } }}>
         <Outlet />
       </Box>
 

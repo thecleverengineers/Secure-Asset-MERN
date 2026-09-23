@@ -136,13 +136,14 @@ function ThemedApplication() {
     typography: {
       fontFamily: OPEN_SANS_FONT_FAMILY, fontSize: design.typography.baseSize,
       fontWeightLight: 400, fontWeightRegular: 400, fontWeightMedium: 400, fontWeightBold: 400,
-      h1: { fontWeight: 800, letterSpacing: '-.055em', lineHeight: 1.08 },
-      h2: { fontWeight: 800, letterSpacing: '-.05em', lineHeight: 1.1 },
-      h3: { fontWeight: 800, letterSpacing: '-.045em', lineHeight: 1.12 },
-      h4: { fontSize: '1.72rem', fontWeight: 800, letterSpacing: '-.045em', lineHeight: 1.16 },
-      h5: { fontSize: '1.32rem', fontWeight: 780, letterSpacing: '-.035em', lineHeight: 1.25 },
-      h6: { fontSize: '1.05rem', fontWeight: 760, letterSpacing: '-.02em' },
-      subtitle1: { fontWeight: 650 }, button: { textTransform: 'none', fontWeight: 750, letterSpacing: '-.01em' },
+      h1: { fontSize: '2.375rem', fontWeight: 400, letterSpacing: 'normal', lineHeight: 1.08 },
+      h2: { fontSize: '1.875rem', fontWeight: 400, letterSpacing: 'normal', lineHeight: 1.15 },
+      h3: { fontSize: '1.5625rem', fontWeight: 400, letterSpacing: 'normal', lineHeight: 1.2 },
+      h4: { fontSize: '1.375rem', fontWeight: 400, letterSpacing: 'normal', lineHeight: 1.25 },
+      h5: { fontSize: '1.125rem', fontWeight: 400, letterSpacing: 'normal', lineHeight: 1.35 },
+      h6: { fontSize: '1rem', fontWeight: 400, letterSpacing: 'normal', lineHeight: 1.4 },
+      body1: { fontSize: '1rem', lineHeight: 1.5 }, body2: { fontSize: '.875rem', lineHeight: 1.5 },
+      subtitle1: { fontWeight: 400 }, button: { textTransform: 'none', fontWeight: 400, letterSpacing: 'normal' },
     },
     components: {
       MuiCssBaseline: { styleOverrides: {
@@ -154,7 +155,7 @@ function ThemedApplication() {
         '@media (prefers-reduced-motion: reduce)': { '*, *::before, *::after': { animationDuration: '0.01ms !important', animationIterationCount: '1 !important', transitionDuration: '0.01ms !important', scrollBehavior: 'auto !important' } },
       } },
       MuiButton: { styleOverrides: { root: {
-        borderRadius: design.borders.buttonRadius, boxShadow: buttonShadow, minHeight: design.effects.buttonHeight, paddingInline: 17, fontWeight: 750,
+        borderRadius: design.borders.buttonRadius, boxShadow: buttonShadow, minHeight: design.effects.buttonHeight, paddingInline: 17, fontWeight: 400,
         transition: 'transform .18s ease, box-shadow .18s ease, background-color .18s ease, border-color .18s ease',
         '&.sa-primary-button': buttonTokenStyles(design.buttons.primary),
         '&.sa-secondary-button': buttonTokenStyles(design.buttons.secondary),
