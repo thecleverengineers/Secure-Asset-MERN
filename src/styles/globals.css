@@ -75,6 +75,106 @@
   }
 }
 
+/* Tenancies use the same compact, teal record frame and type hierarchy as
+   Applications while keeping rent and lease dates easy to scan. */
+.sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancies-filter-frame,
+.sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancy-record-row {
+  border-radius: 12px !important;
+}
+
+.sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancies-filter-frame {
+  box-shadow: 0 5px 18px rgba(15, 47, 57, .035);
+}
+
+.sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancy-record-row {
+  box-shadow: 0 5px 18px rgba(15, 47, 57, .045);
+}
+
+.sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancy-record-label {
+  display: block;
+  margin-bottom: 3px;
+  color: #6A7D81;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: .065em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancy-record-title {
+  max-width: 100%;
+  color: #0B5270;
+  font-size: 13.5px;
+  font-weight: 900;
+  letter-spacing: -.02em;
+  line-height: 1.25;
+}
+
+.sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancy-record-value {
+  color: #183238;
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancy-record-id {
+  margin-top: 3px;
+  color: #71858A;
+  font-size: 9.5px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancy-record-detail {
+  margin-top: 3px;
+  color: #71858A;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancy-record-rent {
+  color: #183238;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancy-record-date {
+  color: #31474C;
+  font-size: 10.5px;
+  font-weight: 750;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancy-record-date span {
+  color: #71858A;
+  font-size: 9px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancy-record-actions .MuiIconButton-root {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(11, 82, 112, .14);
+  border-radius: 8px !important;
+  background: #F6FBFC;
+  color: #0B5270;
+}
+
+.sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancy-status-chip .MuiChip-label {
+  font-size: 10px;
+  font-weight: 800;
+}
+
+@media (max-width: 899px) {
+  .sa-reference-content [data-secureasset-tenancy-list="record-frame-v1"] .sa-tenancy-record-row {
+    border-radius: 10px !important;
+  }
+}
+
 * { box-sizing: border-box; }
 @media (max-width: 899px) {
   .sa-vault-mobile-floating-scan { position: fixed !important; right: 22px; bottom: 82px; z-index: 1200; width: 64px; height: 64px; color: #fff !important; border: 4px solid rgba(255,255,255,.92) !important; border-radius: 50% !important; background: linear-gradient(145deg, #7b2ff7, #b54bff 48%, #ff4f8b) !important; box-shadow: 0 12px 28px rgba(106,42,196,.34), 0 4px 0 rgba(255,255,255,.25) inset; transition: transform .18s ease, box-shadow .18s ease; }

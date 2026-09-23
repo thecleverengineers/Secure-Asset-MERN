@@ -7,6 +7,7 @@ import {
 } from '@mui/material';
 import ProfessionalDialog from '../../components/shared/ProfessionalDialog';
 import AddRounded from '@mui/icons-material/AddRounded';
+import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded';
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
 import ChevronLeftRounded from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRounded from '@mui/icons-material/ChevronRightRounded';
@@ -17,6 +18,7 @@ import EditRounded from '@mui/icons-material/EditRounded';
 import FileDownloadRounded from '@mui/icons-material/FileDownloadRounded';
 import ImageNotSupportedRounded from '@mui/icons-material/ImageNotSupportedRounded';
 import MoreVertRounded from '@mui/icons-material/MoreVertRounded';
+import PaymentsRounded from '@mui/icons-material/PaymentsRounded';
 import RefreshRounded from '@mui/icons-material/RefreshRounded';
 import SearchRounded from '@mui/icons-material/SearchRounded';
 import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
@@ -386,7 +388,7 @@ function propertyMediaIdFromSource(source: string) {
   return String(source || '').match(/\/(?:api\/v\d+\/)?property-media\/([a-f\d]{24})(?:\/content)?(?:[/?#]|$)/i)?.[1] || '';
 }
 
-function applicationPropertyImage(property: any) {
+function propertyRecordImage(property: any) {
   const propertyId = String(property?._id || property?.id || '');
   const entries = [property?.propertyMedia, property?.media, property?.galleryCover, property?.coverImage, property?.mainImage, property?.primaryImage, property?.images]
     .flatMap((entry) => Array.isArray(entry) ? entry : entry ? [entry] : []);
@@ -420,8 +422,8 @@ function applicationPropertyImage(property: any) {
   };
 }
 
-function ApplicationPropertyThumbnail({ property }: { property: any }) {
-  const image = useMemo(() => applicationPropertyImage(property), [property]);
+function PropertyRecordThumbnail({ property }: { property: any }) {
+  const image = useMemo(() => propertyRecordImage(property), [property]);
   const [src, setSrc] = useState('');
 
   useEffect(() => {
@@ -1213,7 +1215,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
     {canCreate && <Button size="small" className={module === 'properties' ? undefined : 'sa-submit-button'} variant="contained" startIcon={module === 'documents' ? <UploadFileRounded /> : <AddRounded />} onClick={() => module === 'properties' ? navigate('/app/add_property') : openDialog('create')}>{module === 'documents' ? 'Upload' : `Add ${config.singular}`}</Button>}
   </Stack>;
 
-  return <Box data-secureasset-applications-filter="applications-filter-v66" data-secureasset-application-list={module === 'applications' ? 'record-frame-v1' : undefined} data-secureasset-clickable-records="clickable-records-v70" data-secureasset-property-visibility="property-visibility-v71" data-secureasset-application-actions="direct-decision-v76" data-secureasset-surveyor-profile-source={module === 'surveyor-profiles' ? 'live-resource-api-v208' : undefined} data-secureasset-surveyor-profile-navigation={module === 'surveyor-profiles' ? 'admin-detail-v210' : undefined} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
+  return <Box data-secureasset-applications-filter="applications-filter-v66" data-secureasset-application-list={module === 'applications' ? 'record-frame-v1' : undefined} data-secureasset-tenancy-list={module === 'tenancies' ? 'record-frame-v1' : undefined} data-secureasset-clickable-records="clickable-records-v70" data-secureasset-property-visibility="property-visibility-v71" data-secureasset-application-actions="direct-decision-v76" data-secureasset-surveyor-profile-source={module === 'surveyor-profiles' ? 'live-resource-api-v208' : undefined} data-secureasset-surveyor-profile-navigation={module === 'surveyor-profiles' ? 'admin-detail-v210' : undefined} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
     {compactTenantApplicationView ? <Stack data-secureasset-my-applications-toolbar="compact-v151" direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1.2} sx={{ mb: 2.2 }}>
       <Chip size="small" label={`${pagination.total} ${pagination.total === 1 ? 'application' : 'applications'}`} variant="outlined" sx={{ alignSelf: { xs: 'flex-start', sm: 'center' }, fontWeight: 750 }} />
       {pageActions}
@@ -1232,7 +1234,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
     />}
 
     {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>{error}</Alert>}
-    <Paper className={`sa-surface-card${module === 'applications' ? ' sa-applications-filter-frame' : ''}`} elevation={0} sx={{ p: { xs: 1.4, sm: 1.7 }, mb: 2, borderRadius: 4, ...(module === 'applications' ? { borderColor: 'rgba(11,82,112,.16)', background: 'linear-gradient(145deg, #FFFFFF 0%, #F6FBFC 100%)' } : {}) }}><Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} spacing={1.2}><TextField fullWidth size="small" placeholder={`Search ${(isMyListings ? 'my listings' : moduleLabel(module)).toLowerCase()}…`} value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load(1)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }} />{config.statuses && <FormControl size="small" sx={{ minWidth: { sm: 185 } }}><InputLabel>Status</InputLabel><Select label="Status" value={status} onChange={(e) => { const next = e.target.value; setStatus(next); void load(1, { status: next }); }}><MenuItem value="">All statuses</MenuItem>{config.statuses.map((item) => <MenuItem key={item} value={item}>{optionText(item)}</MenuItem>)}</Select></FormControl>}<Button variant="contained" onClick={() => load(1)} sx={{ whiteSpace: 'nowrap' }}>Search</Button></Stack></Paper>
+    <Paper className={`sa-surface-card${module === 'applications' ? ' sa-applications-filter-frame' : ''}${module === 'tenancies' ? ' sa-tenancies-filter-frame' : ''}`} elevation={0} sx={{ p: { xs: 1.4, sm: 1.7 }, mb: 2, borderRadius: 4, ...(['applications', 'tenancies'].includes(module) ? { borderColor: 'rgba(11,82,112,.16)', background: 'linear-gradient(145deg, #FFFFFF 0%, #F6FBFC 100%)' } : {}) }}><Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} spacing={1.2}><TextField fullWidth size="small" placeholder={`Search ${(isMyListings ? 'my listings' : moduleLabel(module)).toLowerCase()}…`} value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load(1)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }} />{config.statuses && <FormControl size="small" sx={{ minWidth: { sm: 185 } }}><InputLabel>Status</InputLabel><Select label="Status" value={status} onChange={(e) => { const next = e.target.value; setStatus(next); void load(1, { status: next }); }}><MenuItem value="">All statuses</MenuItem>{config.statuses.map((item) => <MenuItem key={item} value={item}>{optionText(item)}</MenuItem>)}</Select></FormControl>}<Button variant="contained" onClick={() => load(1)} sx={{ whiteSpace: 'nowrap' }}>Search</Button></Stack></Paper>
 
     {loading ? (
       <Box sx={{ py: 12, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>
@@ -1317,7 +1319,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
                   minWidth: 0,
                 }}
               >
-                <ApplicationPropertyThumbnail property={property} />
+                <PropertyRecordThumbnail property={property} />
 
                 <Box sx={{ gridArea: 'tenant', minWidth: 0 }}>
                   <Typography className="sa-application-record-label" sx={{ color: '#71858A', fontSize: 9, fontWeight: 850, letterSpacing: '.07em', textTransform: 'uppercase' }}>Tenant name</Typography>
@@ -1354,6 +1356,112 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
                   <Typography className="sa-application-record-label" sx={{ color: '#71858A', fontSize: 9, fontWeight: 850, letterSpacing: '.07em', textTransform: 'uppercase' }}>Applied</Typography>
                   <Typography className="sa-application-record-value" noWrap sx={{ mt: .15, color: '#31474C', fontSize: { xs: 11, md: 10.5, xl: 12 }, fontWeight: 750 }}>{applicationDate}</Typography>
                 </Box>
+              </Box>
+            </CardContent>
+          </Card>;
+        })}
+      </Stack>
+    ) : module === 'tenancies' ? (
+      <Stack className="sa-tenancies-record-list" data-secureasset-tenancy-record-list="dashboard-rows-v1" spacing={{ xs: 1, sm: 1.25 }}>
+        {rows.map((row) => {
+          const tenantName = formatCell(row.tenant, 'user');
+          const tenancyNumber = String(row.tenancyNumber || row._id || 'Tenancy');
+          const property = row.property && typeof row.property === 'object' ? row.property : {};
+          const propertyName = property.title || property.code || formatCell(row.property, 'property');
+          const propertyLocation = property.address?.city || property.map?.locality || property.address?.state || '';
+          const space = row.space && typeof row.space === 'object' ? row.space : {};
+          const rentalUnit = row.rentalUnit && typeof row.rentalUnit === 'object' ? row.rentalUnit : {};
+          const roomName = space.name || space.roomNumber || space.flatNumber || rentalUnit.unitNumber || rentalUnit.name || '';
+          const normalizedStatus = String(row.status || 'reserved').toLowerCase();
+          const statusTone = ['active'].includes(normalizedStatus)
+            ? { color: '#176B4D', background: '#E7F5EE', border: 'rgba(23,107,77,.18)' }
+            : ['closed', 'completed'].includes(normalizedStatus)
+              ? { color: '#52656A', background: '#F0F4F4', border: 'rgba(82,101,106,.18)' }
+              : ['cancelled'].includes(normalizedStatus)
+                ? { color: '#A43F40', background: '#FCEEEE', border: 'rgba(164,63,64,.18)' }
+                : ['notice', 'notice_period', 'vacating', 'move_out', 'move_out_inspection', 'final_calculation', 'landlord_review', 'final_payment', 'deposit_settlement'].includes(normalizedStatus)
+                  ? { color: '#8A5A12', background: '#FFF5E2', border: 'rgba(138,90,18,.2)' }
+                  : { color: '#0B5270', background: '#E4F3F7', border: 'rgba(11,82,112,.18)' };
+          const shortDate = (value: unknown) => {
+            if (!value) return '—';
+            const date = new Date(String(value));
+            return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+          };
+          const dueCaption = row.dueDay ? `Due day ${row.dueDay}${row.dueTime ? ` · ${row.dueTime}` : ''}` : '';
+          return <Card
+            key={row._id}
+            className="sa-surface-card sa-tenancy-record-row"
+            elevation={0}
+            sx={{
+              overflow: 'hidden',
+              borderColor: 'rgba(11,82,112,.15)',
+              background: 'linear-gradient(145deg, #FFFFFF 0%, #F8FCFD 100%)',
+              transition: 'border-color .18s ease, transform .18s ease, box-shadow .18s ease',
+              '&:hover': { borderColor: '#0B5270', transform: 'translateY(-1px)', boxShadow: '0 12px 24px rgba(11,82,112,.09)' },
+            }}
+          >
+            <CardContent sx={{ p: { xs: 1.2, sm: 1.5, xl: 1.7 }, '&:last-child': { pb: { xs: 1.2, sm: 1.5, xl: 1.7 } } }}>
+              <Box
+                className="sa-tenancy-record-grid"
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '56px minmax(0, 1fr)', md: '64px minmax(76px, .95fr) minmax(94px, 1.1fr) minmax(72px, .8fr) minmax(68px, .75fr) minmax(80px, .9fr) minmax(70px, .72fr)', xl: '72px minmax(125px, 1.05fr) minmax(170px, 1.3fr) minmax(110px, .82fr) minmax(100px, .78fr) minmax(128px, 1fr) minmax(104px, .82fr)' },
+                  gridTemplateAreas: { xs: '"image tenant" "property property" "rent status" "period period" "actions actions"', md: '"image tenant property rent status period actions"' },
+                  alignItems: 'center',
+                  columnGap: { xs: 1, md: 1, xl: 1.4 },
+                  rowGap: { xs: 1, md: .7 },
+                  minWidth: 0,
+                }}
+              >
+                <PropertyRecordThumbnail property={property} />
+
+                <Box sx={{ gridArea: 'tenant', minWidth: 0 }}>
+                  <Typography className="sa-tenancy-record-label">Tenant</Typography>
+                  <ButtonBase onClick={() => openRecord(row)} aria-label={`Open tenancy for ${tenantName}`} sx={{ display: 'block', maxWidth: '100%', textAlign: 'left', color: '#183238', '&:hover': { color: '#0B5270' } }}>
+                    <Typography className="sa-tenancy-record-title" noWrap title={tenantName}>{tenantName}</Typography>
+                  </ButtonBase>
+                  {row.tenant?.email && <Typography className="sa-tenancy-record-detail" noWrap title={row.tenant.email}>{row.tenant.email}</Typography>}
+                  <Typography className="sa-tenancy-record-id" noWrap title={tenancyNumber}>Tenancy ID · {tenancyNumber}</Typography>
+                </Box>
+
+                <Box sx={{ gridArea: 'property', minWidth: 0 }}>
+                  <Typography className="sa-tenancy-record-label">Property &amp; space</Typography>
+                  <Typography className="sa-tenancy-record-value" title={String(propertyName)}>{propertyName}</Typography>
+                  {(roomName || propertyLocation) && <Typography className="sa-tenancy-record-detail" noWrap title={[roomName, propertyLocation].filter(Boolean).join(' · ')}>{[roomName, propertyLocation].filter(Boolean).join(' · ')}</Typography>}
+                </Box>
+
+                <Box sx={{ gridArea: 'rent', minWidth: 0 }}>
+                  <Stack direction="row" alignItems="center" gap={.35}>
+                    <PaymentsRounded sx={{ fontSize: 14, color: '#0B5270', flex: '0 0 auto' }} />
+                    <Typography className="sa-tenancy-record-label">Monthly rent</Typography>
+                  </Stack>
+                  <Typography className="sa-tenancy-record-rent" noWrap title={formatCell(row.monthlyRent, 'money')}>{formatCell(row.monthlyRent, 'money')}</Typography>
+                  {dueCaption && <Typography className="sa-tenancy-record-detail" noWrap title={dueCaption}>{dueCaption}</Typography>}
+                </Box>
+
+                <Box sx={{ gridArea: 'status', minWidth: 0 }}>
+                  <Typography className="sa-tenancy-record-label">Status</Typography>
+                  <Tooltip title={optionText(normalizedStatus)}>
+                    <Chip size="small" label={optionText(normalizedStatus)} className="sa-tenancy-status-chip" sx={{ maxWidth: '100%', height: 25, color: statusTone.color, bgcolor: statusTone.background, border: `1px solid ${statusTone.border}`, '& .MuiChip-label': { px: .85, overflow: 'hidden', textOverflow: 'ellipsis' } }} />
+                  </Tooltip>
+                </Box>
+
+                <Box sx={{ gridArea: 'period', minWidth: 0 }}>
+                  <Stack direction="row" alignItems="center" gap={.35} sx={{ mb: .25 }}>
+                    <CalendarMonthRounded sx={{ fontSize: 14, color: '#0B5270' }} />
+                    <Typography className="sa-tenancy-record-label">Tenancy period</Typography>
+                  </Stack>
+                  <Stack direction="row" flexWrap="wrap" useFlexGap columnGap={1.1} rowGap={.15}>
+                    <Typography className="sa-tenancy-record-date"><Box component="span">From </Box>{shortDate(row.startDate)}</Typography>
+                    <Typography className="sa-tenancy-record-date"><Box component="span">To </Box>{shortDate(row.endDate)}</Typography>
+                  </Stack>
+                </Box>
+
+                <Stack className="sa-tenancy-record-actions" sx={{ gridArea: 'actions', minWidth: 0 }} direction="row" alignItems="center" flexWrap="wrap" useFlexGap gap={.35} onClick={(event) => event.stopPropagation()}>
+                  <Tooltip title="View tenancy"><IconButton size="small" aria-label={`View tenancy ${tenancyNumber}`} onClick={() => openRecord(row)}><VisibilityRounded fontSize="small" /></IconButton></Tooltip>
+                  {canEdit && <Tooltip title="Edit tenancy"><IconButton className="sa-edit-icon-button" size="small" aria-label={`Edit tenancy ${tenancyNumber}`} onClick={() => openDialog('edit', row)}><EditRounded fontSize="small" /></IconButton></Tooltip>}
+                  <Tooltip title="More actions"><IconButton size="small" aria-label={`More actions for tenancy ${tenancyNumber}`} onClick={(event) => { setActionAnchor(event.currentTarget); setActionRow(row); }}><MoreVertRounded fontSize="small" /></IconButton></Tooltip>
+                </Stack>
               </Box>
             </CardContent>
           </Card>;
