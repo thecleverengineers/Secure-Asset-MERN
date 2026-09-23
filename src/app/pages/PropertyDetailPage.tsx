@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router';
 import {
@@ -12,6 +12,8 @@ import {
   Grid,
   Paper,
   Stack,
+  Tab,
+  Tabs,
   Typography,
 } from '@mui/material';
 import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded';
@@ -39,6 +41,7 @@ export default function PropertyDetailPage() {
   const navigate = useNavigate();
   const { data: siteData } = useSite();
   const wishlist = useWishlist();
+  const [detailsTab, setDetailsTab] = useState(0);
   const propertyQuery = useQuery(publicPropertyQueryOptions(slug || id));
   const listing = propertyQuery.data?.listing || null;
   const structure = propertyQuery.data?.structure || null;
@@ -165,6 +168,9 @@ export default function PropertyDetailPage() {
     ['Maintenance charges', property.pricing?.maintenanceCharge ? money(Number(property.pricing.maintenanceCharge)) : undefined],
     ['Price per sq. ft.', property.pricing?.pricePerUnitArea ? money(Number(property.pricing.pricePerUnitArea)) : undefined],
     ['Tax', property.pricing?.tax || property.pricing?.propertyTax ? money(Number(property.pricing.tax ?? property.pricing.propertyTax)) : undefined],
+  ];
+  const parkingPricingRows: Array<[string, unknown]> = [
+    ['Car parking spaces', parking.carSpaces], ['Two-wheeler parking spaces', parking.twoWheelerSpaces], ['Visitor parking', parking.visitorParking], ...pricingRows,
   ];
   const utilityRows: Array<[string, unknown]> = [
     ['Water supply', utilities.waterSupply], ['Electricity connection', utilities.electricityConnection], ['Power backup', utilities.powerBackup],
@@ -420,47 +426,49 @@ export default function PropertyDetailPage() {
             <Paper variant="outlined" sx={{ ...detailSectionSx, mt: useVakhitovskyPremiumDetails ? 2.5 : 3 }}>
               <DetailSectionHeader icon={TuneRounded} title="Property specifications" subtitle="Layout, size and ownership information at a glance." />
               <Grid container spacing={useVakhitovskyPremiumDetails ? 1.15 : 1.5} mt={useVakhitovskyPremiumDetails ? 1.5 : .5}>{renderRows(specificationRows)}</Grid>
-              <Box sx={useVakhitovskyPremiumDetails ? { mt: 2.5, pt: 2.25, borderTop: '1px solid rgba(17, 62, 83, .11)' } : { mt: 3 }}>
-                <Typography fontWeight={950} sx={{ color: '#0D2D45' }}>Parking & pricing</Typography>
-                {useVakhitovskyPremiumDetails && <Typography color="text.secondary" fontSize={12.5} sx={{ mt: .35 }}>Convenience and cost details for this property.</Typography>}
-              </Box>
-              <Grid container spacing={useVakhitovskyPremiumDetails ? 1.15 : 1.5} mt={useVakhitovskyPremiumDetails ? 1.2 : .5}>{renderRows([
-                ['Car parking spaces', parking.carSpaces], ['Two-wheeler parking spaces', parking.twoWheelerSpaces], ['Visitor parking', parking.visitorParking], ...pricingRows,
-              ])}</Grid>
             </Paper>
 
-            <Paper variant="outlined" sx={{ ...detailSectionSx, mt: useVakhitovskyPremiumDetails ? 2.5 : 3 }}>
-              <DetailSectionHeader icon={SecurityRounded} title="Utilities & legal details" subtitle="Essential services and document-related facts, presented clearly." />
-              <Grid container spacing={useVakhitovskyPremiumDetails ? 1.15 : 1.5} mt={useVakhitovskyPremiumDetails ? 1.5 : .5}>{renderRows([...utilityRows, ...legalRows])}</Grid>
-            </Paper>
+            <Paper variant="outlined" data-secureasset-property-detail-tabs="post-specifications-v211" sx={{ ...detailSectionSx, mt: 2.5 }}>
+              <Tabs value={detailsTab} onChange={(_, value) => setDetailsTab(value)} variant="scrollable" scrollButtons="auto" aria-label="Additional property details" sx={{ minHeight: 42, borderBottom: '1px solid rgba(17, 62, 83, .14)', '& .MuiTabs-indicator': { height: 2, bgcolor: '#087A70' }, '& .MuiTab-root': { minHeight: 42, px: 1.25, color: '#577080', textTransform: 'none' }, '& .Mui-selected': { color: '#0D2D45 !important' } }}>
+                <Tab label="Parking & pricing" />
+                <Tab label="Utilities & legal details" />
+                <Tab label="Nearby facilities" />
+                <Tab label="Property-specific details" />
+              </Tabs>
 
-            {(nearbyRows.length > 0 || publicContact.ownerName || publicContact.agentName) && <Paper variant="outlined" sx={{ ...detailSectionSx, mt: useVakhitovskyPremiumDetails ? 2.5 : 3 }}>
-              <DetailSectionHeader icon={LocationOnRounded} title="Nearby facilities" subtitle="Useful places and local conveniences around the property." />
-              <Grid container spacing={useVakhitovskyPremiumDetails ? 1.15 : 1.5} mt={useVakhitovskyPremiumDetails ? 1.5 : .5}>{renderRows(nearbyRows)}</Grid>
-              {(publicContact.ownerName || publicContact.agentName) && <Alert severity="info" sx={useVakhitovskyPremiumDetails ? { mt: 2, border: '1px solid rgba(2, 132, 199, .18)', borderRadius: '1px', bgcolor: '#F1F8FD' } : { mt: 2 }}>Listed by {publicContact.agentName || publicContact.ownerName}. Use the application or site-visit flow to share contact details securely.</Alert>}
-            </Paper>}
+              <Box role="tabpanel" sx={{ pt: 2 }}>
+                {detailsTab === 0 && <>
+                  <Typography color="text.secondary" fontSize={12.5}>Convenience and cost details for this property.</Typography>
+                  {parkingPricingRows.some(([, value]) => hasValue(value)) ? <Grid container spacing={1.15} mt={1.25}>{renderRows(parkingPricingRows)}</Grid> : <Typography color="text.secondary" fontSize={13} sx={{ mt: 1.25 }}>Parking and pricing details have not been added yet.</Typography>}
+                </>}
 
-            {property.customAttributes && Object.keys(property.customAttributes).length > 0 && (
-              <Paper variant="outlined" sx={{ ...detailSectionSx, mt: useVakhitovskyPremiumDetails ? 2.5 : 3 }}>
-                <DetailSectionHeader icon={HomeWorkRounded} title="Property-specific details" subtitle="Additional information supplied for this particular listing." />
-                <Grid container spacing={useVakhitovskyPremiumDetails ? 1.15 : 1.5} mt={useVakhitovskyPremiumDetails ? 1.5 : .5}>
-                  {Object.entries(property.customAttributes).map(([key, value]) => (
-                    <Grid size={{ xs: 12, sm: 6 }} key={key}>
-                      {useVakhitovskyPremiumDetails ? <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1.5} sx={detailTileSx}>
+                {detailsTab === 1 && <>
+                  <Typography color="text.secondary" fontSize={12.5}>Essential services and document-related facts, presented clearly.</Typography>
+                  {[...utilityRows, ...legalRows].some(([, value]) => hasValue(value)) ? <Grid container spacing={1.15} mt={1.25}>{renderRows([...utilityRows, ...legalRows])}</Grid> : <Typography color="text.secondary" fontSize={13} sx={{ mt: 1.25 }}>Utilities and legal details have not been added yet.</Typography>}
+                </>}
+
+                {detailsTab === 2 && <>
+                  <Typography color="text.secondary" fontSize={12.5}>Useful places and local conveniences around the property.</Typography>
+                  {nearbyRows.some(([, value]) => hasValue(value)) ? <Grid container spacing={1.15} mt={1.25}>{renderRows(nearbyRows)}</Grid> : <Typography color="text.secondary" fontSize={13} sx={{ mt: 1.25 }}>Nearby facilities have not been added yet.</Typography>}
+                  {(publicContact.ownerName || publicContact.agentName) && <Alert severity="info" sx={{ mt: 2, border: '1px solid rgba(2, 132, 199, .18)', borderRadius: '1px', bgcolor: '#F1F8FD' }}>Listed by {publicContact.agentName || publicContact.ownerName}. Use the application or site-visit flow to share contact details securely.</Alert>}
+                </>}
+
+                {detailsTab === 3 && <>
+                  <Typography color="text.secondary" fontSize={12.5}>Additional information supplied for this particular listing.</Typography>
+                  {property.customAttributes && Object.keys(property.customAttributes).length > 0 ? <Grid container spacing={1.15} mt={1.25}>
+                    {Object.entries(property.customAttributes).map(([key, value]) => <Grid size={{ xs: 12, sm: 6 }} key={key}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1.5} sx={detailTileSx}>
                         <Stack direction="row" alignItems="center" gap={.8} sx={{ minWidth: 0 }}>
                           <Box sx={{ width: 6, height: 6, flexShrink: 0, bgcolor: '#0B8B7E', borderRadius: '50%' }} />
                           <Typography color="text.secondary" fontSize={13}>{sentence(key)}</Typography>
                         </Stack>
                         <Typography fontWeight={850} fontSize={13} textAlign="right" sx={{ color: '#153B54' }}>{Array.isArray(value) ? value.join(', ') : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '—')}</Typography>
-                      </Stack> : <Stack direction="row" justifyContent="space-between" gap={2} sx={{ py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
-                        <Typography color="text.secondary" fontSize={13}>{sentence(key)}</Typography>
-                        <Typography fontWeight={800} fontSize={13} textAlign="right">{Array.isArray(value) ? value.join(', ') : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '—')}</Typography>
-                      </Stack>}
-                    </Grid>
-                  ))}
-                </Grid>
-              </Paper>
-            )}
+                      </Stack>
+                    </Grid>)}
+                  </Grid> : <Typography color="text.secondary" fontSize={13} sx={{ mt: 1.25 }}>No additional property-specific details have been added yet.</Typography>}
+                </>}
+              </Box>
+            </Paper>
 
             {spaces.length > 0 && (
               <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 4, mt: 3 }}>
