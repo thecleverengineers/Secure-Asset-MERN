@@ -15,6 +15,7 @@ import DeleteOutlineRounded from '@mui/icons-material/DeleteOutlineRounded';
 import DescriptionRounded from '@mui/icons-material/DescriptionRounded';
 import EditRounded from '@mui/icons-material/EditRounded';
 import FileDownloadRounded from '@mui/icons-material/FileDownloadRounded';
+import ImageNotSupportedRounded from '@mui/icons-material/ImageNotSupportedRounded';
 import MoreVertRounded from '@mui/icons-material/MoreVertRounded';
 import RefreshRounded from '@mui/icons-material/RefreshRounded';
 import SearchRounded from '@mui/icons-material/SearchRounded';
@@ -383,6 +384,79 @@ function directBrowserImageSource(source: string) {
 
 function propertyMediaIdFromSource(source: string) {
   return String(source || '').match(/\/(?:api\/v\d+\/)?property-media\/([a-f\d]{24})(?:\/content)?(?:[/?#]|$)/i)?.[1] || '';
+}
+
+function applicationPropertyImage(property: any) {
+  const propertyId = String(property?._id || property?.id || '');
+  const entries = [property?.propertyMedia, property?.media, property?.galleryCover, property?.coverImage, property?.mainImage, property?.primaryImage, property?.images]
+    .flatMap((entry) => Array.isArray(entry) ? entry : entry ? [entry] : []);
+  const mediaIds: string[] = [];
+  const previewFileIds: string[] = [];
+  const secureSources: string[] = [];
+  const directSources: string[] = [];
+
+  entries.forEach((entry) => {
+    if (entry && typeof entry === 'object') {
+      const mediaId = String(entry.mediaId || entry.propertyMediaId || entry.media?._id || '');
+      const previewFileId = String(entry.previewFileId || entry.driveFileId || entry.fileId || entry.driveFile?._id || '');
+      if (mediaId) mediaIds.push(mediaId);
+      if (previewFileId) previewFileIds.push(previewFileId);
+    }
+    mediaSourceValues(entry && typeof entry === 'object'
+      ? [entry.url, entry.thumbnailUrl, entry.previewUrl, entry.secureSource, entry.path]
+      : entry).forEach((source) => {
+      if (isSecureMediaSource(source)) secureSources.push(source);
+      else if (directBrowserImageSource(source)) directSources.push(source);
+    });
+  });
+
+  const secureMediaIds = secureSources.map((source) => propertyMediaIdFromSource(source) || (/^[a-f\d]{24}$/i.test(source.replace(/^\/+/, '').split(/[?#]/, 1)[0]) ? source.replace(/^\/+/, '').split(/[?#]/, 1)[0] : '')).filter(Boolean);
+  return {
+    propertyId,
+    mediaIds: [...new Set([...mediaIds, ...secureMediaIds])],
+    previewFileIds: [...new Set(previewFileIds)],
+    secureSources: [...new Set(secureSources.filter((source) => !propertyMediaIdFromSource(source) && !/^[a-f\d]{24}$/i.test(source.replace(/^\/+/, '').split(/[?#]/, 1)[0])))],
+    directSources: [...new Set(directSources)],
+  };
+}
+
+function ApplicationPropertyThumbnail({ property }: { property: any }) {
+  const image = useMemo(() => applicationPropertyImage(property), [property]);
+  const [src, setSrc] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl = '';
+    setSrc('');
+    async function resolveImage() {
+      const loaders: Array<() => Promise<Blob>> = [
+        ...image.mediaIds.map((mediaId) => () => fetchPropertyMediaBlob(mediaId, image.propertyId)),
+        ...image.previewFileIds.map((fileId) => () => fetchPropertyImageBlob(`${API_BASE}/drive/files/${encodeURIComponent(fileId)}/content`, image.propertyId)),
+        ...image.secureSources.map((source) => () => fetchPropertyImageBlob(source, image.propertyId)),
+      ];
+      for (const load of loaders) {
+        try {
+          const blob = await load();
+          if (!active) return;
+          objectUrl = URL.createObjectURL(blob);
+          setSrc(objectUrl);
+          return;
+        } catch {
+          // Try the next stored source; the list row remains usable while images resolve.
+        }
+      }
+      if (active) setSrc(image.directSources[0] || '');
+    }
+    void resolveImage();
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [image]);
+
+  return <Box sx={{ gridArea: 'image', width: { xs: 52, md: 58 }, height: { xs: 46, md: 52 }, overflow: 'hidden', border: '1px solid rgba(11,82,112,.12)', borderRadius: '5px', bgcolor: '#EDF4F5', display: 'grid', placeItems: 'center', color: '#6C8991' }}>
+    {src ? <Box component="img" src={src} alt={property?.title ? `${property.title} property` : 'Property'} loading="lazy" decoding="async" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageNotSupportedRounded sx={{ fontSize: 21 }} />}
+  </Box>;
 }
 
 function PropertyImageCard({ image, onPreview, onEdit, onDelete, variant = 'grid', active = false }: { image: PreviewImage; onPreview: (image: PreviewImage) => void; onEdit?: (recordId: string) => void; onDelete?: (recordId: string, label: string) => void; variant?: 'grid' | 'carousel'; active?: boolean }) {
@@ -1139,14 +1213,16 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
     {canCreate && <Button size="small" className={module === 'properties' ? undefined : 'sa-submit-button'} variant="contained" startIcon={module === 'documents' ? <UploadFileRounded /> : <AddRounded />} onClick={() => module === 'properties' ? navigate('/app/add_property') : openDialog('create')}>{module === 'documents' ? 'Upload' : `Add ${config.singular}`}</Button>}
   </Stack>;
 
-  return <Box data-secureasset-applications-filter="applications-filter-v66" data-secureasset-clickable-records="clickable-records-v70" data-secureasset-property-visibility="property-visibility-v71" data-secureasset-application-actions="direct-decision-v76" data-secureasset-surveyor-profile-source={module === 'surveyor-profiles' ? 'live-resource-api-v208' : undefined} data-secureasset-surveyor-profile-navigation={module === 'surveyor-profiles' ? 'admin-detail-v210' : undefined} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
+  return <Box data-secureasset-applications-filter="applications-filter-v66" data-secureasset-application-list={module === 'applications' ? 'record-frame-v1' : undefined} data-secureasset-clickable-records="clickable-records-v70" data-secureasset-property-visibility="property-visibility-v71" data-secureasset-application-actions="direct-decision-v76" data-secureasset-surveyor-profile-source={module === 'surveyor-profiles' ? 'live-resource-api-v208' : undefined} data-secureasset-surveyor-profile-navigation={module === 'surveyor-profiles' ? 'admin-detail-v210' : undefined} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
     {compactTenantApplicationView ? <Stack data-secureasset-my-applications-toolbar="compact-v151" direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1.2} sx={{ mb: 2.2 }}>
       <Chip size="small" label={`${pagination.total} ${pagination.total === 1 ? 'application' : 'applications'}`} variant="outlined" sx={{ alignSelf: { xs: 'flex-start', sm: 'center' }, fontWeight: 750 }} />
       {pageActions}
     </Stack> : compactRequestedResourceView ? <CompactPageToolbar
       marker={`resource-${module}-toolbar-v153`}
       title={isMyListings ? 'My Listings' : moduleLabel(module)}
-      description={`${pagination.total} ${pagination.total === 1 ? 'record' : 'records'} in this workspace.`}
+      description={module === 'applications'
+        ? `${pagination.total} ${pagination.total === 1 ? 'application' : 'applications'} in this workspace.`
+        : `${pagination.total} ${pagination.total === 1 ? 'record' : 'records'} in this workspace.`}
       actions={pageActions}
     /> : <PageHeader
       eyebrow={module === 'properties' ? 'Portfolio' : module === 'payments' || module === 'rental-invoices' ? 'Finance' : module === 'documents' ? 'Secure records' : 'Operations'}
@@ -1156,7 +1232,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
     />}
 
     {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>{error}</Alert>}
-    <Paper className="sa-surface-card" elevation={0} sx={{ p: { xs: 1.4, sm: 1.7 }, mb: 2, borderRadius: 4 }}><Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} spacing={1.2}><TextField fullWidth size="small" placeholder={`Search ${(isMyListings ? 'my listings' : moduleLabel(module)).toLowerCase()}…`} value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load(1)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }} />{config.statuses && <FormControl size="small" sx={{ minWidth: { sm: 185 } }}><InputLabel>Status</InputLabel><Select label="Status" value={status} onChange={(e) => { const next = e.target.value; setStatus(next); void load(1, { status: next }); }}><MenuItem value="">All statuses</MenuItem>{config.statuses.map((item) => <MenuItem key={item} value={item}>{optionText(item)}</MenuItem>)}</Select></FormControl>}<Button variant="contained" onClick={() => load(1)} sx={{ whiteSpace: 'nowrap' }}>Search</Button></Stack></Paper>
+    <Paper className={`sa-surface-card${module === 'applications' ? ' sa-applications-filter-frame' : ''}`} elevation={0} sx={{ p: { xs: 1.4, sm: 1.7 }, mb: 2, borderRadius: 4, ...(module === 'applications' ? { borderColor: 'rgba(11,82,112,.16)', background: 'linear-gradient(145deg, #FFFFFF 0%, #F6FBFC 100%)' } : {}) }}><Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} spacing={1.2}><TextField fullWidth size="small" placeholder={`Search ${(isMyListings ? 'my listings' : moduleLabel(module)).toLowerCase()}…`} value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load(1)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }} />{config.statuses && <FormControl size="small" sx={{ minWidth: { sm: 185 } }}><InputLabel>Status</InputLabel><Select label="Status" value={status} onChange={(e) => { const next = e.target.value; setStatus(next); void load(1, { status: next }); }}><MenuItem value="">All statuses</MenuItem>{config.statuses.map((item) => <MenuItem key={item} value={item}>{optionText(item)}</MenuItem>)}</Select></FormControl>}<Button variant="contained" onClick={() => load(1)} sx={{ whiteSpace: 'nowrap' }}>Search</Button></Stack></Paper>
 
     {loading ? (
       <Box sx={{ py: 12, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>
@@ -1195,6 +1271,94 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
           onMore={(event) => { setActionAnchor(event.currentTarget); setActionRow(row); }}
         />)}
       </Box>
+    ) : module === 'applications' ? (
+      <Stack className="sa-applications-record-list" data-secureasset-application-record-list="dashboard-rows-v1" spacing={{ xs: 1, sm: 1.25 }}>
+        {rows.map((row) => {
+          const applicationNumber = String(row.applicationNumber || row._id || 'Application');
+          const normalizedStatus = String(row.status || 'draft').toLowerCase();
+          const accepted = applicationAcceptedStatuses.includes(normalizedStatus);
+          const tenantName = formatCell(row.applicant, 'user');
+          const property = row.property && typeof row.property === 'object' ? row.property : {};
+          const propertyName = property.title || property.code || row.targetSpace?.name || row.rentalUnit?.name || formatCell(row.property, 'property');
+          const propertyLocation = property.address?.city || property.map?.locality || property.address?.state || '';
+          const createdDate = row.createdAt ? new Date(row.createdAt) : null;
+          const applicationDate = createdDate && !Number.isNaN(createdDate.getTime())
+            ? createdDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+            : '—';
+          const statusTone = ['approved', 'agreement_pending', 'deposit_pending', 'completed'].includes(normalizedStatus)
+            ? { color: '#176B4D', background: '#E7F5EE', border: 'rgba(23,107,77,.18)' }
+            : ['rejected', 'withdrawn'].includes(normalizedStatus)
+              ? { color: '#A43F40', background: '#FCEEEE', border: 'rgba(164,63,64,.18)' }
+              : ['under_review', 'documents_pending', 'shortlisted', 'interview_requested', 'interview_scheduled', 'site_visit_scheduled', 'additional_documents_requested'].includes(normalizedStatus)
+                ? { color: '#8A5A12', background: '#FFF5E2', border: 'rgba(138,90,18,.2)' }
+                : { color: '#0B5270', background: '#E4F3F7', border: 'rgba(11,82,112,.18)' };
+          return <Card
+            key={row._id}
+            className="sa-surface-card sa-applications-record-row"
+            elevation={0}
+            sx={{
+              overflow: 'hidden',
+              borderColor: 'rgba(11,82,112,.15)',
+              background: 'linear-gradient(145deg, #FFFFFF 0%, #F8FCFD 100%)',
+              transition: 'border-color .18s ease, transform .18s ease, box-shadow .18s ease',
+              '&:hover': { borderColor: '#0B5270', transform: 'translateY(-1px)', boxShadow: '0 12px 24px rgba(11,82,112,.09)' },
+            }}
+          >
+            <CardContent sx={{ p: { xs: 1.2, sm: 1.5, xl: 1.7 }, '&:last-child': { pb: { xs: 1.2, sm: 1.5, xl: 1.7 } } }}>
+              <Box
+                className="sa-application-record-grid"
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '56px minmax(0, 1fr)', md: '56px minmax(88px, 1fr) minmax(108px, 1.2fr) minmax(76px, .75fr) minmax(104px, 1fr) minmax(78px, .75fr)', xl: '72px minmax(130px, 1fr) minmax(180px, 1.35fr) minmax(115px, .85fr) minmax(180px, 1.25fr) minmax(116px, .75fr)' },
+                  gridTemplateAreas: { xs: '"image tenant" "property property" "status date" "actions actions"', md: '"image tenant property status actions date"' },
+                  alignItems: 'center',
+                  columnGap: { xs: 1, md: 1.15, xl: 1.5 },
+                  rowGap: { xs: 1, md: .7 },
+                  minWidth: 0,
+                }}
+              >
+                <ApplicationPropertyThumbnail property={property} />
+
+                <Box sx={{ gridArea: 'tenant', minWidth: 0 }}>
+                  <Typography className="sa-application-record-label" sx={{ color: '#71858A', fontSize: 9, fontWeight: 850, letterSpacing: '.07em', textTransform: 'uppercase' }}>Tenant name</Typography>
+                  <ButtonBase onClick={() => openRecord(row)} aria-label={`Open application for ${tenantName}`} sx={{ display: 'block', maxWidth: '100%', textAlign: 'left', color: '#183238', '&:hover': { color: '#0B5270' } }}>
+                    <Typography className="sa-application-record-title" noWrap title={tenantName} sx={{ mt: .1, fontSize: { xs: 13, md: 12.5, xl: 14 }, fontWeight: 850, lineHeight: 1.25 }}>{tenantName}</Typography>
+                  </ButtonBase>
+                  <Typography className="sa-application-record-subtitle" noWrap title={applicationNumber} sx={{ mt: .25, color: '#71858A', fontSize: 10, lineHeight: 1.25 }}>Application ID · {applicationNumber}</Typography>
+                </Box>
+
+                <Box sx={{ gridArea: 'property', minWidth: 0 }}>
+                  <Typography className="sa-application-record-label" sx={{ color: '#71858A', fontSize: 9, fontWeight: 850, letterSpacing: '.07em', textTransform: 'uppercase' }}>Property</Typography>
+                  <Typography className="sa-application-record-value" title={String(propertyName)} sx={{ mt: .1, color: '#183238', fontSize: { xs: 12.5, md: 12, xl: 13.5 }, fontWeight: 800, lineHeight: 1.3, overflowWrap: 'anywhere' }}>{propertyName}</Typography>
+                  {propertyLocation && <Typography noWrap sx={{ mt: .15, color: '#75878A', fontSize: 10.5 }}>{propertyLocation}</Typography>}
+                </Box>
+
+                <Stack sx={{ gridArea: 'status', minWidth: 0 }} spacing={.3} alignItems={{ xs: 'flex-start', md: 'flex-start' }}>
+                  <Typography className="sa-application-record-label" sx={{ color: '#71858A', fontSize: 9, fontWeight: 850, letterSpacing: '.07em', textTransform: 'uppercase' }}>Status</Typography>
+                  <Chip size="small" label={optionText(normalizedStatus)} className="sa-application-status-chip" sx={{ maxWidth: '100%', height: 25, color: statusTone.color, bgcolor: statusTone.background, border: `1px solid ${statusTone.border}`, '& .MuiChip-label': { px: .9, overflow: 'hidden', textOverflow: 'ellipsis' } }} />
+                  {row.paymentStatus && <Typography noWrap className="sa-application-payment-chip" sx={{ color: '#75878A', fontSize: 9.5 }}>Payment · {formatCell(row.paymentStatus, 'status')}</Typography>}
+                </Stack>
+
+                <Stack className="sa-application-record-actions" sx={{ gridArea: 'actions', minWidth: 0 }} direction="row" alignItems="center" flexWrap="wrap" useFlexGap gap={.35} onClick={(event) => event.stopPropagation()}>
+                  {canDecideApplication(row) && <>
+                    <Button size="small" variant="contained" color="success" startIcon={<CheckCircleRounded />} onClick={() => void decideApplication(row, 'approved')} sx={{ minHeight: 29, minWidth: 0, px: { xs: .85, xl: 1 }, fontSize: 10.5, fontWeight: 850, textTransform: 'none', '& .MuiButton-startIcon': { mr: .4, ml: 0 }, '& .MuiSvgIcon-root': { fontSize: 15 } }}>Accept</Button>
+                    <Button size="small" variant="outlined" color="error" startIcon={<CloseRounded />} onClick={() => void decideApplication(row, 'rejected')} sx={{ minHeight: 29, minWidth: 0, px: { xs: .85, xl: 1 }, fontSize: 10.5, fontWeight: 850, textTransform: 'none', '& .MuiButton-startIcon': { mr: .4, ml: 0 }, '& .MuiSvgIcon-root': { fontSize: 15 } }}>Reject</Button>
+                  </>}
+                  {accepted && <Tooltip title="Open agreement"><IconButton size="small" aria-label={`Open agreement for ${applicationNumber}`} onClick={() => openRecord(row)} sx={{ width: 30, height: 30, color: '#0B5270', border: '1px solid rgba(11,82,112,.14)', bgcolor: '#F6FBFC' }}><DescriptionRounded sx={{ fontSize: 17 }} /></IconButton></Tooltip>}
+                  <Tooltip title="View application"><IconButton size="small" aria-label={`View ${applicationNumber}`} onClick={() => openRecord(row)} sx={{ width: 30, height: 30, color: '#0B5270', border: '1px solid rgba(11,82,112,.14)', bgcolor: '#F6FBFC' }}><VisibilityRounded sx={{ fontSize: 17 }} /></IconButton></Tooltip>
+                  {canEdit && <Tooltip title="Edit application"><IconButton className="sa-edit-icon-button" size="small" aria-label={`Edit ${applicationNumber}`} onClick={() => openDialog('edit', row)} sx={{ width: 30, height: 30, color: '#0B5270', border: '1px solid rgba(11,82,112,.14)', bgcolor: '#F6FBFC' }}><EditRounded sx={{ fontSize: 17 }} /></IconButton></Tooltip>}
+                  <Tooltip title="More actions"><IconButton size="small" aria-label={`More actions for ${applicationNumber}`} onClick={(event) => { setActionAnchor(event.currentTarget); setActionRow(row); }} sx={{ width: 30, height: 30, color: '#0B5270', border: '1px solid rgba(11,82,112,.14)', bgcolor: '#F6FBFC' }}><MoreVertRounded sx={{ fontSize: 18 }} /></IconButton></Tooltip>
+                </Stack>
+
+                <Box sx={{ gridArea: 'date', minWidth: 0, textAlign: { xs: 'right', md: 'left' } }}>
+                  <Typography className="sa-application-record-label" sx={{ color: '#71858A', fontSize: 9, fontWeight: 850, letterSpacing: '.07em', textTransform: 'uppercase' }}>Applied</Typography>
+                  <Typography className="sa-application-record-value" noWrap sx={{ mt: .15, color: '#31474C', fontSize: { xs: 11, md: 10.5, xl: 12 }, fontWeight: 750 }}>{applicationDate}</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>;
+        })}
+      </Stack>
     ) : mobile ? (
       <Stack spacing={1.2} data-secureasset-property-mobile-list={module === 'properties' ? 'portfolio-v154' : undefined}>
         {module === 'properties' ? rows.map((row) => <PropertyPortfolioCard

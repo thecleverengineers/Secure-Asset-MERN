@@ -26,6 +26,55 @@
   --sa-motion-easing: ease;
 }
 
+/* Applications keep a single-record-per-row workflow while sharing the
+   focused teal frame and stronger type hierarchy used by My Listings. */
+.sa-reference-content [data-secureasset-application-list="record-frame-v1"] .sa-application-record-title {
+  color: #0B5270 !important;
+  font-weight: 900 !important;
+  letter-spacing: -.025em !important;
+}
+
+.sa-reference-content [data-secureasset-application-list="record-frame-v1"] .sa-application-record-subtitle {
+  color: #62777C !important;
+  font-weight: 600 !important;
+}
+
+.sa-reference-content [data-secureasset-application-list="record-frame-v1"] .sa-application-record-label {
+  color: #6A7D81 !important;
+  font-weight: 800 !important;
+  letter-spacing: .055em !important;
+}
+
+.sa-reference-content [data-secureasset-application-list="record-frame-v1"] .sa-application-record-value {
+  color: #183238 !important;
+  font-weight: 700 !important;
+}
+
+.sa-reference-content [data-secureasset-application-list="record-frame-v1"] .sa-application-status-chip .MuiChip-label,
+.sa-reference-content [data-secureasset-application-list="record-frame-v1"] .sa-application-payment-chip .MuiChip-label,
+.sa-reference-content [data-secureasset-application-list="record-frame-v1"] .sa-applications-record-list .MuiButton-root {
+  font-weight: 800 !important;
+}
+
+.sa-reference-content [data-secureasset-application-list="record-frame-v1"] .sa-applications-record-row {
+  border-radius: 12px !important;
+  box-shadow: 0 5px 18px rgba(15, 47, 57, .045);
+}
+
+.sa-reference-content [data-secureasset-application-list="record-frame-v1"] .sa-applications-record-row .sa-application-record-actions .MuiButton-root {
+  border-radius: 6px !important;
+}
+
+.sa-reference-content [data-secureasset-application-list="record-frame-v1"] .sa-applications-record-row .sa-application-record-actions .MuiIconButton-root {
+  border-radius: 8px !important;
+}
+
+@media (max-width: 899px) {
+  .sa-reference-content [data-secureasset-application-list="record-frame-v1"] .sa-applications-record-row {
+    border-radius: 10px !important;
+  }
+}
+
 * { box-sizing: border-box; }
 @media (max-width: 899px) {
   .sa-vault-mobile-floating-scan { position: fixed !important; right: 22px; bottom: 82px; z-index: 1200; width: 64px; height: 64px; color: #fff !important; border: 4px solid rgba(255,255,255,.92) !important; border-radius: 50% !important; background: linear-gradient(145deg, #7b2ff7, #b54bff 48%, #ff4f8b) !important; box-shadow: 0 12px 28px rgba(106,42,196,.34), 0 4px 0 rgba(255,255,255,.25) inset; transition: transform .18s ease, box-shadow .18s ease; }
