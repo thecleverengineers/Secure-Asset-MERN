@@ -229,6 +229,19 @@ function formatCell(value: any, type?: Column['type']) {
   return optionText(value);
 }
 
+function formatRecordDate(value: unknown) {
+  if (!value) return '—';
+  const date = new Date(String(value));
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function formatDueTime(value: unknown) {
+  const match = String(value || '').match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return String(value || '—');
+  const hour = Number(match[1]);
+  return `${hour % 12 || 12}:${match[2]} ${hour >= 12 ? 'PM' : 'AM'}`;
+}
+
 function planLimitValue(row: any, path: string) {
   const value = getValue(row, path);
   if (value === undefined || value === null || value === '') return '—';
@@ -1230,7 +1243,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
     </Tooltip>}
   </Stack>;
 
-  return <Box data-secureasset-applications-filter="applications-filter-v66" data-secureasset-application-list={module === 'applications' ? 'record-frame-v1' : undefined} data-secureasset-clickable-records="clickable-records-v70" data-secureasset-property-visibility="property-visibility-v71" data-secureasset-application-actions="direct-decision-v76" data-secureasset-surveyor-profile-source={module === 'surveyor-profiles' ? 'live-resource-api-v208' : undefined} data-secureasset-surveyor-profile-navigation={module === 'surveyor-profiles' ? 'admin-detail-v210' : undefined} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
+  return <Box data-secureasset-applications-filter="applications-filter-v66" data-secureasset-application-list={module === 'applications' ? 'record-frame-v1' : undefined} data-secureasset-tenancy-list={module === 'tenancies' ? 'record-frame-v1' : undefined} data-secureasset-clickable-records="clickable-records-v70" data-secureasset-property-visibility="property-visibility-v71" data-secureasset-application-actions="direct-decision-v76" data-secureasset-surveyor-profile-source={module === 'surveyor-profiles' ? 'live-resource-api-v208' : undefined} data-secureasset-surveyor-profile-navigation={module === 'surveyor-profiles' ? 'admin-detail-v210' : undefined} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
     {compactTenantApplicationView ? <Stack data-secureasset-my-applications-toolbar="compact-v151" direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1.2} sx={{ mb: 2.2 }}>
       <Chip size="small" label={`${pagination.total} ${pagination.total === 1 ? 'application' : 'applications'}`} variant="outlined" sx={{ alignSelf: { xs: 'flex-start', sm: 'center' }, fontWeight: 750 }} />
       {pageActions}
@@ -1371,6 +1384,115 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
                   <Typography className="sa-application-record-label" sx={{ color: '#71858A', fontSize: 9, fontWeight: 850, letterSpacing: '.07em', textTransform: 'uppercase' }}>Applied</Typography>
                   <Typography className="sa-application-record-value" noWrap sx={{ mt: .15, color: '#31474C', fontSize: { xs: 11, md: 10.5, xl: 12 }, fontWeight: 750 }}>{applicationDate}</Typography>
                 </Box>
+              </Box>
+            </CardContent>
+          </Card>;
+        })}
+      </Stack>
+    ) : module === 'tenancies' ? (
+      <Stack className="sa-tenancies-record-list" data-secureasset-tenancy-record-list="dashboard-rows-v1" spacing={{ xs: 1, sm: 1.25 }}>
+        {rows.map((row) => {
+          const tenantName = formatCell(row.tenant, 'user');
+          const property = row.property && typeof row.property === 'object' ? row.property : {};
+          const propertyName = property.title || property.name || property.code || formatCell(row.property, 'property');
+          const space = row.space && typeof row.space === 'object' ? row.space : {};
+          const rentalUnit = row.rentalUnit && typeof row.rentalUnit === 'object' ? row.rentalUnit : {};
+          const roomName = space.name || space.roomNumber || space.flatNumber || space.apartmentNumber || space.code
+            || rentalUnit.name || rentalUnit.roomNumber || rentalUnit.flatNumber || rentalUnit.apartmentNumber || '';
+          const status = String(row.status || 'reserved').toLowerCase();
+          const statusTone = ['active'].includes(status)
+            ? { color: '#176B4D', background: '#E7F5EE', border: 'rgba(23,107,77,.18)' }
+            : ['completed', 'closed'].includes(status)
+              ? { color: '#315C70', background: '#EDF5F8', border: 'rgba(49,92,112,.18)' }
+              : ['cancelled'].includes(status)
+                ? { color: '#A43F40', background: '#FCEEEE', border: 'rgba(164,63,64,.18)' }
+                : { color: '#8A5A12', background: '#FFF5E2', border: 'rgba(138,90,18,.2)' };
+          const startsOn = formatRecordDate(row.startDate);
+          const endsOn = formatRecordDate(row.endDate);
+          const schedule = `Due day ${row.dueDay || '—'} · ${formatDueTime(row.dueTime)}`;
+          const clickable = Boolean(row?._id);
+          const open = () => { if (clickable) openRecord(row); };
+          const handleKeyDown = (event: KeyboardEvent) => {
+            if (!clickable || !['Enter', ' '].includes(event.key)) return;
+            event.preventDefault();
+            open();
+          };
+          return <Card
+            key={row._id}
+            className="sa-surface-card sa-tenancy-record-row"
+            elevation={0}
+            onClick={clickable ? open : undefined}
+            onKeyDown={handleKeyDown}
+            role={clickable ? 'button' : undefined}
+            tabIndex={clickable ? 0 : undefined}
+            aria-label={clickable ? `Open tenancy for ${tenantName} at ${propertyName}` : undefined}
+            sx={{
+              overflow: 'hidden',
+              border: '1px solid rgba(11,82,112,.15)',
+              borderRadius: { xs: '10px', lg: '12px' },
+              background: 'linear-gradient(145deg, #FFFFFF 0%, #F8FCFD 100%)',
+              boxShadow: '0 5px 18px rgba(15,47,57,.045)',
+              cursor: clickable ? 'pointer' : 'default',
+              transition: 'border-color .18s ease, transform .18s ease, box-shadow .18s ease',
+              '&:hover': clickable ? { borderColor: '#0B5270', transform: 'translateY(-1px)', boxShadow: '0 12px 24px rgba(11,82,112,.09)' } : undefined,
+              '&:focus-visible': clickable ? { outline: '2px solid #0B5270', outlineOffset: 2 } : undefined,
+            }}
+          >
+            <CardContent sx={{ p: { xs: 1.2, sm: 1.5, xl: 1.7 }, '&:last-child': { pb: { xs: 1.2, sm: 1.5, xl: 1.7 } } }}>
+              <Box
+                className="sa-tenancy-record-grid"
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '52px minmax(0, 1fr) auto', lg: '58px minmax(130px, 1fr) minmax(150px, 1.15fr) minmax(180px, 1.35fr) minmax(92px, .72fr) auto', xl: '72px minmax(160px, 1fr) minmax(190px, 1.25fr) minmax(220px, 1.4fr) minmax(108px, .75fr) auto' },
+                  gridTemplateAreas: { xs: '"image tenant actions" "property property property" "schedule schedule status"', lg: '"image tenant property schedule status actions"' },
+                  alignItems: 'center',
+                  columnGap: { xs: 1, md: 1.2, xl: 1.5 },
+                  rowGap: { xs: 1.05, lg: .7 },
+                  minWidth: 0,
+                }}
+              >
+                <ApplicationPropertyThumbnail property={property} />
+
+                <Box className="sa-tenancy-record-tenant" sx={{ gridArea: 'tenant', minWidth: 0 }}>
+                  <Typography className="sa-tenancy-record-label">Tenant name</Typography>
+                  <Typography className="sa-tenancy-record-title" noWrap title={tenantName}>{tenantName}</Typography>
+                  {roomName && <Typography className="sa-tenancy-record-subtitle" noWrap title={String(roomName)}>Room · {roomName}</Typography>}
+                </Box>
+
+                <Box className="sa-tenancy-record-property" sx={{ gridArea: 'property', minWidth: 0 }}>
+                  <Typography className="sa-tenancy-record-label">Property name</Typography>
+                  <Typography className="sa-tenancy-record-title" noWrap title={String(propertyName)}>{propertyName}</Typography>
+                  <Stack className="sa-tenancy-record-rent" direction="row" justifyContent="space-between" alignItems="baseline" gap={1}>
+                    <Typography className="sa-tenancy-record-subtitle">Monthly rent</Typography>
+                    <Typography className="sa-tenancy-record-rent-value" noWrap>{formatCell(row.monthlyRent, 'money')}</Typography>
+                  </Stack>
+                </Box>
+
+                <Box className="sa-tenancy-record-schedule" sx={{ gridArea: 'schedule', minWidth: 0 }}>
+                  <Typography className="sa-tenancy-record-label">Due day and time</Typography>
+                  <Typography className="sa-tenancy-record-schedule-value" noWrap title={schedule}>{schedule}</Typography>
+                  <Typography className="sa-tenancy-record-subtitle sa-tenancy-record-dates" title={`Start ${startsOn} · End ${endsOn}`}>Start {startsOn} · End {endsOn}</Typography>
+                </Box>
+
+                <Stack className="sa-tenancy-record-status" sx={{ gridArea: 'status', minWidth: 0 }} spacing={.45} alignItems="flex-start">
+                  <Typography className="sa-tenancy-record-label">Status</Typography>
+                  <Chip size="small" label={optionText(status)} sx={{ maxWidth: '100%', height: 25, color: statusTone.color, bgcolor: statusTone.background, border: `1px solid ${statusTone.border}`, '& .MuiChip-label': { px: .9, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 10.5, fontWeight: 800 } }} />
+                </Stack>
+
+                <Stack
+                  className="sa-tenancy-record-actions"
+                  sx={{ gridArea: 'actions', minWidth: 0 }}
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="flex-end"
+                  gap={.35}
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
+                >
+                  <Tooltip title="View tenancy"><IconButton size="small" aria-label={`View tenancy for ${tenantName}`} onClick={open} sx={{ width: 30, height: 30, color: '#0B5270', border: '1px solid rgba(11,82,112,.14)', bgcolor: '#F6FBFC' }}><VisibilityRounded sx={{ fontSize: 17 }} /></IconButton></Tooltip>
+                  {canEdit && <Tooltip title="Edit tenancy"><IconButton className="sa-edit-icon-button" size="small" aria-label={`Edit tenancy for ${tenantName}`} onClick={() => openDialog('edit', row)} sx={{ width: 30, height: 30, color: '#0B5270', border: '1px solid rgba(11,82,112,.14)', bgcolor: '#F6FBFC' }}><EditRounded sx={{ fontSize: 17 }} /></IconButton></Tooltip>}
+                  <Tooltip title="More actions"><IconButton size="small" aria-label={`More actions for tenancy ${row.tenancyNumber || row._id}`} onClick={(event) => { setActionAnchor(event.currentTarget); setActionRow(row); }} sx={{ width: 30, height: 30, color: '#0B5270', border: '1px solid rgba(11,82,112,.14)', bgcolor: '#F6FBFC' }}><MoreVertRounded sx={{ fontSize: 18 }} /></IconButton></Tooltip>
+                </Stack>
               </Box>
             </CardContent>
           </Card>;

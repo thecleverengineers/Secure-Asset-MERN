@@ -253,7 +253,7 @@ export const resources = {
   },
   tenancies: {
     model: Tenancy, readRoles: ['admin', 'manager', 'tenant'], createRoles: ['admin', 'manager', 'tenant'], updateRoles: ['admin', 'manager', 'tenant'], deleteRoles: ['admin'],
-    search: ['status'], populate: ['tenant', 'landlord', 'property', 'space', 'application', 'lease', 'occupants'],
+    search: ['status'], populate: ['tenant', 'landlord', 'property', 'space', 'rentalUnit', 'application', 'lease', 'occupants'],
     writable: ['tenant', 'landlord', 'property', 'space', 'application', 'lease', 'status', 'startDate', 'endDate', 'monthlyRent', 'securityDeposit', 'dueDay', 'dueTime', 'occupants', 'moveInChecklist', 'moveOutChecklist'],
   },
   'rental-invoices': {
