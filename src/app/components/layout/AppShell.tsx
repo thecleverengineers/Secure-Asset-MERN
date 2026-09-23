@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import {
   AppBar, Avatar, Badge, Box, BottomNavigation, BottomNavigationAction, Button, DialogContent, Divider, Drawer,
@@ -682,7 +682,7 @@ export default function AppShell() {
 
       <Box component="main" id="sa-main-content" className="sa-reference-content" tabIndex={-1} sx={{ ml: { md: `${width}px` }, pt: `${design.layout.appBarHeight}px`, pb: { xs: 13, md: 6 }, minHeight: '100vh', transition: 'margin .2s', outline: 'none' }}>
         <Box className="sa-app-content" sx={{ pt: { xs: 2, md: 3 } }}>
-          <Outlet />
+          <Suspense fallback={null}><Outlet /></Suspense>
         </Box>
       </Box>
 

@@ -4,7 +4,6 @@ import { Navigate, useParams } from 'react-router';
 import { Alert, Box, Button, Stack, Typography } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
 import { getAppConfiguration } from '../../services/api';
-import AppLoadingScreen from '../../components/shared/AppLoadingScreen';
 import { safeRecordArray } from '../../utils/runtimeData';
 import { lazyWithRetry } from '../../utils/lazyWithRetry';
 
@@ -71,7 +70,6 @@ export default function ModulePage() {
   });
   const response = configurationQuery.data;
   const allowedModules = useMemo(() => safeRecordArray(response?.data?.modules).filter((item) => typeof item.key === 'string' && item.key.trim()), [response]);
-  const loadingAccess = Boolean(user?._id && configurationQuery.isPending);
   const accessError = configurationQuery.error instanceof Error ? configurationQuery.error.message : configurationQuery.error ? 'Could not verify module access' : '';
   const serverLandlordFeatures = allowedModules.some((item) => {
     const metadata = item?.metadata || {};
@@ -93,6 +91,9 @@ export default function ModulePage() {
     if (module === 'surveyor-subscription' && hasSurveyorFeatures) return true;
     const adminOnly = ['drive-admin', 'backup-recovery', 'site-admin', 'settings', 'integration-settings', 'platform-modules', 'design-studio', 'role-permissions', 'subscription-payment-approvals'];
     if (adminOnly.includes(module)) return user?.role === 'admin';
+    // Keep the workspace usable while the catalog is refreshed. Every
+    // resource endpoint still enforces the current user's permissions.
+    if (configurationQuery.isPending) return Boolean(user);
     // KYC is a shared compliance workspace: tenants submit their own record,
     // while administrators and managers review the records in their scope.
     // Keep this route reachable even when a stale cached module catalog has not
@@ -110,14 +111,15 @@ export default function ModulePage() {
       const base = path.split('?')[0].replace(/^\/app\//, '');
       return item.key === module || base === module || (aliases[module] || []).includes(item.key);
     });
-  }, [allowedModules, hasSurveyorFeatures, landlordPropertyRouteAllowed, module, user?.role]);
+  }, [allowedModules, configurationQuery.isPending, hasSurveyorFeatures, landlordPropertyRouteAllowed, module, user?.role]);
   const configuredModule = allowedModules.some((item) => {
     const path = String(item.path || `/app/${item.key}`);
     const base = path.split('?')[0].replace(/^\/app\//, '');
     return item.key === module || base === module;
   });
-  const renderLazy = (element: ReactNode) => <Suspense fallback={<AppLoadingScreen label="Loading workspace…" />}>{element}</Suspense>;
-  if (loadingAccess) return <AppLoadingScreen label="Checking workspace permissions…" />;
+  // Lazy route chunks load inside the existing shell without replacing it
+  // with a full-page loading screen.
+  const renderLazy = (element: ReactNode) => <Suspense fallback={null}>{element}</Suspense>;
   if (HIDDEN_MODULES.has(module)) return <Navigate replace to="/app/dashboard" />;
   if (PROPERTY_DETAIL_ONLY_MODULES.has(module)) return <Box sx={{ maxWidth: 760, mx: 'auto', mt: 8 }}><Alert severity="info" sx={{ borderRadius: 3 }}><Stack spacing={1}><Typography fontWeight={800}>Manage this inside a property</Typography><Typography variant="body2">Open a property from My Listings to manage its rooms, gallery, and promotions.</Typography><Button variant="contained" href="/app/my-listings" sx={{ alignSelf: 'flex-start', borderRadius: 999 }}>Open My Listings</Button></Stack></Alert></Box>;
   if (hasSurveyorFeatures && RETIRED_SURVEYOR_MODULES.has(module)) return <Box sx={{ maxWidth: 760, mx: 'auto', mt: 8 }}><Alert severity="info" sx={{ borderRadius: 3 }}><Stack spacing={1}><Typography fontWeight={800}>This work now belongs to a survey project</Typography><Typography variant="body2">Open Active Projects for navigation, check-in, field data, evidence, reports, audit, and payment.</Typography><Button variant="contained" href="/app/survey-projects" sx={{ alignSelf: 'flex-start', borderRadius: 999 }}>Open Active Projects</Button></Stack></Alert></Box>;
@@ -160,6 +162,6 @@ export default function ModulePage() {
   if (module === 'notifications') return renderLazy(<NotificationCenterPage />);
   if (module === 'security') return renderLazy(<SecurityPage />);
   if (module === 'wishlist' || module === 'saved-properties') return renderLazy(<WishlistPage />);
-  if (configuredModule) return renderLazy(<ResourcePage />);
+  if (configuredModule || configurationQuery.isPending) return renderLazy(<ResourcePage />);
   return renderLazy(<UtilityPage />);
 }

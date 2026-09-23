@@ -9,7 +9,6 @@ import { RealtimeProvider } from './context/RealtimeContext';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './queryClient';
 import { normaliseDesignSystem, OPEN_SANS_FONT_FAMILY } from './designSystem';
-import AppLoadingScreen from './components/shared/AppLoadingScreen';
 import ApplicationErrorBoundary from './components/shared/ApplicationErrorBoundary';
 import { WishlistProvider } from './context/WishlistContext';
 
@@ -201,7 +200,7 @@ function ThemedApplication() {
     try { window.localStorage.setItem('sa_theme', next); } catch { /* preference storage is optional */ }
     return next;
   }) }), [mode]);
-  return <ColorModeContext.Provider value={colorMode}><ThemeProvider theme={theme}><CssBaseline /><AuthProvider><WishlistProvider><RealtimeProvider><Suspense fallback={<AppLoadingScreen label="Loading the requested page…" />}><ApplicationErrorBoundary><RouterProvider router={router} /></ApplicationErrorBoundary></Suspense></RealtimeProvider></WishlistProvider></AuthProvider></ThemeProvider></ColorModeContext.Provider>;
+  return <ColorModeContext.Provider value={colorMode}><ThemeProvider theme={theme}><CssBaseline /><AuthProvider><WishlistProvider><RealtimeProvider><Suspense fallback={null}><ApplicationErrorBoundary><RouterProvider router={router} /></ApplicationErrorBoundary></Suspense></RealtimeProvider></WishlistProvider></AuthProvider></ThemeProvider></ColorModeContext.Provider>;
 }
 
 export default function App() {

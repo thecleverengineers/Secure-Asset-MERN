@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import {
   AppBar, BottomNavigation, BottomNavigationAction, Box, Button, Container, Divider, Drawer,
@@ -368,7 +368,7 @@ export default function FrontLayout() {
       <UniversalSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <Box component="main" className="sa-reference-content" sx={{ flex: 1, display: 'flex', flexDirection: 'column', pt: { xs: '60px', md: `${headerHeight}px` }, pb: { xs: '72px', md: 0 } }}>
-        <Outlet />
+        <Suspense fallback={null}><Outlet /></Suspense>
       </Box>
 
       <Box component="footer" sx={{ bgcolor: footerBackground, color: '#f8fafc', pt: { xs: 8, md: 11 }, pb: { xs: 13, md: 6 }, mt: 'auto' }}>
