@@ -105,7 +105,12 @@ function mediaIdFromSource(source: string) {
   return source.match(/\/(?:api\/v\d+\/)?property-media\/([a-f\d]{24})(?:\/content)?(?:[/?#]|$)/i)?.[1] || '';
 }
 
-function PropertyCardCover({ row, title }: { row: Record<string, any>; title: string }) {
+function PropertyCardCover({ row, title, onEdit, onMore }: {
+  row: Record<string, any>;
+  title: string;
+  onEdit?: () => void;
+  onMore: (event: MouseEvent<HTMLButtonElement>) => void;
+}) {
   const candidates = useMemo(() => propertyImageCandidates(row), [row]);
   const candidatesKey = useMemo(() => JSON.stringify(candidates), [candidates]);
   const propertyId = String(row?._id || '');
@@ -159,6 +164,22 @@ function PropertyCardCover({ row, title }: { row: Record<string, any>; title: st
         <ImageNotSupportedOutlined sx={{ fontSize: { xs: 21, sm: 25 } }} />
         <Typography sx={{ fontSize: { xs: 8, sm: 10 }, fontWeight: 750 }}>Image unavailable</Typography>
       </Stack>}
+    <Stack direction="row" spacing={.35} sx={{ position: 'absolute', top: { xs: 5, sm: 7 }, right: { xs: 5, sm: 7 }, zIndex: 1 }}>
+      {onEdit && <IconButton
+        size="small"
+        aria-label={`Edit ${title}`}
+        onClick={(event) => { event.stopPropagation(); onEdit(); }}
+        onKeyDown={(event) => event.stopPropagation()}
+        sx={{ width: { xs: 25, sm: 29 }, height: { xs: 25, sm: 29 }, color: '#0B5270', bgcolor: 'rgba(255,255,255,.94)', border: '1px solid rgba(11,82,112,.16)', boxShadow: '0 2px 7px rgba(20,45,55,.18)', '&:hover': { bgcolor: '#FFFFFF' } }}
+      ><EditRounded sx={{ fontSize: { xs: 14, sm: 17 } }} /></IconButton>}
+      <IconButton
+        size="small"
+        aria-label={`More actions for ${title}`}
+        onClick={(event) => { event.stopPropagation(); onMore(event); }}
+        onKeyDown={(event) => event.stopPropagation()}
+        sx={{ width: { xs: 25, sm: 29 }, height: { xs: 25, sm: 29 }, color: '#0B5270', bgcolor: 'rgba(255,255,255,.94)', border: '1px solid rgba(11,82,112,.16)', boxShadow: '0 2px 7px rgba(20,45,55,.18)', '&:hover': { bgcolor: '#FFFFFF' } }}
+      ><MoreVertRounded sx={{ fontSize: { xs: 17, sm: 20 } }} /></IconButton>
+    </Stack>
   </Box>;
 }
 
@@ -200,7 +221,7 @@ export default function PropertyPortfolioCard({ row, onOpen, onEdit, onManageRoo
     }}
   >
     <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-      <PropertyCardCover row={row} title={title} />
+      <PropertyCardCover row={row} title={title} onEdit={onEdit} onMore={onMore} />
       <Box sx={{ px: { xs: 1, sm: 1.6 }, pt: { xs: 1, sm: 1.5 }, pb: { xs: .85, sm: 1.25 }, bgcolor: '#F5FBFC', borderBottom: '1px solid rgba(11,82,112,.12)' }}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={{ xs: .35, sm: 1 }}>
           <Stack direction="row" alignItems="center" gap={1} sx={{ minWidth: 0, flex: 1 }}>
@@ -209,10 +230,6 @@ export default function PropertyPortfolioCard({ row, onOpen, onEdit, onManageRoo
               <Typography title={title} sx={{ color: '#152225', fontWeight: 900, fontSize: { xs: 11.5, sm: 15 }, lineHeight: 1.25, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>{title}</Typography>
               <Typography noWrap color="text.secondary" sx={{ mt: .18, fontSize: { xs: 8, sm: 10.5 }, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.06em' }}>{reference ? `Ref · ${reference}` : `${type} · ${purpose}`}</Typography>
             </Box>
-          </Stack>
-          <Stack direction="row" alignItems="center" spacing={0} sx={{ flex: '0 0 auto' }}>
-            {onEdit && <IconButton size="small" aria-label={`Edit ${title}`} onClick={(event) => { event.stopPropagation(); onEdit(); }} onKeyDown={(event) => event.stopPropagation()} sx={{ color: '#0B5270', width: { xs: 25, sm: 34 }, height: { xs: 25, sm: 34 } }}><EditRounded sx={{ fontSize: { xs: 15, sm: 19 } }} /></IconButton>}
-            <IconButton size="small" aria-label={`More actions for ${title}`} onClick={(event) => { event.stopPropagation(); onMore(event); }} onKeyDown={(event) => event.stopPropagation()} sx={{ color: '#0B5270', width: { xs: 25, sm: 34 }, height: { xs: 25, sm: 34 } }}><MoreVertRounded sx={{ fontSize: { xs: 17, sm: 21 } }} /></IconButton>
           </Stack>
         </Stack>
         <Stack direction="row" alignItems="center" gap={.35} sx={{ mt: { xs: .55, sm: 1 } }}>
