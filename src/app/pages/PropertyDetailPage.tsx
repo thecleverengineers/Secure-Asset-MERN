@@ -101,6 +101,8 @@ export default function PropertyDetailPage() {
   const lat = exactPublicLocation ? property.map?.latitude : undefined;
   const lng = exactPublicLocation ? property.map?.longitude : undefined;
   const address = [property.address?.line1, property.address?.locality, property.address?.city, property.address?.district, property.address?.state].filter(Boolean).join(', ');
+  const areaLocation = [property.address?.locality, property.address?.city, property.address?.district, property.address?.state, property.address?.country].filter(Boolean).join(', ');
+  const locationSummary = exactPublicLocation ? (address || areaLocation) : areaLocation;
   const directions = lat && lng
     ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
@@ -207,14 +209,20 @@ export default function PropertyDetailPage() {
       {tag && <Chip label={tag} size="small" sx={{ flexShrink: 0, color: '#087A70', bgcolor: 'rgba(8, 122, 112, .10)', border: '1px solid rgba(8, 122, 112, .18)', fontWeight: 850, '& .MuiChip-label': { px: 1 } }} />}
     </Stack>
   );
-  const propertyLocationSection = mapEmbedUrl ? (
+  const propertyLocationSection = (
     <Paper variant="outlined" sx={{ ...detailSectionSx, mt: useVakhitovskyPremiumDetails ? 2.5 : 3, overflow: 'hidden', ...(useVakhitovskyPremiumDetails ? {} : { p: 1 }) }}>
       {useVakhitovskyPremiumDetails && <DetailSectionHeader icon={LocationOnRounded} title="Property location" subtitle={exactPublicLocation ? 'Map location shared publicly by the property owner.' : 'Location details are shared according to the owner’s privacy setting.'} />}
-      <Box sx={useVakhitovskyPremiumDetails ? { mt: 2, p: 1, border: '1px solid rgba(17, 62, 83, .12)', borderRadius: '1px', bgcolor: '#F8FBFC' } : undefined}>
+      {mapEmbedUrl ? <Box sx={useVakhitovskyPremiumDetails ? { mt: 2, p: 1, border: '1px solid rgba(17, 62, 83, .12)', borderRadius: '1px', bgcolor: '#F8FBFC' } : undefined}>
         <Box component="iframe" title={`${property.title} map`} src={mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" sx={{ border: 0, width: '100%', height: useVakhitovskyPremiumDetails ? { xs: 270, md: 360 } : 360, display: 'block', borderRadius: useVakhitovskyPremiumDetails ? '1px' : 3 }} />
-      </Box>
+      </Box> : <Stack direction="row" alignItems="flex-start" gap={1.25} sx={useVakhitovskyPremiumDetails ? { mt: 2, p: { xs: 1.35, md: 1.65 }, border: '1px solid rgba(17, 62, 83, .12)', borderRadius: '1px', bgcolor: '#F8FBFC' } : { p: 1.25 }}>
+        <Box sx={{ width: 36, height: 36, display: 'grid', placeItems: 'center', flexShrink: 0, color: '#087A70', bgcolor: 'rgba(8, 122, 112, .10)', borderRadius: '1px' }}><LocationOnRounded sx={{ fontSize: 20 }} /></Box>
+        <Box>
+          <Typography fontWeight={useVakhitovskyPremiumDetails ? 700 : 800} sx={{ color: '#153B54' }}>{locationSummary || 'Location details are available on request.'}</Typography>
+          <Typography color="text.secondary" fontSize={13} sx={{ mt: .35, lineHeight: 1.5 }}>{exactPublicLocation ? 'The property owner has made this location available publicly.' : 'Exact address details remain protected until the configured application or site-visit stage.'}</Typography>
+        </Box>
+      </Stack>}
     </Paper>
-  ) : null;
+  );
   const renderRows = (rows: Array<[string, unknown]>) => rows.filter(([, value]) => hasValue(value)).map(([label, value]) => {
     const valueLabel = typeof value === 'boolean' ? (value ? 'Yes' : 'No') : sentence(String(value));
     return <Grid size={{ xs: 12, sm: 6 }} key={label}>
