@@ -1,0 +1,189 @@
+/* Vault-only surfaces. State and controls continue to use the authenticated drive. */
+.sa-document-vault-page.sa-vault-premium {
+  --vault-ink: #183344;
+  --vault-muted: #657a86;
+  --vault-line: #e0e8e9;
+  --vault-paper: #ffffff;
+  --vault-soft: #f1f6f5;
+  --vault-accent: #0e695f;
+  --vault-gold: #b29863;
+  font-family: 'Open Sans', sans-serif;
+  color: var(--vault-ink);
+  background: #f7f9f9;
+  min-height: calc(100dvh - 100px);
+  padding-top: 12px;
+}
+.sa-vault-premium[data-vault-theme="dark"] {
+  --vault-ink: #e5eeee;
+  --vault-muted: #a1b4bf;
+  --vault-line: #2a404d;
+  --vault-paper: #142834;
+  --vault-soft: #1b3440;
+  --vault-accent: #86d2be;
+  --vault-gold: #d1b984;
+  background: #10212b;
+}
+.sa-vault-premium .MuiTypography-root,
+.sa-vault-premium .MuiButton-root,
+.sa-vault-premium .MuiInputBase-root { font-family: 'Open Sans', sans-serif; }
+.sa-vault-premium .MuiButton-root { min-height: 40px; text-transform: none; font-weight: 600; border-radius: 10px; box-shadow: none; }
+.sa-vault-premium .MuiButton-contained { background: #0d625b; color: #fff; }
+.sa-vault-premium .MuiButton-contained:hover { background: #084f49; box-shadow: 0 5px 14px #0d625b22; }
+.sa-vault-premium .MuiButton-outlined { border-color: var(--vault-line); color: var(--vault-ink); }
+.sa-vault-premium .MuiIconButton-root { color: var(--vault-muted); }
+.sa-vault-premium :is(button, [role="button"], [role="row"]):focus-visible { outline: 2px solid var(--vault-accent); outline-offset: 3px; }
+.sa-vault-premium .sa-vault-heading { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 24px; padding: 9px 0 26px; }
+.sa-vault-premium .sa-vault-brand-mark { width: 52px; height: 56px; display: grid; place-items: center; flex-shrink: 0; color: #dac798; background: #132f3e; border: 1px solid #b2986344; border-radius: 16px; box-shadow: inset 0 0 0 5px #ffffff08; }
+.sa-vault-premium .sa-vault-brand-mark svg { font-size: 27px; }
+.sa-vault-premium .sa-vault-kicker { font-size: 9px; letter-spacing: .16em; font-weight: 600; color: var(--vault-muted); }
+.sa-vault-premium .sa-vault-heading-title { margin-top: 5px; color: var(--vault-ink); font-weight: 600; font-size: clamp(23px, 2.1vw, 32px); letter-spacing: -.035em; line-height: 1.25; }
+.sa-vault-premium .sa-vault-heading-copy { margin-top: 6px; font-size: 12px; color: var(--vault-muted); }
+.sa-vault-premium .sa-vault-heading-actions { flex-shrink: 0; }
+.sa-vault-premium .sa-vault-heading-actions .MuiButton-root { padding: 10px 17px; font-size: 12px; white-space: nowrap; }
+.sa-vault-premium .sa-vault-overview { display: grid; grid-template-columns: 1.12fr 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+.sa-vault-premium .sa-vault-overview-card { min-width: 0; padding: 19px 20px 15px; border-radius: 16px; border: 1px solid var(--vault-line); background: var(--vault-paper); color: var(--vault-ink); box-shadow: 0 5px 20px #132f3e04; }
+.sa-vault-premium .sa-vault-overview-card > .MuiStack-root > svg { font-size: 19px; color: var(--vault-gold); }
+.sa-vault-premium .sa-vault-stat-label { color: var(--vault-muted); font-size: 9px; font-weight: 600; letter-spacing: .12em; }
+.sa-vault-premium .sa-vault-stat-value { margin-top: 12px; font-size: 19px; font-weight: 600; letter-spacing: -.03em; }
+.sa-vault-premium .sa-vault-stat-value span { font-size: 11px; font-weight: 400; color: var(--vault-muted); letter-spacing: 0; }
+.sa-vault-premium .sa-vault-stat-detail { margin-top: 7px; font-size: 11px; line-height: 1.5; color: var(--vault-muted); }
+.sa-vault-premium .sa-vault-overview-card .MuiLinearProgress-root { margin-top: 13px; height: 4px; border-radius: 4px; background: var(--vault-soft); }
+.sa-vault-premium .sa-vault-access-card { background: #122e3b; color: #f1f5f5; border-color: #b2986359; box-shadow: inset 0 1px 0 #ffffff12, 0 8px 22px #122e3b12; }
+.sa-vault-premium .sa-vault-access-card .sa-vault-stat-label { color: #d5c298; }
+.sa-vault-premium .sa-vault-access-card .sa-vault-stat-detail { color: #b0c6ce; }
+.sa-vault-premium .sa-vault-access-card .MuiButton-root { min-width: 0; min-height: 36px; padding: 5px 0 0 8px; color: #d9c89e; font-size: 11px; }
+.sa-vault-premium .sa-vault-access-card .MuiButton-endIcon { margin-left: 1px; }
+.sa-vault-premium .sa-vault-desktop-workspace { gap: 20px; }
+.sa-vault-premium .sa-vault-desktop-workspace > .sa-surface-card { min-width: 0; background: var(--vault-paper); border: 1px solid var(--vault-line); border-radius: 16px !important; box-shadow: 0 8px 30px #142c3a04; }
+.sa-vault-premium .sa-vault-sidebar-heading { padding: 15px 14px 6px; font-size: 9px; letter-spacing: .13em; font-weight: 600; text-transform: uppercase; color: var(--vault-muted); }
+.sa-vault-premium .sa-vault-collection-nav .MuiListItemButton-root { min-height: 42px; color: var(--vault-muted); border-radius: 9px; }
+.sa-vault-premium .sa-vault-collection-nav .MuiListItemText-primary { font-size: 12px; font-weight: 400; }
+.sa-vault-premium .sa-vault-collection-nav .MuiListItemText-secondary { color: var(--vault-muted); font-size: 10px; }
+.sa-vault-premium .sa-vault-collection-nav .MuiListItemIcon-root { color: var(--vault-muted); min-width: 33px; }
+.sa-vault-premium .sa-vault-collection-nav .Mui-selected { background: var(--vault-soft); color: var(--vault-accent); }
+.sa-vault-premium .sa-vault-collection-nav .Mui-selected .MuiListItemText-primary { font-weight: 600; }
+.sa-vault-premium .sa-vault-collection-nav .Mui-selected .MuiListItemIcon-root { color: var(--vault-accent); }
+.sa-vault-premium .sa-vault-library-heading { padding: 25px 23px 15px; }
+.sa-vault-premium .sa-vault-library-heading h2 { color: var(--vault-ink); font-size: 22px; font-weight: 600; letter-spacing: -.03em; margin-top: 5px; }
+.sa-vault-premium .sa-vault-library .MuiOutlinedInput-root { color: var(--vault-ink); background: var(--vault-soft); border-radius: 10px; font-size: 12px; }
+.sa-vault-premium .sa-vault-library .MuiOutlinedInput-notchedOutline { border-color: var(--vault-line); }
+.sa-vault-premium .sa-vault-library .MuiBreadcrumbs-root .MuiButton-root { color: var(--vault-muted); font-weight: 400; min-height: 30px; font-size: 11px; }
+.sa-vault-premium .sa-vault-record-list { padding: 0 20px 16px; }
+.sa-vault-premium .sa-vault-record-list-head,
+.sa-vault-premium .sa-vault-record-row { grid-template-columns: minmax(160px, 1.9fr) minmax(85px, .7fr) minmax(95px, .7fr) 66px 34px; gap: 12px; }
+.sa-vault-premium .sa-vault-record-list-head { border-color: var(--vault-line); }
+.sa-vault-premium .sa-vault-record-list-head .MuiTypography-root { font-size: 9px; font-weight: 600; color: var(--vault-muted); }
+.sa-vault-premium .sa-vault-record-row { min-height: 82px; border-color: var(--vault-line); }
+.sa-vault-premium .sa-vault-record-row:hover,
+.sa-vault-premium .sa-vault-record-row:focus-visible { background: var(--vault-soft); }
+.sa-vault-premium .sa-vault-record-name .MuiTypography-root:first-child { color: var(--vault-ink); font-size: 12px; font-weight: 600; }
+.sa-vault-premium .sa-vault-record-name .MuiTypography-root:last-child { color: var(--vault-muted); font-size: 11px; font-weight: 400; }
+.sa-vault-premium .sa-vault-record-date,
+.sa-vault-premium .sa-vault-record-size { color: var(--vault-muted); font-weight: 400 !important; font-size: 11px !important; }
+.sa-vault-premium .sa-vault-record-row .MuiChip-root { border-color: var(--vault-line); color: var(--vault-accent); background: var(--vault-soft); font-size: 10px; font-weight: 400; }
+.sa-vault-premium .sa-vault-mobile-recent-thumbnail { display: grid; overflow: hidden; place-items: center; flex-shrink: 0; background: var(--vault-soft); color: var(--vault-accent); }
+.sa-vault-premium .sa-vault-mobile-recent-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+.sa-vault-premium .sa-vault-record-document .sa-vault-mobile-recent-thumbnail { width: 44px; height: 48px; border: 1px solid var(--vault-line); border-radius: 10px; }
+.sa-vault-premium .sa-vault-mobile-recent-thumbnail .MuiSvgIcon-root { color: var(--vault-accent); }
+.sa-vault-premium .sa-vault-library-empty { min-height: 360px; padding: 40px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; color: var(--vault-muted); }
+.sa-vault-premium .sa-vault-empty-emblem { display: grid; place-items: center; width: 84px; height: 88px; border: 1px solid var(--vault-line); border-radius: 24px; background: var(--vault-soft); box-shadow: 0 0 0 9px var(--vault-paper), 0 0 0 10px var(--vault-line); margin-bottom: 14px; color: var(--vault-accent); }
+.sa-vault-premium .sa-vault-empty-emblem svg { font-size: 35px; }
+.sa-vault-premium .sa-vault-library-empty h3 { font-size: 21px; color: var(--vault-ink); font-weight: 600; }
+.sa-vault-premium .sa-vault-library-empty p { font-size: 12px; }
+.sa-vault-premium .sa-vault-library-empty .MuiButton-root { margin-top: 4px; }
+.sa-vault-premium .sa-vault-recent-card { border-color: var(--vault-line); color: var(--vault-ink); background: var(--vault-paper); }
+.sa-vault-premium .sa-vault-recent-card-media .sa-vault-mobile-recent-thumbnail.is-full { background: var(--vault-soft); }
+.sa-vault-premium .sa-vault-card-share-button.MuiButton-root { margin-top: 14px; color: var(--vault-accent); background: var(--vault-soft); border: 1px solid var(--vault-line); font-weight: 600; font-size: 11px; }
+.sa-vault-premium .sa-vault-unlock-overlay { animation: none; background: radial-gradient(ellipse at 50% 35%, #183e48, #091c29 75%); }
+.sa-vault-premium .sa-vault-unlock-overlay[data-vault-state="locked"] .sa-vault-lock-closed { animation: none; opacity: 1; }
+.sa-vault-premium .sa-vault-unlock-overlay[data-vault-state="locked"] .sa-vault-lock-open { display: none; }
+.sa-vault-premium .sa-vault-unlock-grid { opacity: .22; }
+.sa-vault-premium .sa-vault-unlock-scanline { opacity: .14; }
+.sa-vault-premium .sa-vault-unlock-content { padding: 28px 24px; border: 1px solid #c4b38833; border-radius: 26px; background: #ffffff04; box-shadow: 0 28px 80px #00000024; }
+.sa-vault-premium .sa-vault-unlock-ring { border-color: #ccb98b66; box-shadow: none; }
+.sa-vault-premium .sa-vault-unlock-core { color: #e3d2aa; background: #234650; border: 1px solid #c4b38855; box-shadow: 0 0 30px #d1b98412; }
+.sa-vault-premium .sa-vault-unlock-title { font-weight: 600 !important; font-size: 25px !important; letter-spacing: -.035em !important; }
+.sa-vault-premium .sa-vault-unlock-chip { border-color: #ccb98b55 !important; color: #e0d0af !important; background: transparent !important; letter-spacing: .05em; }
+.sa-vault-premium .sa-vault-unlock-subtitle { color: #b3c7cf; font-size: 12px !important; line-height: 1.7; }
+.sa-vault-premium .sa-vault-pin-unlock-button.MuiButton-root { background: #d6c49a; color: #102d3c; min-height: 46px; font-weight: 600; }
+.sa-vault-premium .sa-vault-pin-unlock-button.MuiButton-root.Mui-disabled { background: #d6c49a44; color: #d4dfdf99; }
+.sa-vault-premium .sa-vault-unlock-signals { color: #b3c7cf; font-size: 10px; font-weight: 400; }
+
+@media (max-width: 1199px) {
+  .sa-document-vault-page.sa-vault-premium { margin: 0; padding: 12px 20px 105px !important; background: #f7f9f9; overflow: clip; }
+  .sa-document-vault-page.sa-vault-premium[data-vault-theme="dark"] { background: #10212b; }
+  .sa-vault-premium .sa-vault-heading { gap: 18px; }
+  .sa-vault-premium .sa-vault-heading-copy { max-width: 360px; }
+  .sa-vault-premium .sa-vault-mobile-shell { min-height: 0; padding: 0; background: none; border: 0; box-shadow: none; }
+  .sa-vault-premium .sa-vault-mobile-search { margin-bottom: 16px; }
+  .sa-vault-premium .sa-vault-mobile-search .MuiOutlinedInput-root { background: var(--vault-paper); color: var(--vault-ink); min-height: 46px; box-shadow: none; border: 1px solid var(--vault-line); border-radius: 12px; }
+  .sa-vault-premium .sa-vault-mobile-search input { font-size: 13px; font-weight: 400; }
+  .sa-vault-premium .sa-vault-mobile-search input::placeholder { color: var(--vault-muted); }
+  .sa-vault-premium .sa-vault-mobile-search .MuiInputAdornment-root svg { color: var(--vault-muted); }
+  .sa-vault-premium .sa-vault-mobile-navigation { display: flex; gap: 6px; overflow-x: auto; padding: 0 1px 10px; scrollbar-width: thin; scrollbar-color: var(--vault-line) transparent; }
+  .sa-vault-premium .sa-vault-mobile-navigation .MuiButton-root { flex-shrink: 0; min-height: 40px; padding: 8px 12px; color: var(--vault-muted); font-size: 11px; white-space: nowrap; }
+  .sa-vault-premium .sa-vault-mobile-navigation .MuiButton-root[aria-current="page"] { color: var(--vault-accent); background: var(--vault-paper); border: 1px solid var(--vault-line); }
+  .sa-vault-premium .sa-vault-mobile-navigation .MuiButton-startIcon svg { font-size: 17px; }
+  .sa-vault-premium .sa-vault-mobile-breadcrumbs .MuiButton-root { color: var(--vault-muted); font-size: 11px; }
+  .sa-vault-premium .sa-vault-mobile-section-heading { margin: 22px 0 14px; gap: 10px; }
+  .sa-vault-premium .sa-vault-mobile-section-heading > div > .MuiTypography-root:first-child { color: var(--vault-ink); font-size: 18px; font-weight: 600; }
+  .sa-vault-premium .sa-vault-mobile-section-heading > div > .MuiTypography-root:last-child { color: var(--vault-muted); font-size: 11px; font-weight: 400; }
+  .sa-vault-premium .sa-vault-mobile-section-heading .MuiButton-root { min-height: 40px; padding: 8px; color: var(--vault-accent); font-size: 11px; }
+  .sa-vault-premium .sa-vault-mobile-category-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .sa-vault-premium .sa-vault-mobile-category-grid .sa-vault-mobile-category-tile:nth-child(n) { min-height: 100px; aspect-ratio: auto; padding: 15px 6px 10px !important; gap: 10px; border-radius: 14px !important; border: 1px solid var(--vault-line) !important; background: var(--vault-paper) !important; box-shadow: 0 4px 14px #16344204 !important; backdrop-filter: none; transform: none; }
+  .sa-vault-premium .sa-vault-mobile-category-grid .sa-vault-mobile-category-tile.is-active { border-color: var(--vault-accent) !important; background: var(--vault-soft) !important; }
+  .sa-vault-premium .sa-vault-mobile-category-grid .sa-vault-mobile-category-icon { width: 38px; height: 38px; border-radius: 11px; color: var(--vault-accent); background: var(--vault-soft) !important; box-shadow: none; }
+  .sa-vault-premium .sa-vault-mobile-category-grid .sa-vault-mobile-category-icon svg { color: var(--vault-accent) !important; font-size: 22px; }
+  .sa-vault-premium .sa-vault-mobile-category-grid .is-smart-folder .sa-vault-mobile-category-icon { color: #99794b; background: #b2986314 !important; }
+  .sa-vault-premium .sa-vault-mobile-category-grid .is-smart-folder .sa-vault-mobile-category-icon svg { color: var(--vault-gold) !important; }
+  .sa-vault-premium .sa-vault-mobile-category-grid .sa-vault-mobile-category-tile > .MuiTypography-root { color: var(--vault-ink); font-weight: 400; font-size: 11px; line-height: 1.4; letter-spacing: 0; min-height: 31px; }
+  .sa-vault-premium .sa-vault-mobile-actions { display: none; }
+  .sa-vault-premium .sa-vault-mobile-recent-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .sa-vault-premium .sa-vault-mobile-recent-card { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 10px !important; border: 1px solid var(--vault-line); border-radius: 16px !important; color: var(--vault-ink); background: var(--vault-paper) !important; box-shadow: 0 5px 18px #132f3e05 !important; }
+  .sa-vault-premium .sa-vault-mobile-recent-card-media { height: 138px; margin-bottom: 12px; border-radius: 10px; background: var(--vault-soft); }
+  .sa-vault-premium .sa-vault-mobile-recent-card-media .sa-vault-mobile-recent-thumbnail.is-full { background: var(--vault-soft); }
+  .sa-vault-premium .sa-vault-mobile-recent-card-media .MuiIconButton-root { width: 36px; height: 36px; color: var(--vault-muted); background: var(--vault-paper); border: 1px solid var(--vault-line); }
+  .sa-vault-premium .sa-vault-mobile-recent-card > div:nth-child(2) > .MuiTypography-root:first-child { color: var(--vault-ink); font-size: 12px; font-weight: 600; }
+  .sa-vault-premium .sa-vault-mobile-recent-card > div:nth-child(2) > .MuiTypography-root:nth-child(2),
+  .sa-vault-premium .sa-vault-mobile-file-date { margin-top: 5px; color: var(--vault-muted); font-size: 10px !important; font-weight: 400 !important; }
+  .sa-vault-premium .sa-vault-mobile-pagination { display: flex; justify-content: center; margin-top: 24px; }
+  .sa-vault-premium .sa-vault-mobile-recent-card:focus-visible { outline: 2px solid var(--vault-accent); outline-offset: 3px; }
+  .sa-vault-premium .sa-vault-mobile-recent-card:active { background: var(--vault-soft) !important; }
+  .sa-vault-premium .sa-vault-mobile-empty { min-height: 230px; padding: 24px; border: 1px dashed var(--vault-line); border-radius: 16px; background: var(--vault-paper); color: var(--vault-muted); }
+  .sa-vault-premium .sa-vault-mobile-empty > svg { color: var(--vault-gold); }
+  .sa-vault-premium .sa-vault-mobile-empty p { font-size: 13px; }
+  .sa-vault-premium .sa-vault-mobile-empty .MuiButton-root { min-height: 44px; color: var(--vault-accent); font-size: 12px; }
+  .sa-vault-premium .sa-vault-mobile-floating-scan { width: 52px; height: 52px; right: 20px; bottom: 88px; color: #fff !important; border: 2px solid #cdbc9380 !important; background: #123e46 !important; box-shadow: 0 8px 22px #0a2b4440; }
+  .sa-vault-premium .sa-vault-mobile-floating-scan svg { font-size: 25px; filter: none; }
+}
+@media (min-width: 600px) and (max-width: 1199px) {
+  .sa-vault-premium .sa-vault-mobile-recent-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 699px) {
+  .sa-document-vault-page.sa-vault-premium { padding-right: 16px !important; padding-left: 16px !important; }
+  .sa-vault-premium .sa-vault-heading { flex-direction: column; align-items: stretch; gap: 18px; padding-bottom: 20px; }
+  .sa-vault-premium .sa-vault-brand-mark { width: 44px; height: 49px; border-radius: 13px; }
+  .sa-vault-premium .sa-vault-kicker { font-size: 8px; letter-spacing: .12em; }
+  .sa-vault-premium .sa-vault-heading-copy { font-size: 11px; line-height: 1.6; }
+  .sa-vault-premium .sa-vault-heading-actions .MuiButton-root { flex: 1; min-width: 0; padding: 9px 10px; min-height: 44px; }
+  .sa-vault-premium .sa-vault-overview { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 22px; }
+  .sa-vault-premium .sa-vault-overview-card { padding: 14px 12px 11px; border-radius: 13px; }
+  .sa-vault-premium .sa-vault-stat-label { font-size: 8px; letter-spacing: .07em; }
+  .sa-vault-premium .sa-vault-stat-value { font-size: 15px; margin-top: 10px; }
+  .sa-vault-premium .sa-vault-stat-value span { display: block; font-size: 10px; margin-top: 5px; }
+  .sa-vault-premium .sa-vault-stat-detail { font-size: 10px; }
+  .sa-vault-premium .sa-vault-access-card > .MuiStack-root:last-child { flex-direction: column; align-items: flex-start; gap: 0; }
+  .sa-vault-premium .sa-vault-access-card .MuiButton-root { padding-left: 0; min-height: 40px; }
+  .sa-vault-premium .sa-vault-privacy-card { display: none; }
+  .sa-vault-premium .sa-vault-mobile-category-grid { gap: 8px; }
+  .sa-vault-premium .sa-vault-mobile-category-grid .sa-vault-mobile-category-tile:nth-child(n) { min-height: 100px; padding: 12px 4px 7px !important; }
+  .sa-vault-premium .sa-vault-mobile-category-grid .sa-vault-mobile-category-tile > .MuiTypography-root { font-size: 10px; }
+  .sa-vault-premium .sa-vault-mobile-recent-grid { gap: 10px; }
+  .sa-vault-premium .sa-vault-mobile-recent-card-media { height: 115px; }
+  .sa-vault-premium .sa-vault-unlock-content { padding: 24px 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sa-vault-premium *, .sa-vault-premium *::before, .sa-vault-premium *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .sa-vault-premium .sa-vault-lock-closed { opacity: 1; }
+  .sa-vault-premium .sa-vault-lock-open { opacity: 0; }
+}

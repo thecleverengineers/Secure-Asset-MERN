@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, ty
 import {
   Alert, Avatar, Box, Breadcrumbs, Button, Chip, CircularProgress, DialogActions, DialogContent, DialogTitle,
   Divider, Drawer, FormControl, IconButton, InputAdornment, LinearProgress, List, ListItemButton, ListItemIcon,
-  ListItemText, Menu, MenuItem, Paper, Select, Stack, Tab, Tabs, TextField, Tooltip, Typography,
+  ListItemText, Menu, MenuItem, Pagination, Paper, Select, Stack, Tab, Tabs, TextField, Tooltip, Typography,
   useMediaQuery, useTheme,
 } from '@mui/material';
 import ProfessionalDialog from '../../components/shared/ProfessionalDialog';
@@ -65,6 +65,7 @@ import { useSite } from '../../context/SiteContext';
 import { normaliseDesignSystem } from '../../designSystem';
 import { authenticationOptionsForBrowser, deviceUnlockSupported, serializePublicKeyCredential } from '../../services/deviceUnlock';
 import { enhanceScannedPage, SCAN_ENHANCER_PROFILE } from '../../utils/scanEnhancement';
+import '../../../styles/document-vault.css';
 
 const systemSections = [
   ['my-drive', 'My Drive', FolderOpenRounded], ['recent', 'Recent Files', HistoryRounded], ['starred', 'Starred', StarRounded],
@@ -184,6 +185,7 @@ export default function DocumentVaultPage() {
   const [view, setView] = useState<'grid' | 'list'>('list');
   const [search, setSearch] = useState('');
   const [mobileCategory, setMobileCategory] = useState<string | null>(null);
+  const [mobilePage, setMobilePage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<{ anchor: HTMLElement; item: DriveItem } | null>(null);
   const [folderDialog, setFolderDialog] = useState(false);
@@ -250,6 +252,7 @@ export default function DocumentVaultPage() {
         systemKey: definition.systemKey,
         name: definition.label,
         icon: definition.icon,
+        color: definition.color,
         description: serverDocument?.description || `Protected ${definition.label} records.`,
         fileCount: Number(serverDocument?.fileCount || 0),
       } as StorageDocumentCategory;
@@ -262,11 +265,15 @@ export default function DocumentVaultPage() {
     return String(candidate?.systemKey || '').startsWith('smart-') ? candidate : null;
   }, [allItems, breadcrumbs, folderId]);
   const filtered = useMemo(() => search ? allItems.filter((item) => `${item.name} ${item.description || ''} ${(item.tags || []).join(' ')}`.toLowerCase().includes(search.toLowerCase())) : allItems, [allItems, search]);
-  const mobileRecentItems = useMemo(() => {
-    const source = selectedStorageDocument || mobileCategory ? filtered : ((Array.isArray(bootstrap?.recent) && bootstrap.recent.length ? bootstrap.recent : filtered) as DriveItem[]);
+  const mobileMatchingItems = useMemo(() => {
+    const source = section !== 'my-drive' || folderId || mobileCategory ? filtered : ((Array.isArray(bootstrap?.recent) && bootstrap.recent.length ? bootstrap.recent : filtered) as DriveItem[]);
     const query = search.trim().toLowerCase();
-    return source.map((item) => item.itemType ? item : { ...item, itemType: 'file' as const }).filter((item) => !query || `${item.name} ${item.description || ''} ${(item.tags || []).join(' ')}`.toLowerCase().includes(query)).slice(0, 8);
-  }, [bootstrap, filtered, mobileCategory, search, selectedStorageDocument]);
+    return source.map((item) => item.itemType ? item : { ...item, itemType: 'file' as const }).filter((item) => !query || `${item.name} ${item.description || ''} ${(item.tags || []).join(' ')}`.toLowerCase().includes(query));
+  }, [bootstrap, filtered, folderId, mobileCategory, search, section]);
+  const mobilePageCount = Math.max(1, Math.ceil(mobileMatchingItems.length / 8));
+  const currentMobilePage = Math.min(mobilePage, mobilePageCount);
+  const mobileRecentItems = mobileMatchingItems.slice((currentMobilePage - 1) * 8, currentMobilePage * 8);
+  useEffect(() => { setMobilePage(1); }, [section, folderId, mobileCategory, search]);
 
 
   const loadBootstrap = useCallback(async () => {
@@ -495,7 +502,8 @@ export default function DocumentVaultPage() {
   }
 
   const usage = bootstrap?.usage?.usedBytes || 0; const quota = bootstrap?.quotaBytes || 1; const percent = Math.min(100, usage / quota * 100);
-  const mobileRecentLabel = selectedStorageDocument?.label || (mobileCategory ? mobileCategories.find((item) => item.category === mobileCategory)?.label || 'Filtered files' : 'Recent files');
+  const workspaceLabel = breadcrumbs.at(-1)?.name || systemSections.find(([key]) => key === section)?.[1] || 'Documents';
+  const mobileRecentLabel = selectedStorageDocument?.label || (mobileCategory ? mobileCategories.find((item) => item.category === mobileCategory)?.label || 'Filtered files' : section === 'my-drive' && !folderId ? 'Recent files' : workspaceLabel);
 
   function openVaultPinDialog() {
     setPinOtpSent(false); setPinOtp(''); setNewPin(''); setConfirmPin(''); setDevelopmentPinOtp(''); setPinDialogError('');
@@ -602,7 +610,7 @@ export default function DocumentVaultPage() {
     };
   }, [mobileOrTablet, vaultLockRequired, vaultLocked, vaultPinEnabled, vaultUnlocking]);
 
-  return <Box className="sa-document-vault-page" aria-busy={vaultUnlocking || vaultLocked} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
+  return <Box className="sa-document-vault-page sa-vault-premium" data-vault-theme={theme.palette.mode} aria-busy={vaultUnlocking || vaultLocked} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
     {(vaultUnlocking || vaultLocked) && <Box className="sa-vault-unlock-overlay" role={vaultLocked ? 'dialog' : 'status'} aria-modal={vaultLocked || undefined} aria-live="polite" aria-label="Unlocking secure document vault" data-vault-state={vaultLocked ? 'locked' : 'unlocking'}>
       <Box className="sa-vault-unlock-grid" />
       <Box className="sa-vault-unlock-scanline" />
@@ -651,12 +659,38 @@ export default function DocumentVaultPage() {
       </DialogContent>
       <DialogActions><Button onClick={() => setPinDialogOpen(false)} disabled={pinSaveBusy}>Cancel</Button><Button variant="contained" disabled={!pinOtpSent || pinSaveBusy || pinOtp.length !== 6 || newPin.length !== 6 || confirmPin.length !== 6} onClick={() => void saveVaultPin()}>{pinSaveBusy ? 'Saving…' : vaultPinEnabled ? 'Change security code' : 'Protect vault'}</Button></DialogActions>
     </ProfessionalDialog>
-    <Box className="sa-vault-mobile-shell" aria-label="SecureAsset mobile and tablet document drive">
-      <Stack className="sa-vault-mobile-titlebar" direction="row" alignItems="center" justifyContent="space-between">
-        <Box><Typography className="sa-vault-mobile-page-title">Document vault</Typography><Typography className="sa-vault-mobile-page-caption">Secure records workspace</Typography></Box>
-        <Tooltip title={vaultPinEnabled ? 'Change vault security code' : 'Protect the vault'}><IconButton className="sa-vault-security-action" aria-label={vaultPinEnabled ? 'Change vault security code' : 'Protect the vault'} onClick={openVaultPinDialog}><SecurityRounded /></IconButton></Tooltip>
+    <Stack data-secureasset-document-vault-toolbar="compact-v151" data-secureasset-document-vault-layout="record-workspace-v1" className="sa-vault-heading">
+      <Stack direction="row" spacing={1.6} alignItems="center">
+        <Box className="sa-vault-brand-mark"><SecurityRounded /></Box>
+        <Box><Typography className="sa-vault-kicker">SECUREASSET / PRIVATE WORKSPACE</Typography><Typography component="h1" className="sa-vault-heading-title">Document vault</Typography><Typography className="sa-vault-heading-copy">Private document workspace. Everything important, thoughtfully organised.</Typography></Box>
       </Stack>
+      <Stack direction="row" className="sa-vault-heading-actions" spacing={1}>
+        <Button variant="outlined" startIcon={<CameraAltRounded />} onClick={() => scanRef.current?.click()}>Scan document</Button>
+        <Button variant="contained" startIcon={<CloudUploadRounded />} onClick={() => inputRef.current?.click()}>Upload files</Button>
+      </Stack>
+    </Stack>
+    <Box className="sa-vault-overview" aria-label="Vault overview">
+      <Paper elevation={0} className="sa-vault-overview-card sa-vault-access-card">
+        <Stack direction="row" alignItems="center" justifyContent="space-between"><Typography className="sa-vault-stat-label">ACCESS PROTECTION</Typography><SecurityRounded /></Stack>
+        <Typography className="sa-vault-stat-value">{vaultUnlocking ? 'Checking access' : vaultLocked ? 'Vault locked' : vaultPinEnabled ? 'Security code enabled' : vaultLockRequired ? 'Device verification' : 'Account access'}</Typography>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}><Typography className="sa-vault-stat-detail">{vaultLockRequired ? 'Auto-lock after 10 minutes idle' : 'Add a six-digit vault code'}</Typography><Button onClick={openVaultPinDialog} endIcon={<ChevronRightRounded />}>{vaultPinEnabled ? 'Manage' : 'Set up'}</Button></Stack>
+      </Paper>
+      <Paper elevation={0} className="sa-vault-overview-card">
+        <Stack direction="row" alignItems="center" justifyContent="space-between"><Typography className="sa-vault-stat-label">STORAGE</Typography><StorageRounded /></Stack>
+        <Typography className="sa-vault-stat-value">{bootstrap ? formatBytes(usage) : '—'}<Box component="span">{bootstrap ? ` / ${formatBytes(quota)}` : ' Loading'}</Box></Typography>
+        <LinearProgress aria-label="Vault storage usage" variant="determinate" value={percent} color={percent >= 90 ? 'error' : percent >= 75 ? 'warning' : 'primary'} />
+        <Typography className="sa-vault-stat-detail">{bootstrap ? `${formatBytes(Math.max(0, quota - usage))} available` : 'Checking available storage'}</Typography>
+      </Paper>
+      <Paper elevation={0} className="sa-vault-overview-card sa-vault-privacy-card">
+        <Stack direction="row" alignItems="center" justifyContent="space-between"><Typography className="sa-vault-stat-label">SHARING CONTROL</Typography><LockRounded /></Stack>
+        <Typography className="sa-vault-stat-value">Private by default</Typography>
+        <Typography className="sa-vault-stat-detail">You choose who can access your documents.</Typography>
+      </Paper>
+    </Box>
+    <Box className="sa-vault-upload-progress" aria-live="polite">{Object.entries(uploadProgress).map(([name, progress]) => <Paper key={name} sx={{ p: 1.5, mb: 1.5, borderRadius: 3 }}><Stack direction="row" justifyContent="space-between"><Typography variant="body2" sx={{ fontWeight: 600 }}>{name}</Typography><Typography variant="caption">{progress}%</Typography></Stack><LinearProgress aria-label={`Uploading ${name}`} variant="determinate" value={progress} sx={{ mt: 1, borderRadius: 9 }} /></Paper>)}</Box>
+    <Box className="sa-vault-mobile-shell" aria-label="SecureAsset mobile and tablet document drive">
       <TextField className="sa-vault-mobile-search" fullWidth size="small" placeholder="Search your documents" value={search} onChange={(e) => setSearch(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment>, endAdornment: <InputAdornment position="end"><IconButton size="small" aria-label="Upload files" onClick={() => inputRef.current?.click()}><CloudUploadRounded fontSize="small" /></IconButton></InputAdornment> }} />
+      <Box className="sa-vault-mobile-navigation" component="nav" aria-label="Vault sections">{systemSections.map(([key, label, Icon]) => <Button key={key} aria-current={section === key && !mobileCategory ? 'page' : undefined} startIcon={<Icon />} onClick={() => void chooseSection(key)}>{label}</Button>)}</Box>
 
       <Stack direction="row" alignItems="center" justifyContent="space-between" className="sa-vault-mobile-section-heading">
         <Box><Typography>Quick Access</Typography><Typography>Tap a category to open its protected files</Typography></Box>
@@ -666,7 +700,7 @@ export default function DocumentVaultPage() {
         {mobileCategories.map((item) => {
           const Icon = item.icon;
           const active = (item.action === 'category' && mobileCategory === item.category) || (item.action === 'section' && section === item.category) || (item.action === 'smart-folder' && section === item.category);
-          return <Paper key={item.key} className={`sa-vault-mobile-category-tile${active ? ' is-active' : ''}${item.action === 'smart-folder' ? ' is-smart-folder' : ''}`} elevation={0} onClick={() => void chooseMobileCategory(item.category, item.action)} role="button" tabIndex={0} aria-label={`Open ${item.label} files`} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') void chooseMobileCategory(item.category, item.action); }}>
+          return <Paper key={item.key} className={`sa-vault-mobile-category-tile${active ? ' is-active' : ''}${item.action === 'smart-folder' ? ' is-smart-folder' : ''}`} elevation={0} onClick={() => void chooseMobileCategory(item.category, item.action)} role="button" tabIndex={0} aria-pressed={active} aria-label={`Open ${item.label} files`} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); void chooseMobileCategory(item.category, item.action); } }}>
             <Box className={`sa-vault-mobile-category-icon is-${item.key}`}>{design.iconAssets.quickAccess[item.key] ? <Box component="img" src={design.iconAssets.quickAccess[item.key]} alt="" aria-hidden="true" sx={{ width: 30, height: 30, objectFit: 'contain' }} /> : <Icon sx={{ color: (item as { color?: string }).color }} />}</Box><Typography>{item.label}</Typography>
           </Paper>;
         })}
@@ -674,17 +708,19 @@ export default function DocumentVaultPage() {
 
       <Box className="sa-vault-mobile-actions"><Button onClick={() => scanRef.current?.click()} startIcon={<CameraAltRounded />}>Scan securely to PNG</Button><Button onClick={() => inputRef.current?.click()} startIcon={<CloudUploadRounded />}>Upload</Button></Box>
 
+      {breadcrumbs.length > 0 && <Breadcrumbs className="sa-vault-mobile-breadcrumbs" aria-label="Document folder path" maxItems={3}>{breadcrumbs.map((crumb) => <Button key={crumb._id} size="small" onClick={() => void openFolder(crumb)}>{crumb.name}</Button>)}</Breadcrumbs>}
       <Stack direction="row" alignItems="center" justifyContent="space-between" className={`sa-vault-mobile-section-heading sa-vault-mobile-files-heading${selectedStorageDocument ? ' is-storage-folder' : ''}`} data-secureasset-document-vault-mobile-content={selectedStorageDocument ? `storage-folder-${selectedStorageDocument.key}-v189` : 'recent-files-v188'}>
-        <Box><Typography>{mobileRecentLabel}</Typography><Typography>{selectedStorageDocument ? 'Protected folder' : `${mobileRecentItems.length} protected item${mobileRecentItems.length === 1 ? '' : 's'}`}</Typography></Box>
+        <Box><Typography>{mobileRecentLabel}</Typography><Typography>{`${mobileMatchingItems.length} item${mobileMatchingItems.length === 1 ? '' : 's'}`}</Typography></Box>
         {selectedStorageDocument ? <Button onClick={() => void chooseSection('recent')}>Back</Button> : <Button onClick={() => void chooseSection('recent')}>View all</Button>}
       </Stack>
       <Stack className={selectedStorageDocument ? 'sa-vault-mobile-folder-list' : 'sa-vault-mobile-recent-list'} data-secureasset-document-vault-recent-files="thumbnail-list-v160" data-secureasset-document-vault-folder-only={selectedStorageDocument ? selectedStorageDocument.key : undefined}>
-        {loading ? <Box className="sa-vault-mobile-empty"><CircularProgress size={24} /><Typography>Verifying your files…</Typography></Box> : mobileRecentItems.length === 0 ? <Box className="sa-vault-mobile-empty"><FolderOpenRounded /><Typography>{selectedStorageDocument ? `No ${selectedStorageDocument.label} files yet` : 'No protected files yet'}</Typography><Button onClick={() => inputRef.current?.click()}>Upload a document</Button></Box> : <Box className="sa-vault-mobile-recent-grid">{mobileRecentItems.map((item) => <Paper key={`mobile-${item.itemType}-${item._id}`} className="sa-vault-mobile-recent-card" elevation={0} onDoubleClick={() => void itemAction(item, 'open')} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') void itemAction(item, 'open'); }}>
+        {loading ? <Box className="sa-vault-mobile-empty"><CircularProgress size={24} /><Typography>Loading your files…</Typography></Box> : mobileRecentItems.length === 0 ? <Box className="sa-vault-mobile-empty"><FolderOpenRounded /><Typography>{search ? 'No matching documents' : selectedStorageDocument ? `No ${selectedStorageDocument.label} files yet` : 'Your documents belong here'}</Typography><Button onClick={() => search ? setSearch('') : inputRef.current?.click()}>{search ? 'Clear search' : 'Upload a document'}</Button></Box> : <Box className="sa-vault-mobile-recent-grid">{mobileRecentItems.map((item) => <Paper key={`mobile-${item.itemType}-${item._id}`} className="sa-vault-mobile-recent-card" elevation={0} onClick={() => void itemAction(item, 'open')} role="button" tabIndex={0} aria-label={`Open ${item.name}`} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); void itemAction(item, 'open'); } }}>
           <Box className="sa-vault-mobile-recent-card-media"><VaultRecentThumbnail item={item} full /><IconButton size="small" aria-label={`Open actions for ${item.name}`} onClick={(event) => { event.stopPropagation(); setMenu({ anchor: event.currentTarget, item }); }}><MoreVertRounded fontSize="small" /></IconButton></Box>
           <Box sx={{ minWidth: 0 }}><Typography noWrap>{item.name}</Typography><Typography noWrap>{item.itemType === 'folder' ? 'Protected folder' : `${item.category || 'Document'} · ${formatBytes(item.sizeBytes)}`}</Typography><Typography className="sa-vault-mobile-file-date" noWrap>{item.updatedAt ? new Date(item.updatedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : 'Protected file'}</Typography></Box>
           <Button className="sa-vault-card-share-button" fullWidth startIcon={<VaultConfiguredIcon source={design.iconAssets.globalShare} fallback={<ShareRounded />} />} disabled={item.itemType === 'folder'} onClick={(event) => { event.stopPropagation(); void instantShare(item); }}>Share</Button>
         </Paper>)}</Box>}
       </Stack>
+      {mobilePageCount > 1 && <Pagination className="sa-vault-mobile-pagination" aria-label="Document pages" count={mobilePageCount} page={currentMobilePage} onChange={(_event, page) => setMobilePage(page)} size="small" siblingCount={0} />}
 
     </Box>
     <Tooltip title="Scan securely to PNG" placement="left">
@@ -693,26 +729,11 @@ export default function DocumentVaultPage() {
       </IconButton>
     </Tooltip>
 
-    <Stack data-secureasset-document-vault-toolbar="compact-v151" data-secureasset-document-vault-layout="record-workspace-v1" className="sa-vault-desktop-toolbar" direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} justifyContent="space-between" gap={1.5} sx={{ mb: 2 }}>
-      <Box className="sa-vault-page-heading">
-        <Typography className="sa-vault-page-eyebrow">SECURE RECORDS WORKSPACE</Typography>
-        <Typography className="sa-vault-page-title">Document vault</Typography>
-        <Typography className="sa-vault-page-description">Private document workspace for property, tenancy, identity, and legal records.</Typography>
-      </Box>
-      <Stack direction="row" spacing={.8} flexWrap="wrap" useFlexGap>
-        <Chip size="small" color="success" icon={<VerifiedRounded />} label={`${formatBytes(usage)} protected`} />
-        <Button size="small" variant="outlined" startIcon={<SecurityRounded />} onClick={openVaultPinDialog}>{vaultPinEnabled ? 'Change security' : 'Protect vault'}</Button>
-        <Button size="small" variant="outlined" startIcon={<AddRounded />} onClick={() => setFolderDialog(true)}>New folder</Button>
-        <Button size="small" variant="outlined" startIcon={<CameraAltRounded />} onClick={() => scanRef.current?.click()}>Scan securely to PNG</Button>
-        <Button size="small" variant="contained" startIcon={<CloudUploadRounded />} onClick={() => inputRef.current?.click()}>Upload files</Button>
-      </Stack>
-    </Stack>
     <input ref={inputRef} hidden type="file" multiple onChange={handleFiles} /><input ref={scanRef} hidden type="file" accept="image/jpeg,image/png" multiple capture="environment" onChange={handleScan} />
 
-    <Box className="sa-vault-upload-progress">{Object.entries(uploadProgress).map(([name, progress]) => <Paper key={name} sx={{ p: 1.5, mb: 1.5, borderRadius: 3 }}><Stack direction="row" justifyContent="space-between"><Typography variant="body2" sx={{ fontWeight: 700 }}>{name}</Typography><Typography variant="caption">{progress}%</Typography></Stack><LinearProgress variant="determinate" value={progress} sx={{ mt: 1, borderRadius: 9 }} /></Paper>)}</Box>
-
-    <Box className="sa-vault-desktop-workspace" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '250px minmax(0,1fr)' }, gap: 2.5 }}>
-      <Paper className="sa-surface-card" elevation={0} sx={{ p: 1.2, borderRadius: 4, alignSelf: 'start', position: { lg: 'sticky' }, top: { lg: 92 } }}>
+    <Box className="sa-vault-desktop-workspace" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '218px minmax(0,1fr)' }, gap: 2.5 }}>
+      <Paper className="sa-surface-card sa-vault-collection-nav" component="nav" aria-label="Vault sections" elevation={0} sx={{ p: 1.2, borderRadius: 4, alignSelf: 'start', position: { lg: 'sticky' }, top: { lg: 92 } }}>
+        <Typography className="sa-vault-sidebar-heading">Library</Typography>
         <List dense>{systemSections.map(([key, label, Icon]) => <ListItemButton key={key} selected={section === key} onClick={() => chooseSection(key)} sx={{ borderRadius: 2.5, mb: .4 }}><ListItemIcon sx={{ minWidth: 38 }}><Icon fontSize="small" /></ListItemIcon><ListItemText primary={label} primaryTypographyProps={{ fontWeight: section === key ? 800 : 600, fontSize: 13 }} /></ListItemButton>)}</List>
         <Divider sx={{ my: 1 }} />
         <Typography className="sa-vault-sidebar-heading">Quick Access</Typography>
@@ -721,24 +742,28 @@ export default function DocumentVaultPage() {
         <Box sx={{ p: 1.5 }}><Stack direction="row" alignItems="center" gap={1}><StorageRounded color="primary" /><Typography variant="body2" sx={{ fontWeight: 800 }}>Storage</Typography></Stack><LinearProgress variant="determinate" value={percent} color={percent >= 90 ? 'error' : percent >= 75 ? 'warning' : 'primary'} sx={{ mt: 1.2, height: 8, borderRadius: 9 }} /><Typography variant="caption" color="text.secondary">{formatBytes(usage)} of {formatBytes(quota)} used</Typography></Box>
       </Paper>
 
-      <Paper className="sa-surface-card" elevation={0} onDragEnter={(event) => { event.preventDefault(); setDragActive(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragActive(false); }} onDrop={handleDrop} sx={{ borderRadius: 4, overflow: 'hidden', minHeight: 590, position: 'relative', outline: dragActive ? '2px dashed' : 'none', outlineColor: 'primary.main', outlineOffset: -8 }}>
+      <Paper className="sa-surface-card sa-vault-library" elevation={0} onDragEnter={(event) => { event.preventDefault(); setDragActive(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragActive(false); }} onDrop={handleDrop} sx={{ borderRadius: 4, overflow: 'hidden', minHeight: 590, position: 'relative', outline: dragActive ? '2px dashed' : 'none', outlineColor: 'primary.main', outlineOffset: -8 }}>
+        <Stack className="sa-vault-library-heading" direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+          <Box><Typography className="sa-vault-kicker">YOUR DOCUMENT LIBRARY</Typography><Typography component="h2">{workspaceLabel}</Typography></Box>
+          <Button variant="outlined" startIcon={<AddRounded />} onClick={() => setFolderDialog(true)}>New folder</Button>
+        </Stack>
         {dragActive && <Box sx={{ position: 'absolute', inset: 0, zIndex: 5, bgcolor: 'rgba(11,82,112,.12)', backdropFilter: 'blur(2px)', display: 'grid', placeItems: 'center', pointerEvents: 'none' }}><Paper sx={{ px: 4, py: 3, borderRadius: 4, textAlign: 'center' }}><CloudUploadRounded color="primary" sx={{ fontSize: 52 }} /><Typography variant="h6" sx={{ fontWeight: 900 }}>Drop files to upload</Typography><Typography color="text.secondary">Files remain private by default.</Typography></Paper></Box>}
         <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1.5} sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
           <Box>
             <Breadcrumbs maxItems={5}>{breadcrumbs.map((crumb) => <Button key={crumb._id} size="small" onClick={() => openFolder(crumb)} sx={{ minWidth: 0 }}>{crumb.name}</Button>)}</Breadcrumbs>
             <Typography variant="caption" color="text.secondary">{filtered.length} item{filtered.length === 1 ? '' : 's'}</Typography>
           </Box>
-          <Stack direction="row" gap={1} alignItems="center"><TextField size="small" placeholder="Search this folder" value={search} onChange={(e) => setSearch(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }} sx={{ minWidth: { sm: 230 } }} /><Tooltip title="Refresh"><IconButton onClick={() => load()}><RefreshRounded /></IconButton></Tooltip><IconButton onClick={() => setView(view === 'grid' ? 'list' : 'grid')}>{view === 'grid' ? <ListRounded /> : <GridViewRounded />}</IconButton></Stack>
+          <Stack direction="row" gap={1} alignItems="center"><TextField size="small" placeholder="Search this folder" value={search} onChange={(e) => setSearch(e.target.value)} inputProps={{ 'aria-label': 'Search this folder' }} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }} sx={{ minWidth: { sm: 230 } }} /><Tooltip title="Refresh"><IconButton aria-label="Refresh documents" onClick={() => load()}><RefreshRounded /></IconButton></Tooltip><Tooltip title={view === 'grid' ? 'List view' : 'Grid view'}><IconButton aria-label={view === 'grid' ? 'Switch to list view' : 'Switch to grid view'} onClick={() => setView(view === 'grid' ? 'list' : 'grid')}>{view === 'grid' ? <ListRounded /> : <GridViewRounded />}</IconButton></Tooltip></Stack>
         </Stack>
 
         {section === 'legal-documents' && <Alert severity="info" action={<Button color="inherit" size="small" onClick={buildTemplates}>Create templates</Button>} sx={{ m: 2 }}>Legal records are private by default. Public sharing requires explicit confirmation and creates a permanent audit record.</Alert>}
         {section === 'trash' && <Alert severity="warning" sx={{ m: 2 }}>Items are retained for the configured recovery period. Final signed legal records cannot be permanently deleted by normal users.</Alert>}
 
-        {loading ? <Box sx={{ py: 12, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box> : filtered.length === 0 ? <Box sx={{ py: 12, px: 3, textAlign: 'center' }}><FolderOpenRounded sx={{ fontSize: 62, color: 'text.disabled' }} /><Typography variant="h6" sx={{ fontWeight: 800, mt: 1 }}>Nothing here yet</Typography><Typography color="text.secondary">Upload files or create a folder to get started.</Typography></Box> : view === 'grid' ?
-          <Box className="sa-vault-recent-grid" sx={{ p: 2, display: 'grid', gridTemplateColumns: { xs: 'repeat(2,minmax(0,1fr))', md: 'repeat(4,minmax(0,1fr))' }, gap: 1.5 }}>{filtered.map((item) => <Paper key={`${item.itemType}-${item._id}`} className="sa-vault-recent-card" variant="outlined" onDoubleClick={() => itemAction(item, 'open')} sx={{ p: 0, borderRadius: 3, cursor: 'pointer', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: '.18s', '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 } }}><Box className="sa-vault-recent-card-media"><VaultRecentThumbnail item={item} full /><IconButton size="small" aria-label={`Open actions for ${item.name}`} onClick={(event) => { event.stopPropagation(); setMenu({ anchor: event.currentTarget, item }); }}><MoreVertRounded fontSize="small" /></IconButton></Box><Box sx={{ px: 1.5, pt: 1.4, minWidth: 0, flex: 1 }}><Typography noWrap sx={{ fontWeight: 800, fontSize: 13.5 }}>{item.name}</Typography><Typography variant="caption" color="text.secondary">{item.itemType === 'folder' ? 'Folder' : formatBytes(item.sizeBytes)}</Typography><Stack direction="row" gap={.5} sx={{ mt: 1.2 }} flexWrap="wrap">{visibilityChip(item)}{item.starred && <StarRounded color="warning" sx={{ fontSize: 20 }} />}{item.immutable && <VerifiedRounded color="success" sx={{ fontSize: 20 }} />}</Stack></Box><Button className="sa-vault-card-share-button" fullWidth startIcon={<VaultConfiguredIcon source={design.iconAssets.globalShare} fallback={<ShareRounded />} />} disabled={item.itemType === 'folder'} onClick={(event) => { event.stopPropagation(); void instantShare(item); }}>Share</Button></Paper>)}</Box> :
+        {loading ? <Box className="sa-vault-library-empty"><CircularProgress size={28} /><Typography>Loading your documents…</Typography></Box> : filtered.length === 0 ? <Box className="sa-vault-library-empty"><Box className="sa-vault-empty-emblem"><FolderOpenRounded /></Box><Typography component="h3">{search ? 'No matching documents' : 'A place for what matters'}</Typography><Typography>{search ? 'Try another name, description or tag.' : 'Keep your identity, property and legal records together.'}</Typography><Button variant="contained" startIcon={search ? <SearchRounded /> : <CloudUploadRounded />} onClick={() => search ? setSearch('') : inputRef.current?.click()}>{search ? 'Clear search' : 'Upload your first document'}</Button><Typography variant="caption">New uploads are private by default.</Typography></Box> : view === 'grid' ?
+          <Box className="sa-vault-recent-grid" sx={{ p: 2, display: 'grid', gridTemplateColumns: { xs: 'repeat(2,minmax(0,1fr))', md: 'repeat(4,minmax(0,1fr))' }, gap: 1.5 }}>{filtered.map((item) => <Paper key={`${item.itemType}-${item._id}`} className="sa-vault-recent-card" variant="outlined" onClick={() => void itemAction(item, 'open')} role="button" tabIndex={0} aria-label={`Open ${item.name}`} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); void itemAction(item, 'open'); } }} sx={{ p: 0, borderRadius: 3, cursor: 'pointer', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: '.18s', '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 } }}><Box className="sa-vault-recent-card-media"><VaultRecentThumbnail item={item} full /><IconButton size="small" aria-label={`Open actions for ${item.name}`} onClick={(event) => { event.stopPropagation(); setMenu({ anchor: event.currentTarget, item }); }}><MoreVertRounded fontSize="small" /></IconButton></Box><Box sx={{ px: 1.5, pt: 1.4, minWidth: 0, flex: 1 }}><Typography noWrap sx={{ fontWeight: 800, fontSize: 13.5 }}>{item.name}</Typography><Typography variant="caption" color="text.secondary">{item.itemType === 'folder' ? 'Folder' : formatBytes(item.sizeBytes)}</Typography><Stack direction="row" gap={.5} sx={{ mt: 1.2 }} flexWrap="wrap">{visibilityChip(item)}{item.starred && <StarRounded color="warning" sx={{ fontSize: 20 }} />}{item.immutable && <VerifiedRounded color="success" sx={{ fontSize: 20 }} />}</Stack></Box><Button className="sa-vault-card-share-button" fullWidth startIcon={<VaultConfiguredIcon source={design.iconAssets.globalShare} fallback={<ShareRounded />} />} disabled={item.itemType === 'folder'} onClick={(event) => { event.stopPropagation(); void instantShare(item); }}>Share</Button></Paper>)}</Box> :
           <Box className="sa-vault-record-list" data-secureasset-document-vault-records="list-v1" role="table">
             <Box className="sa-vault-record-list-head" role="row"><Typography role="columnheader">Document</Typography><Typography role="columnheader">Access</Typography><Typography role="columnheader">Modified</Typography><Typography role="columnheader">Size</Typography><Typography role="columnheader" aria-label="Actions" /></Box>
-            {filtered.map((item) => <Box key={`${item.itemType}-${item._id}`} className="sa-vault-record-row" role="row" tabIndex={0} onDoubleClick={() => void itemAction(item, 'open')} onKeyDown={(event) => { if (event.key === 'Enter') void itemAction(item, 'open'); }}>
+            {filtered.map((item) => <Box key={`${item.itemType}-${item._id}`} className="sa-vault-record-row" role="row" tabIndex={0} onClick={() => void itemAction(item, 'open')} onKeyDown={(event) => { if (event.target === event.currentTarget && event.key === 'Enter') void itemAction(item, 'open'); }}>
               <Box className="sa-vault-record-document" role="cell"><VaultRecentThumbnail item={item} /><Box className="sa-vault-record-name"><Typography noWrap>{item.name}</Typography><Typography noWrap>{item.description || (item.itemType === 'folder' ? 'Protected folder' : item.category || 'Document')}</Typography></Box></Box>
               <Box role="cell">{visibilityChip(item)}{item.immutable && <VerifiedRounded color="success" sx={{ ml: .5, fontSize: 17, verticalAlign: 'middle' }} />}</Box>
               <Typography className="sa-vault-record-date" role="cell">{formatVaultDate(item.updatedAt || item.createdAt)}</Typography>
