@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router';
 import {
   AppBar, Avatar, Badge, Box, BottomNavigation, BottomNavigationAction, Button, DialogContent, Divider, Drawer,
   IconButton, List, ListItemButton, ListItemIcon, ListItemText, Menu, MenuItem, Stack, Toolbar, Tooltip, Typography,
-  Collapse, useMediaQuery, useTheme,
+  useMediaQuery, useTheme,
 } from '@mui/material';
 import ProfessionalDialog from '../shared/ProfessionalDialog';
 import WorkspaceSearch from './WorkspaceSearch';
@@ -52,8 +52,6 @@ import BadgeRounded from '@mui/icons-material/BadgeRounded';
 import ReceiptLongRounded from '@mui/icons-material/ReceiptLongRounded';
 import ElectricMeterRounded from '@mui/icons-material/ElectricMeterRounded';
 import CampaignRounded from '@mui/icons-material/CampaignRounded';
-import ExpandLessRounded from '@mui/icons-material/ExpandLessRounded';
-import ExpandMoreRounded from '@mui/icons-material/ExpandMoreRounded';
 import AddRounded from '@mui/icons-material/AddRounded';
 import KeyboardArrowDownRounded from '@mui/icons-material/KeyboardArrowDownRounded';
 import KeyboardArrowUpRounded from '@mui/icons-material/KeyboardArrowUpRounded';
@@ -314,7 +312,6 @@ export default function AppShell() {
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   const [unread, setUnread] = useState(0);
   const [globalQuery, setGlobalQuery] = useState('');
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ discovery: true });
   const [appModules, setAppModules] = useState<Record<string, any>[]>([]);
   const [moduleError, setModuleError] = useState('');
   const [tenantSubscription, setTenantSubscription] = useState({ checked: false, landlord: false, surveyor: false });
@@ -553,7 +550,7 @@ export default function AppShell() {
       element.removeEventListener('scroll', update);
       window.removeEventListener('resize', update);
     };
-  }, [collapsed, isMobile, menuGroups, openSections]);
+  }, [collapsed, isMobile, menuGroups]);
 
   function go(item: MenuDef) {
     navigate(item.path || `/app/${item.key}`);
@@ -588,21 +585,19 @@ export default function AppShell() {
       <Divider />
       <Box sx={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         <Box ref={sidebarScrollRef} className="sa-sidebar-scroll" sx={{ height: '100%', px: collapsed && !isMobile ? 1.1 : 1.2, py: 1.25, pr: 0.7, overflowY: 'auto', scrollBehavior: 'smooth' }}>
-        {!collapsed && !isRegularTenant && <Typography className="sa-page-kicker" sx={{ px: 1.15, pb: 1.05, color: 'text.secondary', fontSize: 9.5 }}>Workspace</Typography>}
         <List disablePadding>
           {menuGroups.map(([section, sectionItems], groupIndex) => {
             const activeGroup = sectionItems.some((item) => isItemActive(item));
-            const open = openSections[section] ?? (activeGroup || groupIndex === 0);
             const SectionIcon = sectionIcon(section) || (section === 'finance' ? PaymentsRounded : section === 'communication' ? MessageRounded : section === 'reports' ? AssessmentRounded : DashboardRounded);
-            const renderItem = (item: MenuDef, nested = false) => {
+            const renderItem = (item: MenuDef) => {
               const active = isItemActive(item);
               const Icon = item.icon;
               return <Tooltip key={item.key} title={collapsed && !isMobile ? item.label : ''} placement="right">
                 <ListItemButton
                   onClick={() => go(item)}
                   sx={{
-                    minHeight: nested ? 40 : 44, borderRadius: design.borders.navigationRadius, mb: .35, px: collapsed && !isMobile ? 1.25 : 1.35,
-                    pl: nested ? 1.5 : undefined, justifyContent: collapsed && !isMobile ? 'center' : 'flex-start', position: 'relative',
+                    minHeight: 44, borderRadius: design.borders.navigationRadius, mb: .4, px: collapsed && !isMobile ? 1.1 : 1.15,
+                    justifyContent: collapsed && !isMobile ? 'center' : 'flex-start', position: 'relative',
                     background: active ? 'linear-gradient(115deg, var(--sa-navigation), var(--sa-primary))' : 'transparent', color: active ? 'primary.contrastText' : 'text.secondary',
                     boxShadow: active ? '0 8px 20px rgba(7,63,86,.18)' : 'none',
                     '&::before': active ? { content: '""', position: 'absolute', left: 0, top: 10, bottom: 10, width: 3, borderRadius: 2, bgcolor: 'secondary.light', boxShadow: '0 0 0 3px rgba(255,255,255,.10)' } : undefined,
@@ -610,28 +605,26 @@ export default function AppShell() {
                     transition: 'transform .18s ease, background-color .18s ease, box-shadow .18s ease',
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: collapsed && !isMobile ? 0 : nested ? 34 : 38, color: 'inherit', justifyContent: 'center' }}><Icon sx={{ fontSize: design.icons.navSize }} /></ListItemIcon>
-                  {(!collapsed || isMobile) && <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: nested ? 12.6 : 13, fontWeight: active ? 790 : 650, noWrap: true }} />}
+                  <ListItemIcon sx={{ minWidth: collapsed && !isMobile ? 0 : 40, color: 'inherit', justifyContent: 'center' }}>
+                    <Box sx={{ width: 30, height: 30, display: 'grid', placeItems: 'center', borderRadius: '10px', bgcolor: active ? 'rgba(255,255,255,.16)' : 'rgba(10,96,122,.075)', color: 'inherit', transition: 'background-color .18s ease' }}>
+                      <Icon sx={{ fontSize: design.icons.navSize }} />
+                    </Box>
+                  </ListItemIcon>
+                  {(!collapsed || isMobile) && <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: 12.8, fontWeight: active ? 790 : 650, noWrap: true }} />}
                   {(!collapsed || isMobile) && item.badge && <Box component="span" sx={{ px: .75, py: .2, borderRadius: 99, bgcolor: active ? 'rgba(255,255,255,.18)' : 'action.selected', fontSize: 9.5, fontWeight: 850 }}>{item.badge}</Box>}
                 </ListItemButton>
               </Tooltip>;
             };
             if (collapsed && !isMobile) return <Fragment key={section}><Divider sx={{ my: groupIndex ? 1.05 : 0, opacity: groupIndex ? 1 : 0 }} />{sectionItems.map((item) => renderItem(item))}</Fragment>;
-            return <Box key={section} sx={{ mb: 1.1 }}>
-              <ListItemButton
-                onClick={() => setOpenSections((current) => ({ ...current, [section]: !(current[section] ?? (activeGroup || groupIndex === 0)) }))}
-                sx={{ minHeight: 38, borderRadius: design.borders.navigationRadius, px: 1.15, mb: .35, color: activeGroup ? 'text.primary' : 'text.secondary', '&:hover': { bgcolor: 'action.hover' } }}
-              >
-                <ListItemIcon sx={{ minWidth: 30, color: activeGroup ? 'primary.main' : 'text.secondary' }}><SectionIcon sx={{ fontSize: design.icons.navSize }} /></ListItemIcon>
-                {section === 'discovery'
-                  ? <ListItemText primary="Discovery" primaryTypographyProps={{ fontSize: 10.5, fontWeight: 880, letterSpacing: '.055em', textTransform: 'uppercase' }} />
-                  : <ListItemText primary={sectionLabel(section)} primaryTypographyProps={{ fontSize: 10.5, fontWeight: 880, letterSpacing: '.055em', textTransform: 'uppercase' }} />}
-                <Typography component="span" sx={{ mr: .7, fontSize: 10, color: 'text.disabled', fontWeight: 750 }}>{sectionItems.length}</Typography>
-                {open ? <ExpandLessRounded sx={{ fontSize: design.icons.navSize }} /> : <ExpandMoreRounded sx={{ fontSize: design.icons.navSize }} />}
-              </ListItemButton>
-              <Collapse in={open && (!collapsed || isMobile)} timeout="auto" unmountOnExit>
-                <List disablePadding sx={{ pt: .15 }}>{sectionItems.map((item) => renderItem(item, true))}</List>
-              </Collapse>
+            return <Box key={section} sx={{ mb: 1.35 }}>
+              <Stack direction="row" alignItems="center" spacing={.85} sx={{ px: .65, pt: .45, pb: .85, color: activeGroup ? 'primary.main' : 'text.secondary' }}>
+                <Box sx={{ width: 25, height: 25, display: 'grid', placeItems: 'center', borderRadius: '8px', bgcolor: activeGroup ? 'rgba(10,96,122,.10)' : 'rgba(10,96,122,.055)' }}>
+                  <SectionIcon sx={{ fontSize: 15 }} />
+                </Box>
+                <Typography component="span" sx={{ flex: 1, fontSize: 10.2, fontWeight: 850, letterSpacing: '.06em', textTransform: 'uppercase', color: activeGroup ? 'text.primary' : 'text.secondary' }}>{sectionLabel(section)}</Typography>
+                <Typography component="span" sx={{ fontSize: 9.5, color: 'text.disabled', fontWeight: 750 }}>{sectionItems.length}</Typography>
+              </Stack>
+              <List disablePadding>{sectionItems.map((item) => renderItem(item))}</List>
             </Box>;
           })}
         </List>

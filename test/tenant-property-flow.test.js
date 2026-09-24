@@ -15,14 +15,15 @@ test('public property actions open dedicated tenant pages instead of modal-style
   assert.match(routes, /schedule_visit\/:propertyId/);
 });
 
-test('tenant discovery sidebar is grouped as a dropdown with the required property links', () => {
+test('tenant discovery sidebar is statically sectioned with the required property links', () => {
   const shell = read('src/app/components/layout/AppShell.tsx');
   const rbac = read('server/src/services/rbac.js');
   for (const label of ['Browse Properties', 'Rent Properties', 'Lease Properties', 'Sales Properties', 'Saved Properties']) {
     assert.match(`${shell}\n${rbac}`, new RegExp(label));
   }
-  assert.match(shell, /primary="Discovery"/);
-  assert.match(shell, /<Collapse in=\{open && \(!collapsed \|\| isMobile\)\}/);
+  assert.match(shell, /sectionLabel\(section\)/);
+  assert.doesNotMatch(shell, /openSections/);
+  assert.doesNotMatch(shell, /<Collapse/);
 });
 
 test('tenant dashboard is gated until the KYC form has been completed or submitted', () => {
@@ -99,7 +100,7 @@ test('landlord capability gives a tenant owner-scoped My Listings and property C
   assert.match(controller, /owner: req\.user\._id, deletedAt: null/);
   assert.match(routes, /router\.get\('\/properties\/mine'/);
   assert.match(shell, /'my-listings': \{ key: 'my-listings', label: 'My Listings'/);
-  assert.match(shell, /const landlordMenu = \['dashboard', \.\.\.LANDLORD_FEATURE_MENU_KEYS, 'documents', 'profile'\]/);
+  assert.match(shell, /const landlordMenu = \['dashboard', \.\.\.LANDLORD_FEATURE_MENU_KEYS, 'documents'\]/);
   assert.match(rbac, /\['my-listings','My Listings'/);
   assert.match(rbac, /capability: 'landlord'/);
   assert.match(scope, /!user\.__capabilityScope/);
