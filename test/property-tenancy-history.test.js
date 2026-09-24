@@ -89,13 +89,13 @@ test('foreign and malformed property IDs never expose tenancy records', async (t
   t.mock.method(Property, 'findOne', (filter) => { scope = filter; return query(null); });
   const lookup = t.mock.method(Tenancy, 'find', () => { throw new Error('must not query'); });
   assert.equal((await invoke(getPropertyTenancyHistory)).error.statusCode, 404);
-  assert.deepEqual(scope, { _id: propertyId, owner: landlordId });
+  assert.deepEqual(scope, { _id: propertyId, owner: landlordId, listingType: 'rent' });
   assert.equal((await invoke(getPropertyTenancyHistory, { params: { propertyId: 'bad-id' } })).error.statusCode, 404);
   assert.equal(lookup.mock.callCount(), 0);
 });
 
-test('property history list retains empty and archived owned properties with owner-scoped rent and images', async (t) => {
-  const property = { _id: propertyId, title: 'Example Home', deletedAt: new Date(), pricing: { monthlyRent: 15000 } };
+test('property history list scopes searches and totals to owned rent properties, including empty and archived listings', async (t) => {
+  const property = { _id: propertyId, title: 'Example Home', listingType: 'rent', deletedAt: new Date(), pricing: { monthlyRent: 15000 } };
   let propertyScope, tenancyScope, roomScope, imageScope;
   t.mock.method(Property, 'countDocuments', async (filter) => { propertyScope = filter; return 13; });
   t.mock.method(Property, 'find', (filter) => { assert.deepEqual(filter, propertyScope); return query([property]); });
@@ -105,6 +105,7 @@ test('property history list retains empty and archived owned properties with own
   const response = await invoke(listTenancyHistoryProperties, { query: { page: 999, search: '[Home]' } });
   assert.equal(response.error, undefined);
   assert.equal(propertyScope.owner, landlordId);
+  assert.equal(propertyScope.listingType, 'rent');
   assert.equal(propertyScope.deletedAt, undefined);
   assert.equal(propertyScope.$or[0].title.test('[Home]'), true);
   assert.equal(propertyScope.$or[0].title.test('H'), false);

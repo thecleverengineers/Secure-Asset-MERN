@@ -35,7 +35,7 @@ export const listTenancyHistoryProperties = asyncHandler(async (req, res) => {
   const { page, limit, search } = input(req);
   // Ownership is mandatory even for archived listings. History remains readable
   // when a landlord archives a property, without exposing another owner's data.
-  const filter = { owner: req.user._id };
+  const filter = { owner: req.user._id, listingType: 'rent' };
   if (search) filter.$or = ['title', 'code', 'address.city', 'address.locality'].map((field) => ({ [field]: new RegExp(escapeRegex(search), 'i') }));
   const total = await Property.countDocuments(filter);
   const pages = Math.max(1, Math.ceil(total / limit));
@@ -59,7 +59,7 @@ export const listTenancyHistoryProperties = asyncHandler(async (req, res) => {
 export const getPropertyTenancyHistory = asyncHandler(async (req, res) => {
   const { page, limit, search, filter } = input(req);
   if (!mongoose.isValidObjectId(req.params.propertyId)) throw new ApiError(404, 'Property not found');
-  const property = await Property.findOne({ _id: req.params.propertyId, owner: req.user._id }).select(propertyFields).lean();
+  const property = await Property.findOne({ _id: req.params.propertyId, owner: req.user._id, listingType: 'rent' }).select(propertyFields).lean();
   if (!property) throw new ApiError(404, 'Property not found');
   const [records, units, withMedia] = await Promise.all([
     Tenancy.find({ landlord: req.user._id, property: property._id }).select(historyFields)
