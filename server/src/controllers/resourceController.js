@@ -108,6 +108,12 @@ function collectRealtimeUsers(record = {}) {
 }
 
 function broadcastResourceMutation(resource, action, record) {
+  if (resource === 'tenants') {
+    // Tenant contacts contain private landlord notes. Realtime clients only
+    // need an invalidation ID; each client reloads its own authorized view.
+    emitRealtime(resource, action, { _id: record._id }, { users: collectRealtimeUsers(record) });
+    return;
+  }
   emitRealtime(resource, action, record, { users: collectRealtimeUsers(record) });
   if (siteConfigurationResources.has(resource)) emitSiteChanged(resource);
 }
@@ -174,6 +180,12 @@ function sanitizeResourceData(resource, data, user) {
     delete safe.landlordNotes;
     if (Array.isArray(safe.activity)) safe.activity = safe.activity.filter((event) => event.audience !== 'landlord');
     if (Array.isArray(safe.documentReviews)) safe.documentReviews = safe.documentReviews.map((review) => ({ ...review, note: '' }));
+    return safe;
+  }
+  if (resource === 'tenants') {
+    const safe = { ...data };
+    delete safe.invitationTokenHash;
+    if (!sameId(data.createdBy, user?._id)) delete safe.privateNotes;
     return safe;
   }
   return data;
@@ -682,6 +694,14 @@ async function assertTenantMutation(resource, user, record, action = 'update') {
   if (resource === 'properties' && isLandlordActor(user) && !sameId(record.owner, uid)) {
     throw new ApiError(403, 'You can only modify your own property listings');
   }
+  if (resource === 'tenants' && isLandlordActor(user)) {
+    if (!sameId(record.createdBy, uid) && !(action === 'update' && sameId(record.user, uid))) {
+      throw new ApiError(403, 'You can only edit or remove tenant contacts you invited');
+    }
+    if (action === 'delete' && record.user && await Tenancy.exists({ tenant: record.user, landlord: uid, ...(record.property ? { property: record.property } : {}) })) {
+      throw new ApiError(409, 'This tenant has tenancy records. Manage their tenancy without deleting their contact history.');
+    }
+  }
   const ownerRules = {
     'surveyor-profiles': record.user,
     'survey-services': record.surveyor,
@@ -942,6 +962,9 @@ export const getResource = asyncHandler(async (req, res) => {
 });
 
 export const createResource = asyncHandler(async (req, res) => {
+  if (req.params.resource === 'tenants' && isLandlordActor(req.user)) {
+    throw new ApiError(403, 'Use tenant invitations to add a tenant and verify their account');
+  }
   const config = await configFor(req, 'create');
   const body = pick(req.body, config.writable);
   if (req.params.resource === 'properties' && body.visibility !== undefined) body.visibility = normalizePropertyVisibility(body.visibility);
@@ -1053,7 +1076,14 @@ export const updateResource = asyncHandler(async (req, res) => {
       changes.submittedAt = new Date();
     }
   }
-  if (isTenantActor(req.user) && req.params.resource === 'tenants') changes = pick(changes, ['occupants', 'emergencyContact']);
+  if (req.params.resource === 'tenants') {
+    if (isLandlordActor(req.user) && sameId(record.createdBy, req.user._id)) {
+      changes = pick(changes, record.user ? ['unitName', 'privateNotes'] : ['name', 'unitName', 'privateNotes']);
+    } else if (isTenantActor(req.user)) {
+      if (!sameId(record.user, req.user._id)) throw new ApiError(403, 'Tenant contact access denied');
+      changes = pick(changes, ['occupants', 'emergencyContact']);
+    }
+  }
   if (isScopedAccount(req.user) && req.params.resource === 'facility-bookings') {
     const ownsFacility = sameId(record.owner, req.user._id);
     if (ownsFacility) changes = pick(changes, ['startAt', 'endAt', 'status', 'decisionNote', 'notes', 'approvedBy']);

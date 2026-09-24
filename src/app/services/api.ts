@@ -245,7 +245,7 @@ export async function completeTwoFactorLogin(challengeToken: string, code: strin
   const result = await request<ApiResponse<AuthSession>>('/auth/two-factor/challenge', { method: 'POST', body: JSON.stringify({ challengeToken, code }) });
   setSession(result.data); return result;
 }
-export async function register(body: { name: string; email: string; phone: string; password: string }) {
+export async function register(body: { name: string; email: string; phone: string; password: string; invitationToken?: string }) {
   return request<ApiResponse<RegistrationChallenge>>('/auth/register', { method: 'POST', body: JSON.stringify(body) });
 }
 export async function verifyRegistration(phone: string, otp: string) {
@@ -254,6 +254,25 @@ export async function verifyRegistration(phone: string, otp: string) {
 }
 export async function resendRegistrationOtp(phone: string) {
   return request<ApiResponse<null>>('/auth/register/resend-otp', { method: 'POST', body: JSON.stringify({ phone }) });
+}
+export async function getLandlordTenants(params: { page: number; limit: number; filter: string; search: string }) {
+  const query = new URLSearchParams(Object.entries(params).map(([key, value]) => [key, String(value)]));
+  return request<{ success: boolean; data: Record<string, any>[]; pagination: { page: number; pages: number; total: number }; counts: { all: number; added: number; holders: number } }>('/resources/tenant-invitations/workspace?' + query);
+}
+export async function lookupTenantInvitation(token: string) {
+  return request<ApiResponse<Record<string, any>>>('/public/tenant-invitations/lookup', { method: 'POST', body: JSON.stringify({ token }) });
+}
+export async function createTenantInvitation(body: { name: string; email: string; phone: string; property: string; unitName?: string; privateNotes?: string }) {
+  return request<ApiResponse<Record<string, any>>>('/resources/tenant-invitations', { method: 'POST', body: JSON.stringify(body) });
+}
+export async function resendTenantInvitation(id: string) {
+  return request<ApiResponse<Record<string, any>>>('/resources/tenant-invitations/' + encodeURIComponent(id) + '/resend', { method: 'POST', body: JSON.stringify({}) });
+}
+export async function acceptTenantInvitation(token: string) {
+  return request<ApiResponse<Record<string, any>>>('/resources/tenant-invitations/accept', { method: 'POST', body: JSON.stringify({ token }) });
+}
+export async function cancelTenantInvitation(id: string) {
+  return request<ApiResponse<null>>('/resources/tenant-invitations/' + encodeURIComponent(id) + '/cancel', { method: 'POST', body: JSON.stringify({}) });
 }
 export async function logout() {
   try { await request('/auth/logout', { method: 'POST' }); } finally { clearSession(); }

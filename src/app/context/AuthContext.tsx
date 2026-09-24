@@ -11,7 +11,7 @@ type AuthContextValue = {
   loading: boolean;
   isAuthenticated: boolean;
   login: (identifier: string, password: string) => Promise<AuthAttempt>;
-  register: (body: { name: string; email: string; phone: string; password: string }) => Promise<RegistrationChallenge>;
+  register: (body: { name: string; email: string; phone: string; password: string; invitationToken?: string }) => Promise<RegistrationChallenge>;
   verifyRegistration: (phone: string, otp: string) => Promise<User>;
   verifyOtp: (body: { identifier?: string; email?: string; phone?: string; otp: string }) => Promise<AuthAttempt>;
   completeTwoFactor: (challengeToken: string, code: string) => Promise<User>;

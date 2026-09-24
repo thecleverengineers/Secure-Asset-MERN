@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { z } from 'zod';
-import { User, AuditLog, SiteSetting } from '../models/index.js';
+import { User, AuditLog, SiteSetting, Tenant } from '../models/index.js';
 import { ApiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import {
@@ -21,6 +21,7 @@ import {
   authenticationOptions, registrationOptions, verifyAuthentication as verifyWebAuthnAuthentication, verifyRegistration as verifyWebAuthnRegistration,
 } from '../services/webauthn.js';
 import { safeUser } from '../services/safeUser.js';
+import { findPendingTenantInvitation, hashTenantInvitationToken } from '../services/tenantInvitations.js';
 import { hydrateTenantCapabilities } from '../middleware/auth.js';
 import {
   authSessionResponse, clearSessionCookies, currentSessionId, issueServerSession,
@@ -43,6 +44,7 @@ const registerSchema = z.object({
   email: z.string().email().max(160),
   phone: z.string().min(10).max(40),
   password: passwordRule,
+  invitationToken: z.string().min(40).max(64).optional(),
 });
 
 async function authenticationPolicy() {
@@ -167,10 +169,15 @@ export const register = asyncHandler(async (req, res) => {
   const email = normalizeEmail(parsed.data.email);
   const phone = normalizeIndianMobile(parsed.data.phone);
   if (!phone) throw new ApiError(422, 'Enter a valid 10-digit Indian mobile number');
+  const tenantInvitation = parsed.data.invitationToken ? await findPendingTenantInvitation(parsed.data.invitationToken) : null;
+  if (parsed.data.invitationToken && !tenantInvitation) throw new ApiError(410, 'This tenant invitation is invalid or has expired. Ask the landlord for a new link.');
+  if (tenantInvitation && (tenantInvitation.email !== email || tenantInvitation.phone !== phone)) {
+    throw new ApiError(422, 'Use the email address and mobile number the landlord invited');
+  }
 
   const [emailUser, phoneUser] = await Promise.all([
-    User.findOne(identifierDescriptor(email).query).select('+password +otpHash +otpExpiresAt +otpPurpose +otpAttempts +otpLastSentAt'),
-    User.findOne(identifierDescriptor(phone).query).select('+password +otpHash +otpExpiresAt +otpPurpose +otpAttempts +otpLastSentAt'),
+    User.findOne(identifierDescriptor(email).query).select('+password +otpHash +otpExpiresAt +otpPurpose +otpAttempts +otpLastSentAt +pendingTenantId +pendingTenantTokenHash'),
+    User.findOne(identifierDescriptor(phone).query).select('+password +otpHash +otpExpiresAt +otpPurpose +otpAttempts +otpLastSentAt +pendingTenantId +pendingTenantTokenHash'),
   ]);
   if (emailUser && emailUser.status !== 'pending_verification') throw new ApiError(409, 'An account already exists with this email');
   if (phoneUser && phoneUser.status !== 'pending_verification') throw new ApiError(409, 'An account already exists with this mobile number');
@@ -184,6 +191,8 @@ export const register = asyncHandler(async (req, res) => {
   user.role = 'tenant';
   user.status = 'pending_verification';
   user.mobileVerifiedAt = undefined;
+  user.pendingTenantId = tenantInvitation?._id;
+  user.pendingTenantTokenHash = tenantInvitation ? hashTenantInvitationToken(parsed.data.invitationToken) : undefined;
   user.refreshTokens = [];
   const delivery = await storeAndSendOtp(user, 'registration');
   res.status(202).json({
@@ -198,13 +207,29 @@ export const verifyRegistration = asyncHandler(async (req, res) => {
   const phone = normalizeIndianMobile(req.body.phone || req.body.identifier);
   if (!phone) throw new ApiError(422, 'Enter the mobile number used during registration');
   const user = await User.findOne({ $and: [identifierDescriptor(phone).query, { status: 'pending_verification' }] })
-    .select('+otpHash +otpExpiresAt +otpPurpose +otpAttempts +otpLastSentAt +refreshTokens');
+    .select('+otpHash +otpExpiresAt +otpPurpose +otpAttempts +otpLastSentAt +refreshTokens +pendingTenantId +pendingTenantTokenHash');
   if (!user || !(await validateStoredOtp(user, req.body.otp, 'registration'))) throw new ApiError(401, 'OTP is invalid or expired');
   clearOtp(user);
   user.phone = phone;
   user.mobileVerifiedAt = new Date();
   user.status = 'active';
   await user.save({ validateModifiedOnly: true });
+  if (user.pendingTenantId) {
+    await Tenant.findOneAndUpdate({
+      _id: user.pendingTenantId,
+      invitationTokenHash: user.pendingTenantTokenHash,
+      invitationStatus: 'pending',
+      invitationExpiresAt: { $gt: new Date() },
+      email: user.email,
+      phone,
+    }, {
+      $set: { user: user._id, name: user.name, invitationStatus: 'registered' },
+      $unset: { invitationTokenHash: 1, invitationExpiresAt: 1 },
+    });
+    user.pendingTenantId = undefined;
+    user.pendingTenantTokenHash = undefined;
+    await user.save({ validateModifiedOnly: true });
+  }
   await ensurePersonalDrive(user._id);
   const session = await issueSession(user, req, res);
   await audit(req, user, 'account:registered_mobile_verified');

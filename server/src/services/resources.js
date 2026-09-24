@@ -28,9 +28,9 @@ export const resources = {
     writable: ['property', 'buildingName', 'floor', 'unitNumber', 'type', 'bedrooms', 'bathrooms', 'area', 'monthlyRent', 'securityDeposit', 'status', 'amenities', 'meterNumbers', 'assignedTenant'],
   },
   tenants: {
-    model: Tenant, readRoles: ['admin', 'manager', 'landlord', 'tenant'], createRoles: ['admin', 'manager', 'landlord'], updateRoles: ['admin', 'manager', 'landlord', 'tenant'], deleteRoles: ['admin', 'landlord'],
+    model: Tenant, readRoles: ['admin', 'manager', 'landlord', 'tenant'], createRoles: ['admin', 'manager'], updateRoles: ['admin', 'manager', 'landlord', 'tenant'], deleteRoles: ['admin', 'landlord'],
     search: ['status'], populate: ['user', 'property', 'unit'],
-    writable: ['user', 'property', 'unit', 'status', 'occupants', 'emergencyContact', 'moveInDate', 'moveOutDate', 'documents'],
+    writable: ['user', 'name', 'email', 'phone', 'unitName', 'privateNotes', 'property', 'unit', 'status', 'occupants', 'emergencyContact', 'moveInDate', 'moveOutDate', 'documents'],
   },
   leases: {
     model: Lease, readRoles: ['admin', 'manager', 'landlord', 'tenant'], createRoles: ['admin', 'manager', 'landlord'], updateRoles: ['admin', 'manager', 'landlord'], deleteRoles: ['admin', 'landlord'],

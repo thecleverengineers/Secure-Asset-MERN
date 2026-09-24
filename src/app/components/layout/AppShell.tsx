@@ -186,7 +186,7 @@ function tenantCapabilityEnabled(user: any, capability: 'landlord' | 'surveyor')
 const roleMenus: Record<UserRole, string[]> = {
   admin: ['dashboard', 'design-studio', 'role-permissions', 'subscription-payment-approvals', 'site-admin', 'site-enquiries', 'users', 'properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'reminder-rules', 'leases', 'surveys', 'applications', 'payments', 'complaints', 'approvals', 'surveyor-plans', 'surveyor-verifications', 'surveyor-profiles', 'survey-services', 'survey-jobs', 'survey-quotations', 'survey-projects', 'survey-reports', 'survey-disputes', 'survey-promotions', 'facilities', 'facility-bookings', 'documents', 'drive-admin', 'notifications', 'messages', 'reports', 'audit-logs', 'settings'],
   manager: ['dashboard', 'properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'applications', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'leases', 'surveys', 'payments', 'complaints', 'approvals', 'attendance', 'facilities', 'facility-bookings', 'documents', 'messages', 'notifications', 'reports'],
-  landlord: ['dashboard', 'my-listings', 'applications', 'tenancies', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects', 'documents', 'profile'],
+  landlord: ['dashboard', 'my-listings', 'applications', 'tenants', 'tenancies', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects', 'documents', 'profile'],
   tenant: ['dashboard', 'marketplace', 'rent-properties', 'lease-properties', 'sale-properties', 'saved-properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'my-applications', 'property-visits', 'tenancies', 'subscription', 'surveyor-subscription', 'my-property', 'leases', 'complaints', 'documents', 'facilities', 'facility-bookings', 'messages', 'notifications', 'profile'],
   user: ['dashboard', 'marketplace', 'rent-properties', 'lease-properties', 'sale-properties', 'saved-properties', 'applications', 'payments', 'complaints', 'facilities', 'facility-bookings', 'documents', 'messages', 'notifications', 'profile'],
   surveyor: ['surveyor-dashboard', 'survey-job-marketplace', 'survey-quotations', 'survey-projects', 'surveyor-profile', 'surveyor-verification'],
@@ -209,11 +209,12 @@ const regularTenantPropertyMenu: MenuDef[] = [
 
 const regularTenantMenu: MenuDef[] = [...regularTenantWorkspaceMenu, ...regularTenantPropertyMenu, ...regularTenantFinanceMenu];
 
-const LANDLORD_FEATURE_MENU_KEYS = ['my-listings', 'applications', 'tenancies', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects'] as const;
+const LANDLORD_FEATURE_MENU_KEYS = ['my-listings', 'applications', 'tenants', 'tenancies', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects'] as const;
 const LANDLORD_SUBSCRIBER_WORKSPACE: Array<Pick<MenuDef, 'key' | 'label' | 'path' | 'icon'>> = [
   { key: 'dashboard', label: 'Dashboard', path: '/app/dashboard', icon: DashboardRounded },
   { key: 'my-listings', label: 'My Listings', path: '/app/my-listings', icon: ApartmentRounded },
   { key: 'applications', label: 'Tenant Applications', path: '/app/applications', icon: FactCheckRounded },
+  { key: 'tenants', label: 'Manage Tenants', path: '/app/tenants', icon: PeopleRounded },
   { key: 'tenancies', label: 'Tenancies', path: '/app/tenancies', icon: HomeWorkRounded },
   { key: 'documents', label: 'Documents', path: '/app/documents', icon: FolderRounded },
   { key: 'notifications', label: 'Notifications', path: '/app/notifications', icon: NotificationsRounded },
@@ -222,6 +223,7 @@ const LANDLORD_SUBSCRIBER_WORKSPACE: Array<Pick<MenuDef, 'key' | 'label' | 'path
 const LANDLORD_FEATURE_LABELS: Record<string, string> = {
   'my-listings': 'My Listings',
   applications: 'Tenant Applications',
+  tenants: 'Manage Tenants',
   tenancies: 'Active Tenancy',
   'property-visits': 'Manage Site Visit',
   'rental-invoices': 'Rent Management',

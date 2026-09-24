@@ -31,5 +31,7 @@ export function safeUser(user) {
   }
   delete value.vaultPin;
   delete value.pendingContactChange;
+  delete value.pendingTenantId;
+  delete value.pendingTenantTokenHash;
   return value;
 }

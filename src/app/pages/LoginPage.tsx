@@ -14,7 +14,7 @@ import { LogoMark } from '../components/premium/LogoMark';
 import AuthExperience from '../components/auth/AuthExperience';
 import { useAuth } from '../context/AuthContext';
 import { useSite } from '../context/SiteContext';
-import { resendRegistrationOtp, sendOtp } from '../services/api';
+import { acceptTenantInvitation, lookupTenantInvitation, resendRegistrationOtp, sendOtp } from '../services/api';
 
 const demoAccounts = [
   ['Admin', 'admin@secureasset.in'], ['Manager', 'manager@secureasset.in'], ['Tenant / Landlord', 'tenant@secureasset.in'], ['Surveyor', 'surveyor@secureasset.in'],
@@ -28,6 +28,7 @@ export default function LoginPage() {
   const showDemoAccounts = Boolean(content.showDemoAccounts) && (import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_ACCOUNTS === 'true');
   const modes = useMemo(() => [content.allowPasswordLogin !== false && 'login', content.allowRegistration !== false && 'register', content.allowOtpLogin !== false && 'otp'].filter(Boolean) as Mode[], [content]);
   const searchParams = new URLSearchParams(location.search);
+  const invitationToken = new URLSearchParams(location.hash.replace(/^#/, '')).get('tenantInvite') || '';
   const requestedMode = searchParams.get('mode');
   const requestedAuthMode = requestedMode === 'register' && modes.includes('register')
     ? 'register'
@@ -39,6 +40,8 @@ export default function LoginPage() {
   const [otp, setOtp] = useState(''); const [otpSent, setOtpSent] = useState(false);
   const [challengeToken, setChallengeToken] = useState(''); const [showPassword, setShowPassword] = useState(false); const [loading, setLoading] = useState(false);
   const [error, setError] = useState(''); const [message, setMessage] = useState('');
+  const [tenantInvite, setTenantInvite] = useState<Record<string, any> | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
   const authNavigationModes = modes;
   const modeLabels: Record<Mode, string> = { login: 'Login', register: 'Register', otp: 'OTP login', 'two-factor': 'Two-factor verification' };
   const titles: Record<Mode,string> = { login: content.loginTitle || 'Welcome back', register: content.registerTitle || 'Create your account', otp: content.otpTitle || 'Mobile OTP login', 'two-factor': 'Two-factor verification' };
@@ -61,30 +64,57 @@ export default function LoginPage() {
   }, [location.search]);
 
   useEffect(() => {
-    const nextMode = requestedAuthMode || (modes.includes(mode) ? mode : modes[0] || 'login');
+    if (!invitationToken) { setTenantInvite(null); return; }
+    let current = true;
+    setMode('register'); setOtpSent(false); setOtp(''); setError(''); setInviteLoading(true);
+    lookupTenantInvitation(invitationToken)
+      .then((result) => {
+        if (!current) return;
+        const invite = result.data || null;
+        setTenantInvite(invite);
+        setName(String(invite?.name || ''));
+        setEmail(String(invite?.email || ''));
+        setPhone(String(invite?.phone || ''));
+        setIdentifier(String(invite?.email || ''));
+        setMessage('Create a password, verify your mobile number with OTP, then complete tenant KYC.');
+      })
+      .catch((exception) => { if (current) { setTenantInvite(null); setError((exception as Error).message); } })
+      .finally(() => { if (current) setInviteLoading(false); });
+    return () => { current = false; };
+  }, [invitationToken]);
+
+  useEffect(() => {
+    if (mode === 'two-factor') return;
+    const nextMode = invitationToken ? (modes.includes(mode) ? mode : 'register') : requestedAuthMode || (modes.includes(mode) ? mode : modes[0] || 'login');
     if (nextMode !== mode) {
       setMode(nextMode); setOtpSent(false); setOtp(''); setError(''); setMessage(''); setChallengeToken('');
     }
-  }, [mode, modes, requestedAuthMode]);
+  }, [invitationToken, mode, modes, requestedAuthMode]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (loading) return;
     setLoading(true); setError(''); setMessage('');
     try {
-      if (mode === 'two-factor') { await auth.completeTwoFactor(challengeToken, otp); navigate('/app/dashboard', { replace: true }); return; }
+      if (mode === 'two-factor') {
+        const signedIn = await auth.completeTwoFactor(challengeToken, otp);
+        if (invitationToken) { await acceptTenantInvitation(invitationToken); navigate(signedIn.kycStatus === 'verified' ? '/app/dashboard' : '/app/tenant-kyc?required=complete', { replace: true }); }
+        else navigate('/app/dashboard', { replace: true });
+        return;
+      }
       if (mode === 'login') {
         const result = await auth.login(identifier, password);
         if (result.challenge) { setChallengeToken(result.challenge.challengeToken); setMode('two-factor'); setOtp(''); return; }
+        if (invitationToken) { await acceptTenantInvitation(invitationToken); navigate(result.user?.kycStatus === 'verified' ? '/app/dashboard' : '/app/tenant-kyc?required=complete', { replace: true }); return; }
         navigate('/app/dashboard', { replace: true }); return;
       }
       if (mode === 'register') {
         if (!otpSent) {
-          const challenge = await auth.register({ name, email, phone, password });
+          const challenge = await auth.register({ name, email, phone, password, invitationToken: invitationToken || undefined });
           setPhone(challenge.identifier); setOtpSent(true);
           setMessage(challenge.developmentOtp ? `Development OTP: ${challenge.developmentOtp}` : challenge.message || `OTP sent to ${challenge.maskedMobile}.`); return;
         }
-        await auth.verifyRegistration(phone, otp); navigate('/app/dashboard', { replace: true }); return;
+        await auth.verifyRegistration(phone, otp); navigate(invitationToken ? '/app/tenant-kyc?required=complete' : '/app/dashboard', { replace: true }); return;
       }
       if (mode === 'otp') {
         if (!otpSent) {
@@ -93,6 +123,7 @@ export default function LoginPage() {
         }
         const result = await auth.verifyOtp({ identifier, otp });
         if (result.challenge) { setChallengeToken(result.challenge.challengeToken); setMode('two-factor'); setOtp(''); return; }
+        if (invitationToken) { await acceptTenantInvitation(invitationToken); navigate(result.user?.kycStatus === 'verified' ? '/app/dashboard' : '/app/tenant-kyc?required=complete', { replace: true }); return; }
         navigate('/app/dashboard', { replace: true });
       }
     } catch (exception) { setError((exception as Error).message); }
@@ -100,7 +131,7 @@ export default function LoginPage() {
   }
 
   function changeMode(next: Mode) {
-    if (location.search) navigate('/login', { replace: true });
+    navigate({ pathname: '/login', search: '?mode=' + next, hash: location.hash }, { replace: true });
     setMode(next); setOtpSent(false); setChallengeToken(''); setOtp(''); setError(''); setMessage('');
   }
   function selectDemo(account: string) { changeMode('login'); setIdentifier(account); setPassword('Demo@123'); }
@@ -137,7 +168,7 @@ export default function LoginPage() {
           {mode === 'login' && passwordField()}
           {mode === 'login' && <Stack direction="row" justifyContent="flex-end" sx={{ mt: -.85 }}><MuiLink data-secureasset-forgot-password-link="dedicated-reset-v160" href="/reset-password" underline="hover" sx={{ color: '#0B6E96', fontSize: 12.2, fontWeight: 750 }}>Forgot password?</MuiLink></Stack>}
 
-          {mode === 'register' && !otpSent && <><TextField label="Full name" value={name} onChange={(event) => setName(event.target.value)} required /><TextField label="Email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required InputProps={{ startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }} /><TextField label="Mobile number" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 12))} required helperText="Indian mobile number used for OTP verification." InputProps={{ startAdornment: <InputAdornment position="start"><PhoneAndroidRounded fontSize="small" /></InputAdornment> }} />{passwordField()}</>}
+          {mode === 'register' && !otpSent && <><TextField label="Full name" value={name} onChange={(event) => setName(event.target.value)} required InputProps={{ readOnly: Boolean(invitationToken) }} /><TextField label="Email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }} /><TextField label="Mobile number" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 12))} required helperText="Indian mobile number used for OTP verification." InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><PhoneAndroidRounded fontSize="small" /></InputAdornment> }} />{passwordField()}</>}
           {mode === 'register' && otpSent && <><Alert severity="info">Enter the six-digit OTP sent to your mobile. Your account remains inactive until verification succeeds.</Alert><TextField label="6-digit mobile OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required inputProps={{ inputMode: 'numeric', maxLength: 6 }} /><Button type="button" onClick={resendRegistration} disabled={loading}>Resend OTP</Button></>}
 
           {mode === 'otp' && identifierField}
@@ -149,7 +180,7 @@ export default function LoginPage() {
             className="sa-submit-button"
             variant="contained"
             size="large"
-            disabled={loading}
+            disabled={loading || inviteLoading || Boolean(invitationToken && !tenantInvite)}
             disableElevation
             sx={{
               py: 1.45,
@@ -166,7 +197,11 @@ export default function LoginPage() {
           </Button>
           {mode === 'two-factor' && <Button type="button" size="small" onClick={() => changeMode('login')}>Return to sign in</Button>}
         </Stack></Box>
-        {mode !== 'two-factor' && <Box component="nav" aria-label="Authentication options" className="sa-auth-mode-nav" sx={{ mt: 3.25, pt: 2.5, borderTop: '1px solid', borderColor: 'divider' }}>
+        {invitationToken && inviteLoading && <Alert severity="info" sx={{ mb: 2 }}>Checking your tenant invitation…</Alert>}
+        {invitationToken && tenantInvite && <Alert severity="info" sx={{ mb: 2 }}>Your landlord has invited you to SecureAsset. Create your password, verify your mobile number, then complete tenant KYC.</Alert>}
+        {invitationToken && !inviteLoading && !tenantInvite && <Alert severity="warning" sx={{ mb: 2 }}>This invitation is invalid or expired. Ask the landlord for a new link.</Alert>}
+        {invitationToken && mode !== 'two-factor' && <Button type="button" size="small" onClick={() => { setMode(mode === 'register' ? 'login' : 'register'); setOtpSent(false); setOtp(''); setError(''); setMessage(''); }}>{mode === 'register' ? 'Already have an account? Sign in to accept' : 'Create a tenant account from this invitation'}</Button>}
+        {mode !== 'two-factor' && !invitationToken && <Box component="nav" aria-label="Authentication options" className="sa-auth-mode-nav" sx={{ mt: 3.25, pt: 2.5, borderTop: '1px solid', borderColor: 'divider' }}>
           <Typography sx={{ mb: 1.1, color: 'text.secondary', fontSize: 11.5, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>Account access</Typography>
           <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: .7 }}>
             {authNavigationModes.map((item) => {

@@ -47,6 +47,7 @@ export const env = Object.freeze({
   CLIENT_URL: clientOrigins.join(','),
   CLIENT_ORIGINS: clientOrigins,
   PUBLIC_APP_URL: process.env.PUBLIC_APP_URL || clientOrigins[0] || 'http://localhost:5173',
+  TENANT_INVITATION_BASE_URL: process.env.TENANT_INVITATION_BASE_URL || '',
   UPLOAD_DIR: absoluteOrResolved(process.env.UPLOAD_DIR, 'server/src/uploads'),
   MAX_FILE_MB: numberValue('MAX_FILE_MB', 10, { min: 1, max: 1024 }),
   LEGACY_PUBLIC_UPLOADS: boolValue('LEGACY_PUBLIC_UPLOADS', false),

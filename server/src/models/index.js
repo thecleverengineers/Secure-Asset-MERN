@@ -89,6 +89,8 @@ const UserSchema = new Schema({
   surveyorSubscriptionExpiresAt: Date,
   surveyorPlan: { type: String, trim: true },
   activeMode: { type: String, enum: ['regular', 'landlord', 'surveyor'], default: 'regular' },
+  pendingTenantId: { ...objectId('Tenant'), select: false },
+  pendingTenantTokenHash: { type: String, select: false },
   lastLogin: Date,
   mobileVerifiedAt: Date,
   refreshTokens: [{
@@ -287,7 +289,16 @@ const UnitSchema = new Schema({
 UnitSchema.index({ property: 1, unitNumber: 1 }, { unique: true });
 
 const TenantSchema = new Schema({
-  user: { ...objectId('User', true), index: true },
+  // Contact records can be created before the invited tenant registers.
+  user: { ...objectId('User'), index: true },
+  name: { type: String, trim: true, maxlength: 160 },
+  email: { type: String, trim: true, lowercase: true, maxlength: 254 },
+  phone: { type: String, trim: true, maxlength: 40 },
+  unitName: { type: String, trim: true, maxlength: 120 },
+  privateNotes: { type: String, trim: true, maxlength: 2000 },
+  invitationStatus: { type: String, enum: ['not_sent', 'pending', 'registered', 'expired', 'revoked'], default: 'not_sent', index: true },
+  invitationTokenHash: { type: String, select: false },
+  invitationExpiresAt: Date,
   property: { ...objectId('Property'), index: true },
   unit: objectId('Unit'),
   status: { type: String, enum: ['applicant', 'active', 'notice', 'moved_out', 'rejected'], default: 'applicant', index: true },

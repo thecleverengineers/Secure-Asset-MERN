@@ -80,7 +80,7 @@ export async function buildScope(user, resource) {
     const propertyScope = { $in: propertyIds };
     const tenantIds = await Tenancy.distinct('tenant', { landlord: uid, property: propertyScope });
     const scopes = {
-      properties: { owner: uid, deletedAt: null }, subscriptions: { user: uid }, tenants: { property: propertyScope }, leases: { property: propertyScope }, payments: { $or: [{ payee: uid }, { property: propertyScope }] }, complaints: { property: propertyScope },
+      properties: { owner: uid, deletedAt: null }, subscriptions: { user: uid }, tenants: { $or: [{ createdBy: uid }, { property: propertyScope }] }, leases: { property: propertyScope }, payments: { $or: [{ payee: uid }, { property: propertyScope }] }, complaints: { property: propertyScope },
       documents: { $or: [{ owner: uid }, { property: propertyScope }] }, notifications: { user: uid }, 'notification-preferences': { user: uid }, messages: { $or: [{ sender: uid }, { recipients: uid }] }, approvals: { $or: [{ property: propertyScope }, { requester: uid }] },
       applications: { $or: [{ landlord: uid }, { property: propertyScope }] }, 'property-spaces': { owner: uid }, 'property-media': { owner: uid },
       'tenant-profiles': { user: { $in: tenantIds } }, 'tenant-kyc': { user: { $in: tenantIds } }, occupants: { $or: [{ tenant: { $in: tenantIds } }, { tenancy: { $exists: true } }] },
