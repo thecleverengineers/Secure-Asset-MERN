@@ -34,10 +34,25 @@ test('landlord dashboard summaries are scoped to owned tenancies and notificatio
   assert.match(dashboard, /navigate\('\/app\/notifications'\)/);
 });
 
-test('subscribed tenant settings link directly to the Fast2SMS verified vault code flow', () => {
+test('subscribed tenant settings link directly to the vault security code flow', () => {
   const profile = read('../src/app/pages/app/UtilityPage.tsx');
   const vault = read('../src/app/pages/app/DocumentVaultPage.tsx');
   assert.match(profile, /Vault Security'.*Change 6-digit code.*'\/app\/documents'/);
   assert.match(vault, /6-digit security code/);
-  assert.match(vault, /Fast2SMS before saving this six-digit security code/);
+  assert.match(vault, /No SMS verification is required/);
+  assert.doesNotMatch(vault, /Fast2SMS before saving this six-digit security code/);
+});
+
+test('vault PIN setup accepts the PIN directly and returns immediate vault access', () => {
+  const api = read('../src/app/services/api.ts');
+  const controller = read('../server/src/controllers/authController.js');
+  const routes = read('../server/src/routes/authRoutes.js');
+  assert.match(api, /setVaultPin\(pin: string\)/);
+  assert.match(api, /body: JSON\.stringify\(\{ pin \}\)/);
+  assert.ok(controller.includes('const vaultPinSchema = z.object({ pin: z.string().regex(/^\\d{6}$/) }).strict();'));
+  const setter = controller.slice(controller.indexOf('export const setVaultPin'), controller.indexOf('export const unlockVaultPin'));
+  assert.doesNotMatch(setter, /parsed\.data\.otp/);
+  assert.doesNotMatch(setter, /SMS verification code/);
+  assert.match(setter, /signVaultPinUnlockToken\(user\)/);
+  assert.match(routes, /router\.post\('\/vault-pin\/set', authenticate, credentialLimiter, setVaultPin\)/);
 });

@@ -335,9 +335,8 @@ export async function publishMapStreetViewPhoto(file: File, metadata: { latitude
 export type SecuritySession = { id: string; device?: string; ip?: string; createdAt?: string; lastUsedAt?: string; expiresAt?: string; absoluteExpiresAt?: string; current?: boolean; persistent?: boolean };
 export type SecurityOverview = { twoFactorEnabled: boolean; deviceUnlockEnabled: boolean; vaultPinEnabled: boolean; sessions: SecuritySession[] };
 export async function getSecurityOverview() { return request<ApiResponse<SecurityOverview>>('/auth/security'); }
-export async function requestVaultPinOtp() { return request<ApiResponse<{ maskedMobile: string }> & { developmentOtp?: string; deliveryWarning?: string }>('/auth/vault-pin/otp', { method: 'POST', body: JSON.stringify({}) }); }
-export async function setVaultPin(otp: string, pin: string) {
-  const result = await request<ApiResponse<{ vaultPinEnabled: boolean; token: string }>>('/auth/vault-pin/set', { method: 'POST', body: JSON.stringify({ otp, pin }) });
+export async function setVaultPin(pin: string) {
+  const result = await request<ApiResponse<{ vaultPinEnabled: boolean; token: string }>>('/auth/vault-pin/set', { method: 'POST', body: JSON.stringify({ pin }) });
   setVaultPinUnlockToken(result.data.token);
   return result;
 }

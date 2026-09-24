@@ -65,7 +65,7 @@ const contactChangeSchema = z.object({
   value: z.string().trim().min(3).max(160),
   currentPassword: z.string().min(8).max(128),
 }).strict();
-const vaultPinOtpSchema = z.object({ otp: z.string().regex(/^\d{6}$/), pin: z.string().regex(/^\d{6}$/) }).strict();
+const vaultPinSchema = z.object({ pin: z.string().regex(/^\d{6}$/) }).strict();
 const vaultPinUnlockSchema = z.object({ pin: z.string().regex(/^\d{6}$/) }).strict();
 
 async function audit(req, user, action, updatedValue) {
@@ -455,23 +455,11 @@ export const requestVaultPinOtp = asyncHandler(async (req, res) => {
 });
 
 export const setVaultPin = asyncHandler(async (req, res) => {
-  const parsed = vaultPinOtpSchema.safeParse(req.body);
-  if (!parsed.success) throw new ApiError(422, 'Enter the six-digit SMS verification code and a six-digit vault security code');
-  const user = await User.findById(req.user._id).select('+vaultPin +vaultPin.pinHash +vaultPin.otpHash +vaultPin.otpExpiresAt +vaultPin.otpAttempts +vaultPin.otpLastSentAt +vaultPin.failedAttempts +vaultPin.lockedUntil');
-  const pinState = user?.vaultPin;
-  const valid = Boolean(pinState?.otpHash && pinState.otpExpiresAt && pinState.otpExpiresAt > new Date() && Number(pinState.otpAttempts || 0) < 5 && await bcrypt.compare(parsed.data.otp, pinState.otpHash));
-  if (!valid) {
-    if (pinState?.otpHash) {
-      pinState.otpAttempts = Number(pinState.otpAttempts || 0) + 1;
-      if (pinState.otpAttempts >= 5) {
-        pinState.otpHash = undefined;
-        pinState.otpExpiresAt = undefined;
-      }
-      await user.save({ validateModifiedOnly: true });
-    }
-    throw new ApiError(401, 'The SMS verification code is invalid or expired');
-  }
-
+  const parsed = vaultPinSchema.safeParse(req.body);
+  if (!parsed.success) throw new ApiError(422, 'Enter a six-digit vault security code');
+  const user = await User.findById(req.user._id).select('+vaultPin +vaultPin.pinHash +vaultPin.failedAttempts +vaultPin.lockedUntil');
+  if (!user) throw new ApiError(404, 'Account not found');
+  const pinState = user.vaultPin || (user.vaultPin = {});
   const wasEnabled = Boolean(pinState.enabled);
   pinState.pinHash = await bcrypt.hash(parsed.data.pin, 12);
   pinState.enabled = true;
@@ -494,7 +482,7 @@ export const unlockVaultPin = asyncHandler(async (req, res) => {
   if (!user || !pinState?.enabled || !pinState.pinHash) throw new ApiError(409, 'Document Vault security is not configured');
   const now = Date.now();
   const lockedUntil = pinState.lockedUntil ? new Date(pinState.lockedUntil).getTime() : 0;
-  if (lockedUntil > now) throw new ApiError(423, 'Too many incorrect codes. Change your security code using SMS verification or try again later.');
+  if (lockedUntil > now) throw new ApiError(423, 'Too many incorrect codes. Change your security code or try again later.');
 
   const valid = await bcrypt.compare(parsed.data.pin, pinState.pinHash);
   if (!valid) {
@@ -504,7 +492,7 @@ export const unlockVaultPin = asyncHandler(async (req, res) => {
       pinState.lockedUntil = new Date(now + 15 * 60 * 1000);
     }
     await user.save({ validateModifiedOnly: true });
-    throw new ApiError(401, pinState.lockedUntil ? 'Too many incorrect codes. Change your security code using SMS verification or try again later.' : 'The Document Vault security code is incorrect');
+    throw new ApiError(401, pinState.lockedUntil ? 'Too many incorrect codes. Change your security code or try again later.' : 'The Document Vault security code is incorrect');
   }
 
   pinState.failedAttempts = 0;

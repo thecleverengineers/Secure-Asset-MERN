@@ -37,7 +37,7 @@ router.post('/device-unlock/authentication/options', authenticate, standardLimit
 router.post('/device-unlock/authentication/verify', authenticate, credentialLimiter, completeDeviceUnlockAuthentication);
 router.delete('/device-unlock', authenticate, credentialLimiter, resetDeviceUnlock);
 router.post('/vault-pin/otp', authenticate, otpRequestLimiter, requestVaultPinOtp);
-router.post('/vault-pin/set', authenticate, otpVerifyLimiter, setVaultPin);
+router.post('/vault-pin/set', authenticate, credentialLimiter, setVaultPin);
 router.post('/vault-pin/unlock', authenticate, credentialLimiter, unlockVaultPin);
 router.post('/contact-change/request', authenticate, credentialLimiter, requestContactChange);
 router.post('/contact-change/verify', authenticate, otpVerifyLimiter, verifyContactChange);
