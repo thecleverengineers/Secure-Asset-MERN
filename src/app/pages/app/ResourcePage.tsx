@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 54389)
-Total output lines: 1798
-
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import {
@@ -344,7 +341,280 @@ function PropertyDetailSection({ title, subtitle, property, items, defaultExpand
   const mobile = useMediaQuery(theme.breakpoints.down('md'));
   const [expanded, setExpanded] = useState(defaultExpanded || !mobile);
   useEffect(() => { setExpanded(defaultExpanded || !mobile); }, [defaultExpanded, mobile]);
-  if (!v…4389 tokens truncated…fyContent="center" spacing={1.2} sx={{ mt: 1.4 }}>
+  if (!visible.length) return null;
+  const fields = <Box sx={{ mt: { xs: 1.2, md: 1.8 }, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' }, gap: { xs: .8, sm: 1, lg: 1.2 } }}>
+    {visible.map((item) => <PropertyDataBlock key={`${title}-${item.label}-${item.path || 'value'}`} label={item.label} value={detailValue(property, item)} full={item.full} />)}
+  </Box>;
+  const header = <PropertySectionHeader title={title} description={subtitle} count={visible.length} />;
+  if (!mobile) return <Box data-secureasset-property-detail-section="desktop-grid-v154" sx={{ py: 3, borderTop: '1px solid #DDE4E8' }}>{header}{fields}</Box>;
+  return <Accordion
+    data-secureasset-property-detail-section="mobile-accordion-v154"
+    expanded={expanded}
+    onChange={(_event, next) => setExpanded(next)}
+    disableGutters
+    elevation={0}
+    sx={{ mt: 1.1, overflow: 'hidden', border: '1px solid', borderColor: 'rgba(11,82,112,.16)', borderRadius: '14px !important', bgcolor: '#F8FCFD', '&::before': { display: 'none' }, '&.Mui-expanded': { m: 0, mt: 1.1 } }}
+  >
+    <AccordionSummary expandIcon={<ExpandMoreRounded sx={{ color: '#0B5270' }} />} sx={{ px: 1.35, py: .45, '& .MuiAccordionSummary-content': { my: 1.1, mr: .5 }, '& .MuiAccordionSummary-content.Mui-expanded': { my: 1.1 } }}>
+      {header}
+    </AccordionSummary>
+    <AccordionDetails sx={{ px: 1.1, pt: 0, pb: 1.1, bgcolor: '#FFFFFF' }}>{fields}</AccordionDetails>
+  </Accordion>;
+}
+
+type PropertyMediaRecord = { _id?: unknown; url?: unknown; thumbnailUrl?: unknown; caption?: unknown; category?: unknown; [key: string]: any };
+type PreviewImage = { src: string; previewSrc: string; label: string; filename?: string; recordId?: string; mediaId?: string; previewFileId?: string; secureSource?: string; propertyId?: string; fallbackSources?: string[]; sourceIndex?: number };
+
+function mediaSourceValues(value: unknown): string[] {
+  const entries = Array.isArray(value) ? value : [value];
+  return entries.flatMap((entry) => {
+    const candidate = entry && typeof entry === 'object'
+      ? (entry as PropertyMediaRecord).url || (entry as PropertyMediaRecord).thumbnailUrl
+      : entry;
+    const raw = String(candidate || '').trim();
+    if (!raw) return [];
+    return raw
+      .split(/,\s*(?=(?:https?:\/\/|\/(?:api|uploads)|data:|blob:))/i)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((item) => /^(?:https?:\/\/|data:|blob:)/i.test(item) || item.startsWith('/') ? item : '/' + item);
+  });
+}
+
+function isSecureMediaSource(source: string) {
+  const value = String(source || '').trim();
+  const bare = value.replace(/^\/+/, '').split(/[?#]/, 1)[0];
+  return /^[a-f\d]{24}$/i.test(bare) || /\/(?:api\/v\d+\/)?(?:drive\/files|files|property-media)\/[a-f\d]{24}(?:\/content)?(?:[/?#]|$)/i.test(value);
+}
+
+function uniqueMediaSources(values: unknown[]) {
+  return [...new Set(values.flatMap((value) => mediaSourceValues(value)).filter(Boolean))];
+}
+
+function directBrowserImageSource(source: string) {
+  const value = String(source || '').trim();
+  return Boolean(value) && !isSecureMediaSource(value) && /^(?:https?:\/\/|data:|blob:|\/)/i.test(value);
+}
+
+function propertyMediaIdFromSource(source: string) {
+  return String(source || '').match(/\/(?:api\/v\d+\/)?property-media\/([a-f\d]{24})(?:\/content)?(?:[/?#]|$)/i)?.[1] || '';
+}
+
+function applicationPropertyImage(property: any) {
+  const propertyId = String(property?._id || property?.id || '');
+  const entries = [property?.propertyMedia, property?.media, property?.galleryCover, property?.coverImage, property?.mainImage, property?.primaryImage, property?.images]
+    .flatMap((entry) => Array.isArray(entry) ? entry : entry ? [entry] : []);
+  const mediaIds: string[] = [];
+  const previewFileIds: string[] = [];
+  const secureSources: string[] = [];
+  const directSources: string[] = [];
+
+  entries.forEach((entry) => {
+    if (entry && typeof entry === 'object') {
+      const mediaId = String(entry.mediaId || entry.propertyMediaId || entry.media?._id || '');
+      const previewFileId = String(entry.previewFileId || entry.driveFileId || entry.fileId || entry.driveFile?._id || '');
+      if (mediaId) mediaIds.push(mediaId);
+      if (previewFileId) previewFileIds.push(previewFileId);
+    }
+    mediaSourceValues(entry && typeof entry === 'object'
+      ? [entry.url, entry.thumbnailUrl, entry.previewUrl, entry.secureSource, entry.path]
+      : entry).forEach((source) => {
+      if (isSecureMediaSource(source)) secureSources.push(source);
+      else if (directBrowserImageSource(source)) directSources.push(source);
+    });
+  });
+
+  const secureMediaIds = secureSources.map((source) => propertyMediaIdFromSource(source) || (/^[a-f\d]{24}$/i.test(source.replace(/^\/+/, '').split(/[?#]/, 1)[0]) ? source.replace(/^\/+/, '').split(/[?#]/, 1)[0] : '')).filter(Boolean);
+  return {
+    propertyId,
+    mediaIds: [...new Set([...mediaIds, ...secureMediaIds])],
+    previewFileIds: [...new Set(previewFileIds)],
+    secureSources: [...new Set(secureSources.filter((source) => !propertyMediaIdFromSource(source) && !/^[a-f\d]{24}$/i.test(source.replace(/^\/+/, '').split(/[?#]/, 1)[0])))],
+    directSources: [...new Set(directSources)],
+  };
+}
+
+function ApplicationPropertyThumbnail({ property }: { property: any }) {
+  const image = useMemo(() => applicationPropertyImage(property), [property]);
+  const [src, setSrc] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl = '';
+    setSrc('');
+    async function resolveImage() {
+      const loaders: Array<() => Promise<Blob>> = [
+        ...image.mediaIds.map((mediaId) => () => fetchPropertyMediaBlob(mediaId, image.propertyId)),
+        ...image.previewFileIds.map((fileId) => () => fetchPropertyImageBlob(`${API_BASE}/drive/files/${encodeURIComponent(fileId)}/content`, image.propertyId)),
+        ...image.secureSources.map((source) => () => fetchPropertyImageBlob(source, image.propertyId)),
+      ];
+      for (const load of loaders) {
+        try {
+          const blob = await load();
+          if (!active) return;
+          objectUrl = URL.createObjectURL(blob);
+          setSrc(objectUrl);
+          return;
+        } catch {
+          // Try the next stored source; the list row remains usable while images resolve.
+        }
+      }
+      if (active) setSrc(image.directSources[0] || '');
+    }
+    void resolveImage();
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [image]);
+
+  return <Box sx={{ gridArea: 'image', width: { xs: 52, md: 58 }, height: { xs: 46, md: 52 }, overflow: 'hidden', border: '1px solid rgba(11,82,112,.12)', borderRadius: '5px', bgcolor: '#EDF4F5', display: 'grid', placeItems: 'center', color: '#6C8991' }}>
+    {src ? <Box component="img" src={src} alt={property?.title ? `${property.title} property` : 'Property'} loading="lazy" decoding="async" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageNotSupportedRounded sx={{ fontSize: 21 }} />}
+  </Box>;
+}
+
+function PropertyImageCard({ image, onPreview, onEdit, onDelete, variant = 'grid', active = false }: { image: PreviewImage; onPreview: (image: PreviewImage) => void; onEdit?: (recordId: string) => void; onDelete?: (recordId: string, label: string) => void; variant?: 'grid' | 'carousel'; active?: boolean }) {
+  const [failed, setFailed] = useState(false);
+  const [retryNonce, setRetryNonce] = useState(0);
+  const fallbackKey = (image.fallbackSources || []).join('|');
+  const needsAuthenticatedFetch = Boolean(image.mediaId || image.previewFileId || image.secureSource || (image.fallbackSources || []).some(isSecureMediaSource));
+  const [loading, setLoading] = useState(needsAuthenticatedFetch);
+  const [resolvedSrc, setResolvedSrc] = useState(needsAuthenticatedFetch ? '' : image.src);
+  const carousel = variant === 'carousel';
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl = '';
+    const shouldFetch = Boolean(image.mediaId || image.previewFileId || image.secureSource || (image.fallbackSources || []).some(isSecureMediaSource));
+    const sourceCandidates = uniqueMediaSources([image.src, ...(image.fallbackSources || [])]);
+    setFailed(false);
+    setLoading(shouldFetch);
+    setResolvedSrc(shouldFetch ? '' : image.src);
+    if (!shouldFetch) return () => {};
+    async function loadImage() {
+      const loaders: Array<() => Promise<Blob>> = [];
+      const attemptedMediaIds = new Set<string>();
+      if (image.mediaId) {
+        attemptedMediaIds.add(image.mediaId);
+        loaders.push(() => fetchPropertyMediaBlob(image.mediaId as string, image.propertyId || ''));
+      }
+      if (image.previewFileId) {
+        loaders.push(() => fetchPropertyImageBlob(`${API_BASE}/drive/files/${encodeURIComponent(image.previewFileId as string)}/content`, image.propertyId || ''));
+      }
+      if (image.secureSource) {
+        const referencedMediaId = propertyMediaIdFromSource(image.secureSource);
+        if (referencedMediaId && !attemptedMediaIds.has(referencedMediaId)) {
+          attemptedMediaIds.add(referencedMediaId);
+          loaders.push(() => fetchPropertyMediaBlob(referencedMediaId, image.propertyId || ''));
+        } else if (!referencedMediaId) {
+          loaders.push(() => fetchPropertyImageBlob(image.secureSource as string, image.propertyId || ''));
+        }
+      }
+      for (const source of sourceCandidates) {
+        const referencedMediaId = propertyMediaIdFromSource(source);
+        if (referencedMediaId && !attemptedMediaIds.has(referencedMediaId)) {
+          attemptedMediaIds.add(referencedMediaId);
+          loaders.push(() => fetchPropertyMediaBlob(referencedMediaId, image.propertyId || ''));
+        } else if (isSecureMediaSource(source)) {
+          loaders.push(() => fetchPropertyImageBlob(source, image.propertyId || ''));
+        }
+      }
+      let lastError: unknown = null;
+      for (const load of loaders) {
+        try {
+          const blob = await load();
+          if (!active) return;
+          objectUrl = URL.createObjectURL(blob);
+          setResolvedSrc(objectUrl);
+          setLoading(false);
+          return;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      const directFallback = sourceCandidates.find(directBrowserImageSource);
+      if (directFallback) {
+        if (!active) return;
+        setResolvedSrc(directFallback);
+        setLoading(false);
+        return;
+      }
+      throw lastError || new Error('No stored image source was available');
+    }
+    void loadImage().catch(() => {
+      if (!active) return;
+      setLoading(false);
+      setFailed(true);
+    });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [fallbackKey, image.mediaId, image.previewFileId, image.previewSrc, image.propertyId, image.secureSource, image.src, retryNonce]);
+
+  const previewImage = { ...image, src: resolvedSrc, previewSrc: resolvedSrc };
+  return <Box data-secureasset-property-gallery-card={carousel ? (active ? 'active-v155' : 'slide-v155') : undefined} sx={{ position: 'relative', height: carousel ? '100%' : undefined, overflow: 'hidden', border: '1px solid #D9E0E5', borderRadius: carousel ? 3 : 2, bgcolor: 'background.paper', boxShadow: carousel && active ? '0 18px 44px rgba(15,23,42,.22)' : undefined }}>
+    {loading
+      ? <Box sx={{ width: '100%', height: carousel ? '100%' : undefined, aspectRatio: carousel ? 'auto' : '4 / 3', display: 'grid', placeItems: 'center', bgcolor: '#F4F6F7' }}><CircularProgress size={24} sx={{ color: '#0F172A' }} /></Box>
+      : failed
+      ? <Box sx={{ width: '100%', height: carousel ? '100%' : undefined, aspectRatio: carousel ? 'auto' : '4 / 3', display: 'grid', placeItems: 'center', bgcolor: 'action.hover', px: 2, textAlign: 'center' }}>
+        <Stack spacing={.5} alignItems="center"><Typography color="text.secondary" sx={{ fontSize: 12 }}>Image preview unavailable</Typography><Typography color="text.secondary" sx={{ fontSize: 10.5 }}>The uploaded file is still saved.</Typography><Button size="small" onClick={() => setRetryNonce((value) => value + 1)}>Retry preview</Button></Stack>
+      </Box>
+      : <ButtonBase
+        aria-label={'Preview ' + image.label}
+        onClick={() => onPreview(previewImage)}
+        sx={{ display: 'block', width: '100%', height: carousel ? '100%' : undefined, position: 'relative', textAlign: 'left', '&:hover .sa-image-preview-overlay': { opacity: 1 } }}
+      >
+        <Box component="img" src={resolvedSrc} alt={image.label} decoding="async" onError={() => setFailed(true)} sx={{ display: 'block', width: '100%', height: carousel ? '100%' : undefined, aspectRatio: carousel ? 'auto' : '4 / 3', objectFit: 'cover', bgcolor: 'action.hover' }} />
+        <Box className="sa-image-preview-overlay" sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', gap: .6, p: carousel ? 1.35 : 1, color: 'white', background: 'linear-gradient(transparent, rgba(0,0,0,.72))', opacity: carousel ? 1 : { xs: 1, sm: 0 }, transition: 'opacity .18s ease' }}>
+          <VisibilityRounded fontSize="small" />
+          <Box sx={{ minWidth: 0 }}><Typography noWrap sx={{ fontSize: carousel ? 13 : 11.5, fontWeight: 850 }}>{image.label}</Typography><Typography noWrap sx={{ mt: .15, fontSize: 10.5, opacity: .86 }}>Click to preview</Typography></Box>
+        </Box>
+      </ButtonBase>}
+    {carousel && image.recordId && (onEdit || onDelete) && <Stack data-secureasset-property-gallery-overlay-actions="top-corner-v155" direction="row" spacing={.45} sx={{ position: 'absolute', top: 10, right: 10, zIndex: 2 }}>
+      {onEdit && <Tooltip title="Edit image"><IconButton aria-label={'Edit ' + image.label} size="small" onClick={(event) => { event.stopPropagation(); onEdit(image.recordId as string); }} sx={{ color: '#10212B', bgcolor: 'rgba(255,255,255,.94)', boxShadow: '0 4px 12px rgba(0,0,0,.18)', '&:hover': { bgcolor: '#FFFFFF' } }}><EditRounded fontSize="small" /></IconButton></Tooltip>}
+      {onDelete && <Tooltip title="Delete image"><IconButton aria-label={'Delete ' + image.label} size="small" onClick={(event) => { event.stopPropagation(); onDelete(image.recordId as string, image.label); }} sx={{ color: '#B42318', bgcolor: 'rgba(255,255,255,.94)', boxShadow: '0 4px 12px rgba(0,0,0,.18)', '&:hover': { bgcolor: '#FFFFFF' } }}><DeleteOutlineRounded fontSize="small" /></IconButton></Tooltip>}
+    </Stack>}
+    {!carousel && <Box sx={{ px: 1.2, py: 1 }}>
+      <Typography noWrap sx={{ fontSize: 12, fontWeight: 800 }}>{image.label}</Typography>
+      {!failed && !loading && <Typography noWrap color="text.secondary" sx={{ fontSize: 10.5, mt: .2 }}>{image.filename || 'Uploaded image'} · click for full preview</Typography>}
+      {image.recordId && (onEdit || onDelete) && <Stack direction="row" spacing={.5} sx={{ mt: .8, '& .MuiButton-root': { flex: { xs: 1, sm: '0 1 auto' } } }}>
+        {onEdit && <Button size="small" variant="outlined" onClick={() => onEdit(image.recordId as string)}>Edit</Button>}
+        {onDelete && <Button size="small" color="error" onClick={() => onDelete(image.recordId as string, image.label)}>Delete</Button>}
+      </Stack>}
+    </Box>}
+  </Box>;
+}
+
+function carouselOffset(index: number, activeIndex: number, length: number) {
+  let offset = index - activeIndex;
+  if (offset > length / 2) offset -= length;
+  if (offset < -length / 2) offset += length;
+  return offset;
+}
+
+function PropertyGalleryCarousel({ images, onPreview, onEdit, onDelete }: { images: PreviewImage[]; onPreview: (image: PreviewImage) => void; onEdit?: (recordId: string) => void; onDelete?: (recordId: string, label: string) => void }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  useEffect(() => setActiveIndex((current) => Math.min(Math.max(current, 0), Math.max(images.length - 1, 0))), [images.length]);
+  const move = (direction: number) => setActiveIndex((current) => images.length ? (current + direction + images.length) % images.length : 0);
+
+  return <Box data-secureasset-property-gallery-carousel="attachment-style-v155" sx={{ pt: .5 }}>
+    <Box data-secureasset-property-gallery-slides="centered-v155" sx={{ position: 'relative', height: { xs: 248, sm: 320, md: 365 }, overflow: 'hidden', isolation: 'isolate' }}>
+      {images.map((image, index) => {
+        const offset = carouselOffset(index, activeIndex, images.length);
+        const distance = Math.abs(offset);
+        if (distance > 2) return null;
+        const active = offset === 0;
+        return <Box
+          key={image.recordId ? `media:${image.recordId}:${image.sourceIndex ?? 0}` : `${image.previewSrc}:${index}`}
+          data-secureasset-property-gallery-slide={active ? 'active-v155' : 'adjacent-v155'}
+          sx={{ position: 'absolute', top: 0, left: '50%', width: { xs: '84%', sm: '64%', md: '57%' }, height: '100%', transform: `translateX(calc(-50% + ${offset * 76}%)) scale(${active ? 1 : distance === 1 ? .86 : .74})`, transformOrigin: 'center center', opacity: active ? 1 : distance === 1 ? .62 : .26, zIndex: 5 - distance, transition: 'transform .42s cubic-bezier(.22,.8,.26,1), opacity .32s ease', pointerEvents: active || distance === 1 ? 'auto' : 'none' }}
+        >
+          <PropertyImageCard image={image} onPreview={onPreview} onEdit={onEdit} onDelete={onDelete} variant="carousel" active={active} />
+        </Box>;
+      })}
+    </Box>
+    {images.length > 1 && <Stack data-secureasset-property-gallery-controls="slide-v155" direction="row" alignItems="center" justifyContent="center" spacing={1.2} sx={{ mt: 1.4 }}>
       <IconButton aria-label="Previous gallery image" size="small" onClick={() => move(-1)} sx={{ border: '1px solid #B8C8D0', color: '#18313D' }}><ChevronLeftRounded fontSize="small" /></IconButton>
       <Typography aria-live="polite" sx={{ minWidth: 46, color: 'text.secondary', fontSize: 12, textAlign: 'center' }}>{activeIndex + 1} / {images.length}</Typography>
       <IconButton aria-label="Next gallery image" size="small" onClick={() => move(1)} sx={{ border: '1px solid #B8C8D0', color: '#18313D' }}><ChevronRightRounded fontSize="small" /></IconButton>
