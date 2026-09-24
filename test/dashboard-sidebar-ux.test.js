@@ -79,7 +79,7 @@ test('document vault is placed immediately after the relevant dashboard for non-
 });
 
 test('default headers stay square while the Design Studio safely controls popup and navigation shape', () => {
-  assert.match(pageHeader, /borderRadius: 0/);
+  assert.match(pageHeader, /borderRadius: premium \? \{ xs: 4, md: 5 \} : 0/);
   assert.match(appShell, /borderRadius: design\.borders\.navigationRadius/);
   assert.match(applicationTheme, /MuiAppBar: \{ styleOverrides: \{ root: \{ borderRadius: 0/);
   assert.match(applicationTheme, /MuiDialog: \{ styleOverrides: \{ paper: \{ borderRadius: design\.borders\.modalRadius/);

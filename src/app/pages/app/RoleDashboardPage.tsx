@@ -278,6 +278,7 @@ export default function RoleDashboardPage() {
     return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 6 }}>
       <PageHeader
         variant="plain"
+        premium
         eyebrow={isSurveyor ? 'Tenant workspace · Landlord + Surveyor' : 'Landlord workspace'}
         title={`${greeting}, ${user?.name?.split(' ')[0] || 'there'}`}
         description={isSurveyor ? 'Landlord operations and survey delivery are combined here while your account remains a tenant account.' : 'A calm, complete view of your portfolio, tenant journey and collection health.'}
@@ -330,6 +331,7 @@ export default function RoleDashboardPage() {
     return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 6 }}>
       <PageHeader
         variant="plain"
+        premium
         eyebrow="Tenant workspace · Surveyor"
         title={`${greeting}, ${user?.name?.split(' ')[0] || 'there'}`}
         description="Your surveyor subscription adds professional fieldwork, quotation, reporting and earnings tools to the same tenant workspace."
@@ -359,6 +361,7 @@ export default function RoleDashboardPage() {
   return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5.5 }}>
     <PageHeader
       variant="plain"
+      premium
       eyebrow={isDirectSurveyor ? 'Field operations' : isRegularTenant ? 'Tenant workspace' : user?.role === 'tenant' ? 'Your home workspace' : 'Operations overview'}
       title={`${greeting}, ${user?.name?.split(' ')[0] || 'there'}`}
       description={isRegularTenant ? 'A clear view of your property, subscription, applications and secure records.' : user?.role === 'tenant' ? 'Everything related to your home, subscription, applications and support in one focused place.' : 'Here is the clearest view of what needs your attention today.'}
