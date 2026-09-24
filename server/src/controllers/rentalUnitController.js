@@ -15,6 +15,8 @@ import { writeAudit } from '../middleware/audit.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
 import { createNotification } from '../services/notifications.js';
+import { emitRealtime } from '../services/realtime.js';
+import { buildScope, normalizeQueryFilter } from '../services/scope.js';
 import { assertLandlordLimit } from '../services/landlordSubscription.js';
 import { sendStoredFile } from '../utils/httpFile.js';
 import {
@@ -521,6 +523,161 @@ export const transitionRentalTenancy = asyncHandler(async (req, res) => {
   await writeAudit(req, { action, module: 'tenancies', recordId: tenancy._id, previousValue, updatedValue: tenancy.toObject() });
   res.json({ success: true, data: { tenancy, unit }, message: `Tenancy moved to ${rule.to.replaceAll('_', ' ')}.` });
 });
+
+async function tenancyInViewerScope(tenancyId, user) {
+  if (!mongoose.isValidObjectId(tenancyId)) throw new ApiError(404, 'Tenancy not found');
+  const scope = normalizeQueryFilter(await buildScope(user, 'tenancies'));
+  const tenancy = await Tenancy.findOne({ $and: [{ _id: tenancyId }, scope] })
+    .populate('tenant', 'name email phone avatar')
+    .populate('landlord', 'name email phone avatar')
+    .populate({ path: 'property', select: 'title name code address map galleryCover coverImage mainImage primaryImage images owner' })
+    .populate('space')
+    .populate({ path: 'rentalUnit', populate: { path: 'floor' } })
+    .populate('application', 'applicationNumber status moveInDate expectedStayMonths occupants vehicles pets references')
+    .populate({ path: 'lease', populate: [{ path: 'documents' }, { path: 'legalAgreement.document' }] })
+    .populate({ path: 'agreement', populate: [{ path: 'firstPartyMark.file' }, { path: 'secondPartySignature.file' }] })
+    .populate(['evidence.file', 'moveInInspection.evidence', 'moveOutInspection.evidence', 'notices.file', 'moveOutSettlement.settlementDocument'])
+    .populate('occupants');
+  if (!tenancy) throw new ApiError(404, 'Tenancy not found');
+  return tenancy;
+}
+
+export const getTenancyDetails = asyncHandler(async (req, res) => {
+  const tenancy = await tenancyInViewerScope(req.params.tenancyId, req.user);
+  const [invoices, rentCycles, agreement] = await Promise.all([
+    RentalInvoice.find({ tenancy: tenancy._id }).sort({ billingMonth: -1, createdAt: -1 })
+      .populate('receiptFile')
+      .populate('legalAgreement')
+      .populate({ path: 'payments.payment', select: 'invoiceNumber amount paidAmount status method transactionId paidAt paymentVerification notes proofFile' })
+      .lean(),
+    RentCycle.find({ tenancy: tenancy._id }).sort({ cycleMonth: -1 }).populate('invoice').lean(),
+    tenancy.agreement ? Promise.resolve(tenancy.agreement) : AgreementRequest.findOne({ tenancy: tenancy._id }).sort({ createdAt: -1 }).populate([{ path: 'firstPartyMark.file' }, { path: 'secondPartySignature.file' }]).lean(),
+  ]);
+  const viewerIsTenant = String(tenancy.tenant?._id || tenancy.tenant) === String(req.user._id);
+  const viewerIsLandlord = String(tenancy.landlord?._id || tenancy.landlord) === String(req.user._id);
+  const viewerIsPrivileged = ['admin', 'manager'].includes(String(req.user.role || '').toLowerCase());
+  const participant = viewerIsTenant ? 'tenant' : viewerIsLandlord ? 'landlord' : viewerIsPrivileged ? 'manager' : 'viewer';
+  res.json({
+    success: true,
+    data: {
+      tenancy,
+      invoices,
+      rentCycles,
+      agreement,
+      permissions: {
+        participant,
+        canViewContacts: participant !== 'viewer',
+        canManage: participant === 'landlord' || participant === 'manager' || String(req.user.role || '').toLowerCase() === 'admin',
+        canRecordPayment: participant === 'landlord' || participant === 'manager' || String(req.user.role || '').toLowerCase() === 'admin',
+        canSendReminder: participant === 'landlord' || participant === 'manager' || String(req.user.role || '').toLowerCase() === 'admin',
+      },
+    },
+  });
+});
+
+export const sendTenancyRentReminder = asyncHandler(async (req, res) => {
+  const tenancy = await tenancyInViewerScope(req.params.tenancyId, req.user);
+  const canManage = String(req.user.role || '').toLowerCase() === 'admin'
+    || String(tenancy.landlord?._id || tenancy.landlord) === String(req.user._id)
+    || String(req.user.role || '').toLowerCase() === 'manager';
+  if (!canManage) throw new ApiError(403, 'Only the landlord or an authorized manager can send rent reminders');
+  const invoice = await RentalInvoice.findOne({
+    _id: req.body.invoiceId,
+    tenancy: tenancy._id,
+    balanceAmount: { $gt: 0 },
+    status: { $in: ['upcoming', 'pending', 'partially_paid', 'overdue', 'failed'] },
+  }).sort({ dueDate: 1, createdAt: 1 });
+  if (!invoice) throw new ApiError(404, 'No open rent invoice was found for this tenancy');
+  const now = new Date();
+  invoice.lastReminderAt = now;
+  invoice.updatedBy = req.user._id;
+  await invoice.save({ validateModifiedOnly: true });
+  await createNotification({
+    user: tenancy.tenant?._id || tenancy.tenant,
+    title: 'Rent payment reminder',
+    message: `${invoice.invoiceNumber}: ₹${Number(invoice.balanceAmount || 0).toLocaleString('en-IN')} is due ${new Date(invoice.dueDate).toLocaleDateString('en-IN', { dateStyle: 'medium' })}.`,
+    category: 'payment',
+    actionUrl: `/app/tenancy_details/${tenancy._id}?tab=rent`,
+    metadata: { tenancyId: tenancy._id, invoiceId: invoice._id, event: 'rent_reminder_sent' },
+  });
+  await writeAudit(req, { action: 'rent-reminder:sent', module: 'tenancies', recordId: tenancy._id, updatedValue: { invoiceId: invoice._id, sentAt: now } });
+  emitRealtime('rental-invoices', 'rent-reminder-sent', invoice, { users: [tenancy.tenant?._id || tenancy.tenant, tenancy.landlord?._id || tenancy.landlord] });
+  res.json({ success: true, data: invoice, message: 'Rent reminder sent to the tenant.' });
+});
+
+export const recordTenancyPayment = asyncHandler(async (req, res) => {
+  const tenancy = await tenancyInViewerScope(req.params.tenancyId, req.user);
+  const canManage = String(req.user.role || '').toLowerCase() === 'admin'
+    || String(tenancy.landlord?._id || tenancy.landlord) === String(req.user._id)
+    || String(req.user.role || '').toLowerCase() === 'manager';
+  if (!canManage) throw new ApiError(403, 'Only the landlord or an authorized manager can record a received rent payment');
+  const invoice = await RentalInvoice.findOne({ _id: req.body.invoiceId, tenancy: tenancy._id });
+  if (!invoice) throw new ApiError(404, 'Rent invoice not found');
+  const amount = Number(req.body.amount);
+  const balance = Math.max(0, Number(invoice.balanceAmount ?? (Number(invoice.totalAmount || 0) - Number(invoice.paidAmount || 0))));
+  if (!Number.isFinite(amount) || amount <= 0 || amount > balance) throw new ApiError(422, 'Payment amount must be greater than zero and no more than the outstanding balance');
+  const method = String(req.body.method || 'offline');
+  if (!['upi', 'bank_transfer', 'cash', 'cheque', 'offline'].includes(method)) throw new ApiError(422, 'Choose a valid offline payment method');
+  const transactionId = String(req.body.transactionId || '').trim().slice(0, 120) || undefined;
+  if (transactionId && await Payment.exists({ transactionId })) throw new ApiError(409, 'This transaction reference is already recorded');
+  const paidAt = req.body.paidAt ? new Date(req.body.paidAt) : new Date();
+  if (Number.isNaN(paidAt.getTime()) || paidAt.getTime() > Date.now()) throw new ApiError(422, 'Payment date is invalid');
+  const paymentId = new mongoose.Types.ObjectId();
+  const payment = await Payment.create({
+    _id: paymentId,
+    invoiceNumber: `RENT-${invoice.invoiceNumber}-${paymentId.toString().toUpperCase()}`,
+    payer: tenancy.tenant?._id || tenancy.tenant,
+    payee: tenancy.landlord?._id || tenancy.landlord,
+    property: tenancy.property?._id || tenancy.property,
+    rentalUnit: tenancy.rentalUnit?._id || tenancy.rentalUnit,
+    tenancy: tenancy._id,
+    type: 'rent', amount, paidAmount: amount, status: 'paid', method, transactionId,
+    dueDate: invoice.dueDate, paidAt, notes: String(req.body.notes || '').trim().slice(0, 2000),
+    gateway: { source: 'landlord_recorded_offline_payment', approvalRequired: 'landlord', invoiceNumber: invoice.invoiceNumber, lifecycleAppliedAt: new Date(), lifecycleAppliedBy: req.user._id },
+    paymentVerification: { status: 'approved', approvedAt: paidAt, approvedBy: req.user._id },
+    createdBy: req.user._id, updatedBy: req.user._id,
+  });
+  const previousBalance = balance;
+  const invoiceTotal = Math.max(0, Number(invoice.totalAmount ?? (Number(invoice.paidAmount || 0) + previousBalance)));
+  invoice.paidAmount = Math.min(invoiceTotal, Number(invoice.paidAmount || 0) + amount);
+  invoice.balanceAmount = Math.max(0, previousBalance - amount);
+  invoice.status = invoice.balanceAmount <= 0
+    ? 'paid'
+    : invoice.paidAmount > 0
+      ? 'partially_paid'
+      : new Date(invoice.dueDate).getTime() < Date.now() ? 'overdue' : 'pending';
+  invoice.payments ||= [];
+  invoice.payments.push({ payment: payment._id, amount, method, transactionId, acceptedAt: paidAt, paidAt, status: 'approved' });
+  invoice.updatedBy = req.user._id;
+  await invoice.save({ validateModifiedOnly: true });
+  if (invoice.rentCycle) {
+    await RentCycle.updateOne({ _id: invoice.rentCycle }, {
+      $set: {
+        paidAmount: invoice.paidAmount,
+        outstandingAmount: invoice.balanceAmount,
+        status: invoice.status === 'partially_paid' ? 'partial' : invoice.status,
+        ...(invoice.balanceAmount <= 0 ? { closedAt: paidAt } : {}),
+        updatedBy: req.user._id,
+      },
+    });
+  }
+  await createNotification({
+    user: tenancy.tenant?._id || tenancy.tenant,
+    title: 'Rent payment recorded',
+    message: `${invoice.invoiceNumber}: ${moneyForRentPayment(amount)} recorded by your landlord. ${invoice.balanceAmount > 0 ? `${moneyForRentPayment(invoice.balanceAmount)} remains due.` : 'The invoice is paid in full.'}`,
+    category: 'payment',
+    actionUrl: `/app/tenancy_details/${tenancy._id}?tab=rent`,
+    metadata: { tenancyId: tenancy._id, invoiceId: invoice._id, paymentId: payment._id, event: 'rent_payment_recorded' },
+  });
+  await writeAudit(req, { action: 'rent-payment:recorded', module: 'tenancies', recordId: tenancy._id, updatedValue: { paymentId: payment._id, invoiceId: invoice._id, amount, method, paidAt } });
+  emitRealtime('payments', 'rent-payment-recorded', payment, { users: [tenancy.tenant?._id || tenancy.tenant, tenancy.landlord?._id || tenancy.landlord] });
+  emitRealtime('rental-invoices', 'rent-payment-recorded', invoice, { users: [tenancy.tenant?._id || tenancy.tenant, tenancy.landlord?._id || tenancy.landlord] });
+  res.status(201).json({ success: true, data: payment, message: 'Rent payment recorded.' });
+});
+
+function moneyForRentPayment(value) {
+  return `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+}
 
 function exactIdFilter(query) {
   const filter = {};

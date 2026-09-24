@@ -434,7 +434,7 @@ export default function AppShell() {
   }, [designedMenu, hasTenantSubscription, isRegularTenant, tenantCapabilityMenu, user]);
   const showTenantUpgrade = user?.role === 'tenant' && tenantSubscription.checked && !hasTenantSubscription;
   const pathParts = location.pathname.split('/').filter(Boolean);
-  const currentKey = pathParts[1] === 'property-details' ? 'my-listings' : pathParts[1] === 'survey-projects' ? 'survey-projects' : pathParts.at(-1) || 'dashboard';
+  const currentKey = pathParts[1] === 'property-details' ? 'my-listings' : pathParts[1] === 'survey-projects' ? 'survey-projects' : pathParts[1] === 'tenancy_details' ? 'tenancies' : pathParts.at(-1) || 'dashboard';
   const menuGroups = useMemo(() => {
     const groups = new Map<string, MenuDef[]>();
     for (const item of menu) {
@@ -458,6 +458,7 @@ export default function AppShell() {
     const normalizedTarget = targetPath === '/app' ? '/app/dashboard' : targetPath;
     if (normalizedTarget !== currentPath
       && !(item.key === 'my-listings' && location.pathname.startsWith('/app/property-details/'))
+      && !(item.key === 'tenancies' && location.pathname.startsWith('/app/tenancy_details/'))
       && !(item.key === 'survey-projects' && location.pathname.startsWith('/app/survey-projects/'))) return false;
     if (!targetSearch) return true;
     const requiredParams = new URLSearchParams(targetSearch);
@@ -668,7 +669,7 @@ export default function AppShell() {
       { key: 'mobile-account', label: 'Account', path: '/app/profile', icon: PersonRounded },
     ];
   const mobileBottomValue = user?.role === 'tenant' && hasLandlordSubscription
-    ? location.pathname.startsWith('/app/my-listings') || location.pathname.startsWith('/app/property-details') ? 'mobile-listings' : location.pathname.startsWith('/app/applications') ? 'mobile-applications' : location.pathname.startsWith('/app/tenancies') ? 'mobile-tenancies' : location.pathname.startsWith('/app/profile') || location.pathname.startsWith('/app/documents') || location.pathname.startsWith('/app/notifications') || location.pathname.startsWith('/app/security') ? 'mobile-profile' : 'mobile-home'
+    ? location.pathname.startsWith('/app/my-listings') || location.pathname.startsWith('/app/property-details') ? 'mobile-listings' : location.pathname.startsWith('/app/applications') ? 'mobile-applications' : location.pathname.startsWith('/app/tenancies') || location.pathname.startsWith('/app/tenancy_details') ? 'mobile-tenancies' : location.pathname.startsWith('/app/profile') || location.pathname.startsWith('/app/documents') || location.pathname.startsWith('/app/notifications') || location.pathname.startsWith('/app/security') ? 'mobile-profile' : 'mobile-home'
     : user?.role === 'tenant'
     ? location.pathname.startsWith('/app/documents') ? 'mobile-vault' : location.pathname.startsWith('/app/wishlist') ? 'mobile-wishlist' : location.pathname.startsWith('/marketplace') ? 'mobile-explore' : location.pathname.startsWith('/app/profile') ? 'mobile-profile' : 'mobile-home'
     : location.pathname.startsWith('/app/documents') ? 'mobile-vault' : location.pathname.startsWith('/app/property') || location.pathname.startsWith('/app/my-property') || location.pathname.startsWith('/marketplace') ? 'mobile-property' : location.pathname.startsWith('/app/profile') ? 'mobile-account' : 'mobile-home';

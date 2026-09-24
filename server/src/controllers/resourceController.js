@@ -995,6 +995,9 @@ export const updateResource = asyncHandler(async (req, res) => {
   const record = await findResourceRecord(req, config);
   if (!record) throw new ApiError(404, 'Record not found');
   await assertTenantMutation(req.params.resource, req.user, record, 'update');
+  if (req.params.resource === 'payments' && record.gateway?.source === 'landlord_recorded_offline_payment') {
+    throw new ApiError(403, 'Landlord-recorded rent payments are immutable. Record a correction as a separate payment entry.');
+  }
   const previousValue = record.toObject(); let changes = pick(req.body, config.writable);
   if (req.params.resource === 'applications' && changes.status !== undefined && !sameId(record.applicant, req.user._id) && isApplicationDecisionActor(req.user, record)) {
     assertApplicationDecisionTransition(record, changes.status, req.user, ApiError);
@@ -1317,6 +1320,9 @@ export const deleteResource = asyncHandler(async (req, res) => {
   const record = await findResourceRecord(req, config);
   if (!record) throw new ApiError(404, 'Record not found');
   await assertTenantMutation(req.params.resource, req.user, record, 'delete');
+  if (req.params.resource === 'payments' && record.gateway?.source === 'landlord_recorded_offline_payment') {
+    throw new ApiError(403, 'Landlord-recorded rent payments cannot be deleted. Record an adjustment instead.');
+  }
   if (req.params.resource === 'facilities' && await FacilityBooking.exists({ facility: record._id, startAt: { $gte: new Date() }, status: { $in: ['requested', 'approved', 'rescheduled', 'in_progress'] } })) throw new ApiError(409, 'Cancel or complete future facility bookings before deleting this facility');
   const previousValue = record.toObject();
   const supportsSoftDelete = Boolean(record.schema.path('deletedAt'));
@@ -1375,7 +1381,7 @@ export const changeStatus = asyncHandler(async (req, res) => {
   const record = await findResourceRecord(req, config);
   if (!record) throw new ApiError(404, 'Record not found');
   await assertTenantMutation(req.params.resource, req.user, record, 'update');
-  if (req.params.resource === 'payments' && record.rentalInvoice) {
+  if (req.params.resource === 'payments' && (record.rentalInvoice || record.gateway?.source === 'landlord_recorded_offline_payment')) {
     throw new ApiError(403, 'Rental payment status is protected. Use the tenant submission and landlord approval actions.');
   }
   if (req.params.resource === 'rental-invoices' && status === 'paid') {

@@ -14,6 +14,9 @@ import {
   getPropertyOccupancy,
   getRentalStructure,
   getRentalUnitTenancyDetail,
+  getTenancyDetails,
+  recordTenancyPayment,
+  sendTenancyRentReminder,
   startRentalTenancy,
   streamManagedRentalUnitImage,
   transitionRentalTenancy,
@@ -41,6 +44,9 @@ router.post('/properties/:propertyId/rental-units/apply-pricing', requireFeature
 router.get('/rental-units/:unitId/images/:fileId/content', requireFeaturePermission('module:property-management'), streamManagedRentalUnitImage);
 router.get('/properties/:propertyId/occupancy', requireFeaturePermission('module:tenancies', 'view'), getPropertyOccupancy);
 router.get('/rental-units/:unitId/tenancy', requireFeaturePermission('module:tenancies', 'view'), getRentalUnitTenancyDetail);
+router.get('/tenancies/:tenancyId/details', requireFeaturePermission('module:tenancies', 'view'), getTenancyDetails);
+router.post('/tenancies/:tenancyId/reminders', requireFeaturePermission('module:tenancies', 'edit'), sendTenancyRentReminder);
+router.post('/tenancies/:tenancyId/payments', requireFeaturePermission('module:tenancies', 'edit'), recordTenancyPayment);
 router.post('/rental-units/:unitId/start-tenancy', requireFeaturePermission('module:tenancies', 'edit'), startRentalTenancy);
 router.post('/tenancies/:tenancyId/transition', requireFeaturePermission('module:tenancies', 'edit'), transitionRentalTenancy);
 router.get('/admin/rental-management', requireFeaturePermission('module:tenancies', 'view'), getAdminRentalManagement);

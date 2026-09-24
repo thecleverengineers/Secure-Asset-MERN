@@ -997,6 +997,10 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
   }
 
   function openRecord(row: any) {
+    if (module === 'tenancies' && row?._id) {
+      navigate(`/app/tenancy_details/${encodeURIComponent(row._id)}`);
+      return;
+    }
     if (module === 'surveyor-profiles' && row?._id) {
       navigate(`/app/surveyor-profiles/${encodeURIComponent(row._id)}`);
       return;
