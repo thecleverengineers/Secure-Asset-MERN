@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import {
-  User, Property, PropertySpace, PropertyMedia, Application, TenantKyc, TenantProfile, Occupant, TenantInterview, DriveFile, Document,
+  User, Property, PropertySpace, PropertyMedia, Application, AgreementRequest, Conversation, Message, TenantKyc, TenantProfile, Occupant, TenantInterview, DriveFile, Document,
   PropertyVisit, Tenancy, RentalInvoice, RentalUnit, RentCycle, UtilityReading, PropertyPromotion, AuditLog, Notification,
 } from '../models/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -14,6 +14,7 @@ import { sendStoredFile } from '../utils/httpFile.js';
 import { TENANT_KYC_DOCUMENT_CATEGORIES } from '../constants/tenantKyc.js';
 import { assertApplicationDecisionTransition } from '../services/applicationWorkflow.js';
 import { canAcceptRentalApplication, syncPropertyRentalSummary, transitionRentalUnit } from '../services/rentalUnitLifecycle.js';
+import { writeAudit } from '../middleware/audit.js';
 
 function toCsv(rows) { if (!rows.length) return ''; const keys = Object.keys(rows[0]); const esc = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`; return [keys.map(esc).join(','), ...rows.map((row) => keys.map((key) => esc(row[key])).join(','))].join('\n'); }
 
@@ -46,6 +47,29 @@ async function propertyForUser(user, propertyId) {
 }
 
 const OPEN_RENTAL_APPLICATION_STATUSES = ['submitted', 'under_review', 'shortlisted', 'interview_requested', 'interview_scheduled', 'site_visit_scheduled', 'additional_documents_requested', 'documents_pending', 'approved', 'agreement_pending', 'deposit_pending'];
+const APPLICATION_REVIEW_STATUSES = ['submitted', 'under_review', 'shortlisted', 'interview_requested', 'interview_scheduled', 'site_visit_scheduled', 'additional_documents_requested', 'documents_pending'];
+
+function recordApplicationEvent(application, { kind, title, detail = '', actor, audience = 'all', at = new Date() }) {
+  application.activity ||= [];
+  application.activity.push({ kind, title, detail: String(detail || '').slice(0, 1200), actor, audience, at });
+}
+
+async function loadApplicationForParticipant(id, user) {
+  if (!mongoose.isValidObjectId(id)) throw new ApiError(404, 'Application not found');
+  const application = await Application.findById(id)
+    .populate({ path: 'applicant', select: 'name email phone avatar' })
+    .populate({ path: 'landlord', select: 'name email phone avatar' })
+    .populate({ path: 'property', populate: { path: 'owner', select: 'name email phone avatar' } })
+    .populate({ path: 'targetSpace', populate: { path: 'floor' } })
+    .populate({ path: 'rentalUnit', populate: { path: 'floor' } })
+    .populate('occupantIds')
+    .populate({ path: 'documents', select: 'name type mimeType sizeBytes driveFile', populate: { path: 'driveFile', select: 'name mimeType sizeBytes' } });
+  if (!application || !application.property) throw new ApiError(404, 'Application not found');
+  const landlordSide = canManageProperty(user, application.property);
+  const applicantSide = sameId(application.applicant, user._id);
+  if (!landlordSide && !applicantSide) throw new ApiError(403, 'Application access denied');
+  return { application, landlordSide, applicantSide };
+}
 
 async function refreshRentalUnitApplicationState(unit, actorId) {
   if (!unit) return;
@@ -347,6 +371,110 @@ export const streamTenantKycDocument = asyncHandler(async (req, res) => {
   await sendStoredFile(req, res, file, { download: req.query.download === 'true' });
 });
 
+export const getApplicationDetails = asyncHandler(async (req, res) => {
+  const { application, landlordSide } = await loadApplicationForParticipant(req.params.id, req.user);
+  const record = application.toObject();
+  if (!landlordSide) {
+    delete record.landlordNotes;
+    record.activity = (record.activity || []).filter((event) => event.audience !== 'landlord');
+  }
+  const reviews = new Map((record.documentReviews || []).map((item) => [String(item.document?._id || item.document), item]));
+  record.documents = (record.documents || []).map((document) => {
+    const review = reviews.get(String(document._id));
+    return {
+      _id: document._id,
+      name: document.name || `Application document ${String(document._id).slice(-6)}`,
+      type: document.type || 'supporting document',
+      mimeType: document.mimeType || document.driveFile?.mimeType || '',
+      sizeBytes: document.sizeBytes || document.driveFile?.sizeBytes || 0,
+      reviewStatus: review?.status || 'pending',
+      reviewNote: landlordSide ? (review?.note || '') : '',
+      reviewedAt: review?.reviewedAt || null,
+    };
+  });
+  const agreements = await AgreementRequest.find({ application: application._id })
+    .select('renderedTitle status durationMonths cycleTermMonths startDate endDate cycleStartedAt cycleEndsAt createdAt firstPartySignedAt sentAt secondPartySignedAt firstPartyApprovalAt declinedAt renewalOf')
+    .sort({ createdAt: 1 }).lean();
+  const activity = [...(record.activity || [])];
+  const applicationConversations = await Conversation.find({ type: 'application', 'reference.model': 'Application', 'reference.id': application._id, participants: { $in: [application.applicant?._id || application.applicant, application.landlord?._id || application.landlord] } }).select('_id').lean();
+  const messages = applicationConversations.length
+    ? await Message.find({ conversation: { $in: applicationConversations.map((conversation) => conversation._id) } }).populate('sender', 'name').sort({ createdAt: -1 }).limit(80).lean()
+    : [];
+  messages.forEach((message) => activity.push({ kind: 'message', title: 'Application message', detail: `${message.sender?.name || 'Participant'}: ${String(message.body || '').trim().slice(0, 180)}`, at: message.createdAt, audience: 'all' }));
+  if (!activity.some((event) => event.kind === 'submitted') && (application.submittedAt || application.createdAt)) {
+    activity.push({ kind: 'submitted', title: 'Application submitted', detail: '', at: application.submittedAt || application.createdAt, audience: 'all' });
+  }
+  agreements.forEach((agreement) => {
+    const term = Number(agreement.durationMonths || agreement.cycleTermMonths || 0);
+    const termLabel = term ? ` · ${term} month${term === 1 ? '' : 's'}` : '';
+    const start = agreement.startDate || agreement.cycleStartedAt;
+    const end = agreement.endDate || agreement.cycleEndsAt;
+    const dates = start && end ? ` · ${new Date(start).toLocaleDateString('en-IN')} – ${new Date(end).toLocaleDateString('en-IN')}` : '';
+    const events = [
+      ['prepared', 'Agreement prepared', agreement.createdAt],
+      ['landlord_signed', 'Landlord signed agreement', agreement.firstPartySignedAt],
+      ['sent', 'Agreement sent to applicant', agreement.sentAt],
+      ['tenant_signed', 'Applicant signed agreement', agreement.secondPartySignedAt],
+      ['agreement_completed', 'Agreement verified and completed', agreement.firstPartyApprovalAt],
+      ['agreement_declined', 'Agreement declined', agreement.declinedAt],
+    ];
+    events.forEach(([kind, title, at]) => {
+      if (at) activity.push({ kind, title, detail: kind === 'prepared' ? `${agreement.renderedTitle || 'Agreement'}${termLabel}${dates}` : `${agreement.renderedTitle || 'Agreement'}${dates}`, at, audience: 'all' });
+    });
+  });
+  record.activity = activity.sort((left, right) => new Date(right.at || 0).getTime() - new Date(left.at || 0).getTime());
+  res.set({ 'Cache-Control': 'private, no-store' });
+  res.json({ success: true, data: { application: record, permissions: { isLandlord: landlordSide, canDecide: landlordSide && APPLICATION_REVIEW_STATUSES.includes(String(application.status || '').toLowerCase()), canEditNotes: landlordSide, canReviewDocuments: landlordSide, canContactApplicant: landlordSide, canRequestInformation: landlordSide } } });
+});
+
+export const updateApplicationPrivateNotes = asyncHandler(async (req, res) => {
+  const { application, landlordSide } = await loadApplicationForParticipant(req.params.id, req.user);
+  if (!landlordSide) throw new ApiError(403, 'Only the property landlord can update private application notes');
+  const notes = String(req.body?.notes ?? '').trim();
+  if (notes.length > 5000) throw new ApiError(422, 'Private notes must be 5,000 characters or fewer');
+  const previousValue = application.toObject();
+  application.landlordNotes = notes;
+  application.updatedBy = req.user._id;
+  await application.save();
+  await writeAudit(req, { action: 'private-notes-updated', module: 'applications', recordId: application._id, previousValue, updatedValue: { landlordNotes: '[private note updated]' } });
+  res.json({ success: true, data: { landlordNotes: application.landlordNotes }, message: 'Private landlord notes saved.' });
+});
+
+export const reviewApplicationDocument = asyncHandler(async (req, res) => {
+  const { application, landlordSide } = await loadApplicationForParticipant(req.params.id, req.user);
+  if (!landlordSide) throw new ApiError(403, 'Only the property landlord can review application documents');
+  if (!mongoose.isValidObjectId(req.params.documentId) || !(application.documents || []).some((item) => sameId(item, req.params.documentId))) throw new ApiError(404, 'Application document not found');
+  const status = String(req.body?.status || '').trim().toLowerCase();
+  if (!['pending', 'approved', 'changes_requested', 'rejected'].includes(status)) throw new ApiError(422, 'Choose a valid document review status');
+  const note = String(req.body?.note || '').trim().slice(0, 1200);
+  let review = (application.documentReviews || []).find((item) => sameId(item.document, req.params.documentId));
+  if (!review) {
+    application.documentReviews.push({ document: req.params.documentId, status, note, reviewedBy: req.user._id, reviewedAt: new Date() });
+    review = application.documentReviews[application.documentReviews.length - 1];
+  } else {
+    review.status = status;
+    review.note = note;
+    review.reviewedBy = req.user._id;
+    review.reviewedAt = new Date();
+  }
+  const attachedDocument = (application.documents || []).find((item) => sameId(item, req.params.documentId));
+  recordApplicationEvent(application, { kind: 'document_review', title: 'Supporting document reviewed', detail: `${status.replaceAll('_', ' ')} · ${attachedDocument?.name || 'Application document'}`, actor: req.user._id });
+  application.updatedBy = req.user._id;
+  await application.save();
+  res.json({ success: true, data: { document: req.params.documentId, status, note, reviewedAt: review.reviewedAt }, message: 'Document review saved.' });
+});
+
+export const streamApplicationDocument = asyncHandler(async (req, res) => {
+  const { application } = await loadApplicationForParticipant(req.params.id, req.user);
+  const documentId = req.params.documentId;
+  if (!mongoose.isValidObjectId(documentId) || !(application.documents || []).some((item) => sameId(item, documentId))) throw new ApiError(404, 'Application document not found');
+  const document = await Document.findById(documentId).select('name mimeType driveFile');
+  if (!document?.driveFile) throw new ApiError(404, 'This application document does not have a secure preview file');
+  const file = await DriveFile.findOne({ _id: document.driveFile, status: { $ne: 'trashed' } }).select('+storageKey');
+  if (!file) throw new ApiError(404, 'Secure application document file not found');
+  await sendStoredFile(req, res, file, { download: req.query.download === 'true' });
+});
+
 export const createRentalApplication = asyncHandler(async (req, res) => {
   if (req.user.role !== 'tenant') throw new ApiError(403, 'Tenant account required');
   const kyc = await TenantKyc.findOne({ user: req.user._id, status: 'verified', $or: [{ expiresAt: { $gt: new Date() } }, { expiresAt: null }, { expiresAt: { $exists: false } }] });
@@ -367,7 +495,7 @@ export const createRentalApplication = asyncHandler(async (req, res) => {
     applicationNumber: `AP-${new Date().getFullYear()}-${Date.now().toString().slice(-8)}`, applicant: req.user._id, landlord: property.owner, property: property._id, targetSpace: space?._id, rentalUnit: rentalUnit?._id,
     status: 'submitted', step: 9, personal: req.body.personal, employment: req.body.employment, identity: req.body.identity, documents: req.body.documents || [],
     occupantSummary: summary, occupantIds: req.body.occupantIds || [], moveInDate: req.body.moveInDate, expectedStayMonths: req.body.expectedStayMonths,
-    monthlyIncome: req.body.monthlyIncome, rentalBudget: req.body.rentalBudget, vehicles: req.body.vehicles || [], pets: req.body.pets || [], references: req.body.references || [], messageToLandlord: req.body.messageToLandlord, submittedAt: new Date(), createdBy: req.user._id, updatedBy: req.user._id,
+    monthlyIncome: req.body.monthlyIncome, rentalBudget: req.body.rentalBudget, vehicles: req.body.vehicles || [], pets: req.body.pets || [], references: req.body.references || [], messageToLandlord: req.body.messageToLandlord, submittedAt: new Date(), activity: [{ kind: 'submitted', title: 'Application submitted', actor: req.user._id }], createdBy: req.user._id, updatedBy: req.user._id,
   });
   if (rentalUnit) await refreshRentalUnitApplicationState(rentalUnit, req.user._id);
   await Property.updateOne({ _id: property._id }, { $inc: { 'metrics.applications': 1 } });
@@ -386,21 +514,28 @@ export const decideApplication = asyncHandler(async (req, res) => {
   if (decisionUnit && status === 'approved' && (decisionUnit.currentTenancyId || !['AVAILABLE', 'APPLICATION_PENDING', 'RESERVED'].includes(decisionUnit.availabilityStatus))) {
     throw new ApiError(409, 'This room is already locked by another tenancy workflow');
   }
+  if (decisionUnit && status === 'approved' && await Application.exists({ _id: { $ne: application._id }, rentalUnit: decisionUnit._id, status: { $in: ['approved', 'agreement_pending', 'deposit_pending'] } })) {
+    throw new ApiError(409, 'Another application already has an agreement in progress for this room');
+  }
+  if (status === 'rejected' && !String(req.body.remarks || '').trim()) throw new ApiError(422, 'Add a reason before rejecting this application');
   application.status = status; application.remarks = req.body.remarks; application.reviewedBy = req.user._id; application.updatedBy = req.user._id;
   if (status === 'approved') { application.acceptedAt = new Date(); application.acceptedBy = req.user._id; }
   if (status === 'rejected') { application.rejectedAt = new Date(); application.rejectionReason = req.body.remarks; }
+  recordApplicationEvent(application, { kind: status === 'approved' ? 'accepted' : status === 'rejected' ? 'rejected' : status === 'additional_documents_requested' ? 'information_requested' : 'status_changed', title: status === 'approved' ? 'Application accepted' : status === 'rejected' ? 'Application rejected' : status === 'additional_documents_requested' ? 'Information requested' : `Application moved to ${status.replaceAll('_', ' ')}`, detail: req.body.remarks || '', actor: req.user._id });
   await application.save();
   if (application.rentalUnit) {
     const unit = decisionUnit;
     if (unit && status === 'approved') {
-      if (unit.availabilityStatus === 'AVAILABLE') await transitionRentalUnit(unit, 'APPLICATION_PENDING', { actorId: req.user._id, reason: 'Application approved' });
-      if (unit.availabilityStatus === 'APPLICATION_PENDING') await transitionRentalUnit(unit, 'AGREEMENT_PENDING', { actorId: req.user._id, reason: 'Landlord accepted an applicant' });
-      else if (unit.availabilityStatus === 'RESERVED') await transitionRentalUnit(unit, 'AGREEMENT_PENDING', { actorId: req.user._id, reason: 'Landlord accepted an applicant' });
-      await Application.updateMany({ _id: { $ne: application._id }, rentalUnit: unit._id, status: { $in: OPEN_RENTAL_APPLICATION_STATUSES } }, { $set: { status: 'waiting_list', closedReason: 'Another application was accepted for this room', updatedBy: req.user._id } });
+      // The application state remains publicly visible and has no tenancy lock.
+      // The agreement workflow moves it to PAYMENT_PENDING only after both
+      // signatures and first-party verification are complete.
       await refreshRentalUnitApplicationState(unit, req.user._id);
     } else if (unit && ['rejected', 'waiting_list'].includes(status)) await refreshRentalUnitApplicationState(unit, req.user._id);
   }
-  await createNotification({ user: application.applicant, title: 'Application updated', message: `Your application is now ${status.replaceAll('_', ' ')}`, category: 'system', actionUrl: '/app/applications' });
+  const notificationMessage = status === 'additional_documents_requested' && req.body.remarks
+    ? `The landlord requested more information: ${req.body.remarks}`
+    : status === 'rejected' ? `Your application was rejected. Reason: ${application.rejectionReason}` : `Your application is now ${status.replaceAll('_', ' ')}`;
+  await createNotification({ user: application.applicant, title: 'Application updated', message: notificationMessage, category: 'system', actionUrl: `/app/application_details/${application._id}` });
   res.json({ success: true, data: application });
 });
 

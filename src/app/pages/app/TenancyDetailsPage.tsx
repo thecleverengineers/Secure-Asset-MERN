@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import {
-  Alert, Avatar, Box, Button, Card, CardContent, Chip, CircularProgress, Dialog, DialogActions, DialogContent,
+  Alert, Avatar, Box, Button, Card, CardContent, Chip, CircularProgress, DialogActions, DialogContent,
   DialogTitle, Divider, Grid, IconButton, MenuItem, Paper, Stack, Tab, Tabs, TextField, Tooltip, Typography,
 } from '@mui/material';
 import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded';
@@ -22,6 +22,7 @@ import SendRounded from '@mui/icons-material/SendRounded';
 import ShieldRounded from '@mui/icons-material/ShieldRounded';
 import { useAuth } from '../../context/AuthContext';
 import { useActionDialog } from '../../components/shared/useActionDialog';
+import ProfessionalDialog from '../../components/shared/ProfessionalDialog';
 import {
   API_BASE, cancelAgreementCycle, changeResourceStatus, downloadDriveFile, fetchAgreementPreviewBlob, fetchPropertyImageBlob,
   getAppConfiguration, getTenancyDetails, recordTenancyPayment, renewAgreementCycle,
@@ -158,6 +159,7 @@ export default function TenancyDetailsPage() {
   const tabFromUrl = searchParams.get('tab') as TabKey | null;
   const tab: TabKey = TAB_KEYS.includes(tabFromUrl as TabKey) ? tabFromUrl as TabKey : 'overview';
   const tenancy = data?.tenancy || {};
+  const priorAgreements = (data?.agreementHistory || []).filter((agreement: any) => idOf(agreement) !== idOf(data?.agreement));
   const invoices = useMemo(() => [...(data?.invoices || [])].sort((a: any, b: any) => new Date(b.dueDate || b.createdAt || 0).getTime() - new Date(a.dueDate || a.createdAt || 0).getTime()), [data?.invoices]);
   const outstanding = invoices.filter(openInvoice).reduce((total: number, invoice: any) => total + invoiceBalance(invoice), 0);
   const overdueBalance = invoices.filter((invoice: any) => openInvoice(invoice) && (String(invoice.status || '').toLowerCase() === 'overdue' || new Date(invoice.dueDate).getTime() < Date.now())).reduce((total: number, invoice: any) => total + invoiceBalance(invoice), 0);
@@ -245,8 +247,17 @@ export default function TenancyDetailsPage() {
     const agreementId = idOf(data?.agreement);
     if (!agreementId) return;
     const firstParty = canManage;
-    const accepted = await actions.askConfirmation(firstParty ? 'Renew this rent or lease cycle for its next term? The tenant will be notified of the updated end date.' : 'Request renewal from the landlord?', { title: firstParty ? 'Renew tenancy' : 'Request renewal' });
-    if (accepted) await actionCall(() => renewAgreementCycle(agreementId), firstParty ? 'Tenancy renewed.' : 'Renewal request sent.');
+    if (firstParty) {
+      const applicationId = idOf(tenancy.application);
+      if (!applicationId) {
+        setError('This tenancy has no linked application to start a new renewal agreement.');
+        return;
+      }
+      navigate(`/app/application_details/${encodeURIComponent(applicationId)}?renew=1`);
+      return;
+    }
+    const accepted = await actions.askConfirmation('Request a new renewal agreement from the landlord?', { title: 'Request renewal' });
+    if (accepted) await actionCall(() => renewAgreementCycle(agreementId), 'Renewal request sent.');
   }
 
   async function endTenancy() {
@@ -272,8 +283,8 @@ export default function TenancyDetailsPage() {
     await actionCall(work, roomTenancy && !isFinalStep ? 'Move-out process started.' : 'Tenancy ended.');
   }
 
-  async function openAgreement(download = false) {
-    const agreementId = idOf(data?.agreement);
+  async function openAgreement(download = false, agreement: any = data?.agreement) {
+    const agreementId = idOf(agreement);
     if (!agreementId) return;
     setBusy(true); setError('');
     const previewWindow = download ? null : window.open('', '_blank');
@@ -281,7 +292,7 @@ export default function TenancyDetailsPage() {
       const blob = await fetchAgreementPreviewBlob(agreementId);
       const url = URL.createObjectURL(blob);
       if (download) {
-        const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${String(data?.agreement?.renderedTitle || 'tenancy-agreement').replace(/[^a-z0-9_-]+/gi, '-')}.pdf`; anchor.click();
+        const anchor = document.createElement('a'); anchor.href = url; anchor.download = `${String(agreement?.renderedTitle || 'tenancy-agreement').replace(/[^a-z0-9_-]+/gi, '-')}.pdf`; anchor.click();
         window.setTimeout(() => URL.revokeObjectURL(url), 1500);
       } else {
         if (previewWindow) previewWindow.location.href = url;
@@ -299,6 +310,10 @@ export default function TenancyDetailsPage() {
     (tenancy.notices || []).forEach((entry: any, index: number) => events.push({ at: entry.servedAt, title: entry.title || 'Tenancy notice sent', detail: entry.effectiveAt ? `Effective ${dateText(entry.effectiveAt)}` : entry.message, key: `notice-${index}` }));
     (data?.agreement?.renewalHistory || []).forEach((entry: any, index: number) => events.push({ at: entry.approvedAt || entry.requestedAt, title: 'Tenancy renewed', detail: entry.cycleEndsAt ? `New end date ${dateText(entry.cycleEndsAt)}` : '', key: `renewal-${index}` }));
     if (data?.agreement?.signedAt || data?.agreement?.secondPartySignedAt || data?.agreement?.firstPartyApprovalAt) events.push({ at: data.agreement.firstPartyApprovalAt || data.agreement.signedAt || data.agreement.secondPartySignedAt, title: 'Agreement signed and approved', detail: data.agreement.renderedTitle || `${nice(data.agreement.agreementType)} agreement`, key: 'agreement-signed' });
+    (data?.agreementHistory || []).forEach((entry: any) => {
+      if (entry._id === idOf(data?.agreement)) return;
+      events.push({ at: entry.firstPartyApprovalAt || entry.signedAt || entry.createdAt, title: entry.renewalOf ? 'Renewal agreement completed' : 'Prior agreement retained', detail: `${entry.renderedTitle || `${nice(entry.agreementType)} agreement`} · ${Number(entry.durationMonths || entry.cycleTermMonths || 0) || 'Term'} month(s) · ${dateText(entry.startDate || entry.cycleStartedAt)} – ${dateText(entry.endDate || entry.cycleEndsAt)}`, key: `agreement-history-${idOf(entry)}` });
+    });
     invoices.forEach((invoice: any) => {
       if (invoice.lastReminderAt) events.push({ at: invoice.lastReminderAt, title: 'Rent reminder sent', detail: invoice.invoiceNumber, key: `reminder-${idOf(invoice)}` });
       (invoice.payments || []).forEach((entry: any, index: number) => {
@@ -366,13 +381,13 @@ export default function TenancyDetailsPage() {
         {!landlordSide && canViewContacts && <Box sx={{ mt: 1.5, p: 1.2, borderRadius: 2, bgcolor: 'rgba(11,82,112,.04)', border: '1px solid', borderColor: 'divider' }}><Typography sx={{ fontSize: 11.5, fontWeight: 850 }}>Contact {contactLabel.toLowerCase()}</Typography><Typography sx={{ mt: .25, fontWeight: 760, fontSize: 12 }}>{contactPerson.name || 'Property contact'}</Typography><Stack direction="row" gap={.6} sx={{ mt: .65 }}>{contactPerson.phone && <Button component="a" href={`tel:${contactPerson.phone}`} size="small" startIcon={<CallRounded />}>Call</Button>}{contactPerson.email && <Button component="a" href={`mailto:${contactPerson.email}`} size="small" startIcon={<EmailRounded />}>Email</Button>}</Stack></Box>}
         {(tenancy.occupants || []).length > 0 && <Box sx={{ mt: 2 }}><Typography sx={{ fontSize: 11.5, fontWeight: 800, mb: .6 }}>Additional occupants</Typography>{tenancy.occupants.map((occupant: any) => <Chip key={idOf(occupant)} size="small" variant="outlined" label={`${occupant.fullName || occupant.name || 'Occupant'}${occupant.relationship ? ` · ${nice(occupant.relationship)}` : ''}`} sx={{ mr: .5, mb: .5 }} />)}</Box>}
       </SectionCard></Grid>
-      <Grid size={{ xs: 12, lg: 7 }}><SectionCard title="Tenancy terms" subtitle="Key dates and billing schedule" icon={EventAvailableRounded}><Grid container spacing={1.2}><Grid size={{ xs: 6, md: 3 }}><Typography variant="caption" color="text.secondary">Start date</Typography><Typography sx={{ mt: .25, fontWeight: 820, fontSize: 12.5 }}>{dateText(tenancy.startDate)}</Typography></Grid><Grid size={{ xs: 6, md: 3 }}><Typography variant="caption" color="text.secondary">End date</Typography><Typography sx={{ mt: .25, fontWeight: 820, fontSize: 12.5 }}>{dateText(tenancy.endDate)}</Typography></Grid><Grid size={{ xs: 6, md: 3 }}><Typography variant="caption" color="text.secondary">Rent due day</Typography><Typography sx={{ mt: .25, fontWeight: 820, fontSize: 12.5 }}>Day {tenancy.dueDay || '—'} · {tenancy.dueTime || '—'}</Typography></Grid><Grid size={{ xs: 6, md: 3 }}><Typography variant="caption" color="text.secondary">Next due</Typography><Typography sx={{ mt: .25, fontWeight: 820, fontSize: 12.5 }}>{dateText(dueDate)}</Typography><Typography color="text.secondary" sx={{ fontSize: 10.5 }}>{dueLabel}</Typography></Grid></Grid></SectionCard></Grid>
+      <Grid size={{ xs: 12, lg: 7 }}><SectionCard title="Tenancy terms" subtitle="Agreement duration, dates and monthly billing schedule" icon={EventAvailableRounded}><Grid container spacing={1.2}><Grid size={{ xs: 6, md: 3 }}><Typography variant="caption" color="text.secondary">Start date</Typography><Typography sx={{ mt: .25, fontWeight: 820, fontSize: 12.5 }}>{dateText(tenancy.startDate)}</Typography></Grid><Grid size={{ xs: 6, md: 3 }}><Typography variant="caption" color="text.secondary">End date</Typography><Typography sx={{ mt: .25, fontWeight: 820, fontSize: 12.5 }}>{dateText(tenancy.endDate)}</Typography></Grid><Grid size={{ xs: 6, md: 3 }}><Typography variant="caption" color="text.secondary">Agreement duration</Typography><Typography sx={{ mt: .25, fontWeight: 820, fontSize: 12.5 }}>{Number(tenancy.durationMonths || data.agreement?.durationMonths || data.agreement?.cycleTermMonths || 0) ? `${tenancy.durationMonths || data.agreement?.durationMonths || data.agreement?.cycleTermMonths} months` : data.agreement?.agreementType === 'lease' ? '12 months' : '—'}</Typography></Grid><Grid size={{ xs: 6, md: 3 }}><Typography variant="caption" color="text.secondary">Rent due day</Typography><Typography sx={{ mt: .25, fontWeight: 820, fontSize: 12.5 }}>Day {tenancy.dueDay || '—'} · {tenancy.dueTime || '—'}</Typography></Grid><Grid size={{ xs: 6, md: 3 }}><Typography variant="caption" color="text.secondary">Next due</Typography><Typography sx={{ mt: .25, fontWeight: 820, fontSize: 12.5 }}>{dateText(dueDate)}</Typography><Typography color="text.secondary" sx={{ fontSize: 10.5 }}>{dueLabel}</Typography></Grid></Grid><Typography color="text.secondary" sx={{ mt: 1, fontSize: 10.8 }}>Rent invoices and due dates continue monthly for the full agreement term.</Typography></SectionCard></Grid>
       <Grid size={{ xs: 12, lg: 5 }}><SectionCard title="Quick actions" subtitle="Actions shown for your tenancy permissions" icon={CheckCircleRounded}>
         <Stack direction="row" flexWrap="wrap" gap={.8}>
           {canManage && openInvoices.length > 0 && <Button disabled={busy} size="small" variant="contained" startIcon={<SendRounded />} onClick={() => void sendReminder(openInvoices[0])}>Send rent reminder</Button>}
           {openInvoices.length > 0 && (canManage || data?.permissions?.participant === 'tenant') && <Button disabled={busy} size="small" variant={canManage ? 'outlined' : 'contained'} startIcon={<PaymentsRounded />} onClick={() => startPayment(openInvoices[0])}>Record payment</Button>}
           {data?.agreement && <Button disabled={busy} size="small" variant="outlined" startIcon={<DescriptionRounded />} onClick={() => void openAgreement()}>View agreement</Button>}
-          {canRenew && <Button disabled={busy} size="small" variant="outlined" startIcon={<ReplayRounded />} onClick={() => void renew()}>{data.permissions?.participant === 'landlord' ? 'Renew tenancy' : 'Request renewal'}</Button>}
+          {canRenew && <Button disabled={busy} size="small" variant="outlined" startIcon={<ReplayRounded />} onClick={() => void renew()}>{canManage ? 'Prepare renewal agreement' : 'Request renewal'}</Button>}
           {canEnd && ['active', 'notice_period', 'deposit_settlement'].includes(rawStatus) && <Button disabled={busy} size="small" variant="outlined" color="error" onClick={() => void endTenancy()}>{rawStatus === 'notice_period' ? 'Start move-out' : rawStatus === 'deposit_settlement' ? 'Close tenancy' : 'End tenancy'}</Button>}
           {!openInvoices.length && ended && <Chip size="small" variant="outlined" label="Tenancy completed" />}
         </Stack>
@@ -408,8 +423,25 @@ export default function TenancyDetailsPage() {
     </Stack>}
 
     {tab === 'documents' && <Grid container spacing={1.5}>
-      <Grid size={{ xs: 12, lg: 7 }}><SectionCard title="Agreement" subtitle="Signature and agreement status" icon={DescriptionRounded} action={data.agreement && <Button size="small" startIcon={<DownloadRounded />} onClick={() => void openAgreement(true)}>Download</Button>}>
-        {data.agreement || tenancy.lease ? <><Stack spacing={0}><InfoLine label="Agreement" value={data.agreement?.renderedTitle || data.agreement?.agreementType && `${nice(data.agreement.agreementType)} agreement` || tenancy.lease?.leaseNumber || 'Tenancy agreement'} /><InfoLine label="Status" value={nice(data.agreement?.status || tenancy.lease?.status)} /><InfoLine label="Agreement dates" value={`${dateText(data.agreement?.cycleStartedAt || tenancy.lease?.startDate || tenancy.startDate)} – ${dateText(data.agreement?.cycleEndsAt || tenancy.lease?.endDate || tenancy.endDate)}`} /><InfoLine label="Signed on" value={dateText(data.agreement?.signedAt || data.agreement?.secondPartySignedAt || tenancy.lease?.legalAgreement?.signedAt)} /><InfoLine label="Approved by landlord" value={data.agreement?.firstPartyApprovalAt ? dateText(data.agreement.firstPartyApprovalAt) : tenancy.lease?.legalAgreement?.status === 'signed' ? 'Signed' : data.agreement ? 'Awaiting approval' : '—'} /></Stack><Grid container spacing={1} sx={{ mt: 1.5 }}><Grid size={{ xs: 6 }}><Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2 }}><Typography variant="caption" color="text.secondary">Landlord signature</Typography><Typography sx={{ mt: .25, fontWeight: 800, fontSize: 12 }}>{data.agreement?.firstPartySignedAt || data.agreement?.firstPartyMark?.file || tenancy.lease?.signature?.managerSignedAt ? 'Signed' : 'Pending'}</Typography></Paper></Grid><Grid size={{ xs: 6 }}><Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2 }}><Typography variant="caption" color="text.secondary">Tenant signature</Typography><Typography sx={{ mt: .25, fontWeight: 800, fontSize: 12 }}>{data.agreement?.secondPartySignedAt || data.agreement?.secondPartySignature?.file || tenancy.lease?.signature?.tenantSignedAt ? 'Signed' : 'Pending'}</Typography></Paper></Grid></Grid><Stack direction="row" gap={.8} sx={{ mt: 1.5 }}>{data.agreement && <><Button size="small" variant="contained" startIcon={<DescriptionRounded />} onClick={() => void openAgreement()}>View agreement</Button><Button size="small" variant="outlined" startIcon={<DownloadRounded />} onClick={() => void openAgreement(true)}>Download PDF</Button></>}{tenancy.lease?.legalAgreement?.document && <Button size="small" variant="outlined" startIcon={<DownloadRounded />} onClick={() => void downloadFile(tenancy.lease.legalAgreement.document, `${tenancy.lease.leaseNumber || 'lease'}-agreement`)}>Lease file</Button>}</Stack></> : <Alert severity="info">No agreement has been linked to this tenancy.</Alert>}
+      <Grid size={{ xs: 12, lg: 7 }}><SectionCard title="Agreement" subtitle="Signature, term and agreement status" icon={DescriptionRounded} action={data.agreement && <Button size="small" startIcon={<DownloadRounded />} onClick={() => void openAgreement(true)}>Download</Button>}>
+        {data.agreement || tenancy.lease ? <>
+          <Stack spacing={0}>
+            <InfoLine label="Agreement" value={data.agreement?.renderedTitle || (data.agreement?.agreementType && `${nice(data.agreement.agreementType)} agreement`) || tenancy.lease?.leaseNumber || 'Tenancy agreement'} />
+            <InfoLine label="Status" value={nice(data.agreement?.status || tenancy.lease?.status)} />
+            <InfoLine label="Duration" value={Number(data.agreement?.durationMonths || data.agreement?.cycleTermMonths || tenancy.durationMonths || 0) ? `${data.agreement?.durationMonths || data.agreement?.cycleTermMonths || tenancy.durationMonths} months` : data.agreement?.agreementType === 'lease' ? '12 months' : '—'} />
+            <InfoLine label="Agreement dates" value={`${dateText(data.agreement?.startDate || data.agreement?.cycleStartedAt || tenancy.lease?.startDate || tenancy.startDate)} – ${dateText(data.agreement?.endDate || data.agreement?.cycleEndsAt || tenancy.lease?.endDate || tenancy.endDate)}`} />
+            <InfoLine label="Signed on" value={dateText(data.agreement?.signedAt || data.agreement?.secondPartySignedAt || tenancy.lease?.legalAgreement?.signedAt)} />
+            <InfoLine label="Approved by landlord" value={data.agreement?.firstPartyApprovalAt ? dateText(data.agreement.firstPartyApprovalAt) : tenancy.lease?.legalAgreement?.status === 'signed' ? 'Signed' : data.agreement ? 'Awaiting approval' : '—'} />
+          </Stack>
+          <Grid container spacing={1} sx={{ mt: 1.5 }}>
+            <Grid size={{ xs: 6 }}><Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2 }}><Typography variant="caption" color="text.secondary">Landlord signature</Typography><Typography sx={{ mt: .25, fontWeight: 800, fontSize: 12 }}>{data.agreement?.firstPartySignedAt || data.agreement?.firstPartyMark?.file || tenancy.lease?.signature?.managerSignedAt ? 'Signed' : 'Pending'}</Typography></Paper></Grid>
+            <Grid size={{ xs: 6 }}><Paper variant="outlined" sx={{ p: 1.2, borderRadius: 2 }}><Typography variant="caption" color="text.secondary">Tenant signature</Typography><Typography sx={{ mt: .25, fontWeight: 800, fontSize: 12 }}>{data.agreement?.secondPartySignedAt || data.agreement?.secondPartySignature?.file || tenancy.lease?.signature?.tenantSignedAt ? 'Signed' : 'Pending'}</Typography></Paper></Grid>
+          </Grid>
+          <Stack direction="row" gap={.8} sx={{ mt: 1.5 }}>
+            {data.agreement && <><Button size="small" variant="contained" startIcon={<DescriptionRounded />} onClick={() => void openAgreement()}>View agreement</Button><Button size="small" variant="outlined" startIcon={<DownloadRounded />} onClick={() => void openAgreement(true)}>Download PDF</Button></>}
+            {tenancy.lease?.legalAgreement?.document && <Button size="small" variant="outlined" startIcon={<DownloadRounded />} onClick={() => void downloadFile(tenancy.lease.legalAgreement.document, `${tenancy.lease.leaseNumber || 'lease'}-agreement`)}>Lease file</Button>}
+          </Stack>
+        </> : <Alert severity="info">No agreement has been linked to this tenancy.</Alert>}
       </SectionCard></Grid>
       <Grid size={{ xs: 12, lg: 5 }}><SectionCard title="Tenancy documents" subtitle="Receipts and files attached to rent cycles" icon={ShieldRounded}>
         <Stack spacing={.8}>
@@ -417,13 +449,21 @@ export default function TenancyDetailsPage() {
           {!linkedDocuments.length && <Alert severity="info">Related receipts and tenancy files will appear here once attached.</Alert>}
         </Stack>
       </SectionCard></Grid>
+      {priorAgreements.length > 0 && <Grid size={{ xs: 12 }}><SectionCard title="Agreement history" subtitle="Renewals create a new agreement and keep every signed copy available" icon={HistoryRounded}>
+        <Stack spacing={.8}>{priorAgreements.map((entry: any) => <Paper key={idOf(entry)} variant="outlined" sx={{ p: 1.15, borderRadius: 2.1 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={1}>
+            <Box sx={{ minWidth: 0 }}><Typography sx={{ fontWeight: 850, fontSize: 12.5 }}>{entry.renderedTitle || `${nice(entry.agreementType)} agreement`}{entry.renewalOf ? ' · Renewal' : ''}</Typography><Typography color="text.secondary" sx={{ fontSize: 10.8 }}>{Number(entry.durationMonths || entry.cycleTermMonths || 0) ? `${entry.durationMonths || entry.cycleTermMonths} months · ` : ''}{dateText(entry.startDate || entry.cycleStartedAt)} – {dateText(entry.endDate || entry.cycleEndsAt)} · {nice(entry.status)}</Typography></Box>
+            <Stack direction="row" gap={.5}><Button size="small" startIcon={<DescriptionRounded />} onClick={() => void openAgreement(false, entry)}>View</Button><Button size="small" startIcon={<DownloadRounded />} onClick={() => void openAgreement(true, entry)}>Download</Button></Stack>
+          </Stack>
+        </Paper>)}</Stack>
+      </SectionCard></Grid>}
     </Grid>}
 
     {tab === 'activity' && <SectionCard title="Activity history" subtitle="Agreement, payment, reminders and tenancy status events" icon={HistoryRounded}>
       {activity.length ? <Stack spacing={0} sx={{ ml: .35 }}>{activity.map((event, index) => <Stack key={event.key} direction="row" spacing={1.3} sx={{ minHeight: 70 }}><Stack alignItems="center" sx={{ width: 16, flex: '0 0 auto' }}><Box sx={{ width: 11, height: 11, mt: .35, borderRadius: '50%', bgcolor: index === 0 ? 'primary.main' : 'rgba(11,82,112,.28)', boxShadow: index === 0 ? '0 0 0 4px rgba(11,82,112,.10)' : 'none' }} />{index < activity.length - 1 && <Box sx={{ flex: 1, width: 1, bgcolor: 'divider', minHeight: 45 }} />}</Stack><Box sx={{ pb: 1.8 }}><Typography sx={{ fontSize: 12.5, fontWeight: 850 }}>{event.title}</Typography><Typography color="text.secondary" sx={{ fontSize: 11.2, mt: .15 }}>{event.detail}</Typography><Typography color="text.secondary" sx={{ fontSize: 10.5, mt: .4 }}>{dateText(event.at, true)}</Typography></Box></Stack>)}</Stack> : <Alert severity="info">No activity has been recorded yet.</Alert>}
     </SectionCard>}
 
-    <Dialog open={Boolean(paymentInvoice)} onClose={() => !busy && setPaymentInvoice(null)} fullWidth maxWidth="sm">
+    <ProfessionalDialog open={Boolean(paymentInvoice)} onClose={() => !busy && setPaymentInvoice(null)} fullWidth maxWidth="sm" professionalTitle={data.permissions?.participant === 'tenant' ? 'Submit rent payment' : 'Record received payment'} professionalSubtitle="Update this monthly rent cycle" enableMinimize={false}>
       <form onSubmit={submitPayment}><DialogTitle sx={{ fontWeight: 900 }}>{data.permissions?.participant === 'tenant' ? 'Submit rent payment' : 'Record received payment'}</DialogTitle><DialogContent>
         <Alert severity={data.permissions?.participant === 'tenant' ? 'info' : 'success'} sx={{ mb: 1.5, mt: .2, borderRadius: 2 }}>Invoice {paymentInvoice?.invoiceNumber || '—'} · Outstanding balance {money(invoiceBalance(paymentInvoice))}{data.permissions?.participant === 'tenant' ? '. Your landlord will review the payment.' : '. Record a payment already received outside SecureAsset.'}</Alert>
         <Stack spacing={1.3}>
@@ -435,6 +475,6 @@ export default function TenancyDetailsPage() {
           <TextField label="Notes" multiline minRows={2} value={paymentForm.notes} onChange={(event) => setPaymentForm((current) => ({ ...current, notes: event.target.value }))} />
         </Stack>
       </DialogContent><DialogActions sx={{ px: 3, pb: 2 }}><Button onClick={() => setPaymentInvoice(null)} disabled={busy}>Cancel</Button><Button type="submit" variant="contained" disabled={busy} startIcon={busy ? <CircularProgress size={15} /> : <PaymentsRounded />}>{data.permissions?.participant === 'tenant' ? 'Submit payment' : 'Record payment'}</Button></DialogActions></form>
-    </Dialog>
+    </ProfessionalDialog>
   </Box>;
 }

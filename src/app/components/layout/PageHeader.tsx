@@ -12,10 +12,11 @@ type PageHeaderProps = {
 
 /** Shared, low-noise page heading for authenticated workspace routes. */
 export default function PageHeader({ title, description, eyebrow = 'Workspace', actions, meta, variant = 'navigation' }: PageHeaderProps) {
-  const titleColor = variant === 'plain' ? 'var(--sa-text-primary)' : '#102A43';
+  const plain = variant === 'plain';
+  const titleColor = plain ? 'var(--sa-text-primary)' : 'var(--sa-navigation)';
 
   return (
-    <Box className="sa-page-header" sx={{ p: 0, mb: { xs: 2.25, md: 3 }, minHeight: 0, display: 'flex', alignItems: 'center', border: 0, borderRadius: 0, boxShadow: 'none', bgcolor: 'transparent', color: 'text.primary' }}>
+    <Box className="sa-page-header" sx={{ p: 0, mb: { xs: 2.25, md: 3 }, minHeight: 0, display: 'flex', alignItems: 'center', border: 0, borderRadius: 0, boxShadow: 'none', background: plain ? 'background.paper' : 'transparent', color: 'text.primary', '& .sa-light-button.MuiButton-contained': { color: 'var(--sa-navigation)', bgcolor: '#fff', border: '1px solid rgba(11,82,112,.18)', '&:hover': { bgcolor: '#F4FAFC' } } }}>
       <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} justifyContent="space-between" gap={{ xs: 1.6, md: 3 }} sx={{ width: '100%' }}>
         <Box sx={{ minWidth: 0 }}>
           {eyebrow && <Typography className="sa-page-kicker" sx={{ mb: .7 }}>{eyebrow}</Typography>}

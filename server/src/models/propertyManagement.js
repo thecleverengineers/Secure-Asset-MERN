@@ -311,7 +311,7 @@ const TenancySchema = new Schema({
   tenancyNumber: { type: String, unique: true, sparse: true, trim: true, uppercase: true },
   tenant: { ...objectId('User', true), index: true }, landlord: { ...objectId('User', true), index: true }, property: { ...objectId('Property', true), index: true }, space: objectId('PropertySpace'), rentalUnit: objectId('RentalUnit'), application: objectId('Application'), agreement: objectId('AgreementRequest'), lease: objectId('Lease'),
   status: { type: String, enum: ['reserved', 'application_pending', 'deposit_pending', 'agreement_pending', 'payment_pending', 'active', 'notice', 'notice_period', 'vacating', 'move_out', 'move_out_inspection', 'final_calculation', 'landlord_review', 'final_payment', 'deposit_settlement', 'closed', 'completed', 'cancelled'], default: 'reserved', index: true },
-  startDate: Date, endDate: Date, monthlyRent: Number, securityDeposit: Number,
+  startDate: Date, endDate: Date, durationMonths: { type: Number, min: 1 }, agreementHistory: [{ type: Schema.Types.ObjectId, ref: 'AgreementRequest' }], monthlyRent: Number, securityDeposit: Number,
   maintenanceCharge: { type: Number, min: 0, default: 0 }, bookingAmount: { type: Number, min: 0, default: 0 },
   pricingSnapshot: { type: Schema.Types.Mixed, default: {} },
   dueDay: { type: Number, min: 1, max: 31, default: 1 },

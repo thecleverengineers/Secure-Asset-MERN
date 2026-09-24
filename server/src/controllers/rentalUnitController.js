@@ -544,7 +544,7 @@ async function tenancyInViewerScope(tenancyId, user) {
 
 export const getTenancyDetails = asyncHandler(async (req, res) => {
   const tenancy = await tenancyInViewerScope(req.params.tenancyId, req.user);
-  const [invoices, rentCycles, agreement] = await Promise.all([
+  const [invoices, rentCycles, agreement, agreementHistory] = await Promise.all([
     RentalInvoice.find({ tenancy: tenancy._id }).sort({ billingMonth: -1, createdAt: -1 })
       .populate('receiptFile')
       .populate('legalAgreement')
@@ -552,6 +552,9 @@ export const getTenancyDetails = asyncHandler(async (req, res) => {
       .lean(),
     RentCycle.find({ tenancy: tenancy._id }).sort({ cycleMonth: -1 }).populate('invoice').lean(),
     tenancy.agreement ? Promise.resolve(tenancy.agreement) : AgreementRequest.findOne({ tenancy: tenancy._id }).sort({ createdAt: -1 }).populate([{ path: 'firstPartyMark.file' }, { path: 'secondPartySignature.file' }]).lean(),
+    AgreementRequest.find({ $or: [{ tenancy: tenancy._id }, ...(tenancy.agreementHistory || []).map((id) => ({ _id: id }))] })
+       .populate([{ path: 'firstPartyMark.file' }, { path: 'secondPartySignature.file' }])
+       .sort({ createdAt: 1 }).lean(),
   ]);
   const viewerIsTenant = String(tenancy.tenant?._id || tenancy.tenant) === String(req.user._id);
   const viewerIsLandlord = String(tenancy.landlord?._id || tenancy.landlord) === String(req.user._id);
@@ -564,6 +567,7 @@ export const getTenancyDetails = asyncHandler(async (req, res) => {
       invoices,
       rentCycles,
       agreement,
+       agreementHistory,
       permissions: {
         participant,
         canViewContacts: participant !== 'viewer',

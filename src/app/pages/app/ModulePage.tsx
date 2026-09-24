@@ -162,6 +162,7 @@ export default function ModulePage() {
   if (module === 'notifications') return renderLazy(<NotificationCenterPage />);
   if (module === 'security') return renderLazy(<SecurityPage />);
   if (module === 'wishlist' || module === 'saved-properties') return renderLazy(<WishlistPage />);
-  if (configuredModule || configurationQuery.isPending) return renderLazy(<ResourcePage />);
+  if (configuredModule) return renderLazy(<ResourcePage />);
+  if (configurationQuery.isPending) return renderLazy(<ResourcePage />);
   return renderLazy(<UtilityPage />);
 }

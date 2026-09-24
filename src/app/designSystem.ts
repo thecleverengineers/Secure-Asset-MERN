@@ -146,7 +146,7 @@ export const DEFAULT_DESIGN_SYSTEM: DesignSystem = {
   },
   typography: { fontFamily: OPEN_SANS_FONT_NAME, baseSize: 16, headingWeight: 400, lineHeight: 1.5 },
   layout: { density: 'comfortable', contentMaxWidth: 1360, appBarHeight: 72, sidebarWidth: 292, collapsedSidebarWidth: 82, pagePadding: 32, mobilePagePadding: 16 },
-  borders: { width: 1, style: 'solid', cardRadius: 1, buttonRadius: 1, inputRadius: 1, navigationRadius: 12, modalRadius: 1, modalBorderWidth: 1 },
+  borders: { width: 1, style: 'solid', cardRadius: 1, buttonRadius: 1, inputRadius: 1, navigationRadius: 12, modalRadius: 0, modalBorderWidth: 1 },
   shadows: { card: 'subtle', modal: 'floating', navigation: 'soft', button: 'subtle' },
   icons: { size: 20, navSize: 18, color: '#0B5270', rounded: true },
   effects: { enableHoverLift: true, enableGlassNavigation: true, cardPadding: 24, buttonHeight: 40 },

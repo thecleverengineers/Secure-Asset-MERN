@@ -523,7 +523,7 @@ export async function getAgreementRequests(params: { application?: string; statu
   Object.entries(params).forEach(([key, value]) => value && query.set(key, value));
   return request<ApiResponse<Record<string, any>[]>>(`/agreements/requests${query.size ? `?${query}` : ''}`);
 }
-export async function prepareAgreementRequest(body: { application: string; template: string }) {
+export async function prepareAgreementRequest(body: { application: string; template: string; durationMonths?: number; startDate?: string; renewalOf?: string }) {
   return request<ApiResponse<Record<string, any>>>('/agreements/requests', { method: 'POST', body: JSON.stringify(body) });
 }
 export async function uploadFirstPartyAgreementMark(id: string, file: File, markType: 'signature' | 'stamp_seal') {
@@ -893,6 +893,18 @@ export async function createRentalApplication(body: Record<string, any>) {
 }
 export async function decideRentalApplication(id: string, body: Record<string, any>) {
   return request<ApiResponse<Record<string, any>>>(`/property-management/applications/${id}/decision`, { method: 'POST', body: JSON.stringify(body) });
+}
+export async function getApplicationDetails(id: string) {
+  return request<ApiResponse<Record<string, any>>>(`/property-management/applications/${encodeURIComponent(id)}/details`, { cache: 'no-store' });
+}
+export async function updateApplicationPrivateNotes(id: string, notes: string) {
+  return request<ApiResponse<Record<string, any>>>(`/property-management/applications/${encodeURIComponent(id)}/private-notes`, { method: 'PATCH', body: JSON.stringify({ notes }) });
+}
+export async function reviewApplicationDocument(id: string, documentId: string, body: { status: string; note?: string }) {
+  return request<ApiResponse<Record<string, any>>>(`/property-management/applications/${encodeURIComponent(id)}/documents/${encodeURIComponent(documentId)}/review`, { method: 'PATCH', body: JSON.stringify(body) });
+}
+export async function fetchApplicationDocumentBlob(id: string, documentId: string, download = false) {
+  return fetchAuthenticatedBlob(`/property-management/applications/${encodeURIComponent(id)}/documents/${encodeURIComponent(documentId)}/content?download=${download}`, 'Could not open the application document');
 }
 export async function createTenancyFromApplication(id: string, body: Record<string, any>) {
   return request<ApiResponse<Record<string, any>>>(`/property-management/applications/${id}/create-tenancy`, { method: 'POST', body: JSON.stringify(body) });

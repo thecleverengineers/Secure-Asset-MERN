@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
-  Alert, Box, Button, Chip, CircularProgress, Divider, MenuItem, Paper, Select, Stack, Typography,
+  Alert, Box, Button, Chip, CircularProgress, Divider, MenuItem, Paper, Select, Stack, TextField, Typography,
 } from '@mui/material';
 import ChatRounded from '@mui/icons-material/ChatRounded';
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
@@ -24,6 +24,7 @@ import {
 } from '../../services/api';
 import type { AgreementType } from '../../services/api';
 import { makeSignatureBackgroundTransparent } from '../../utils/signatureImage';
+import { agreementDateLabel, calendarMonthEndDate } from '../../utils/agreementDates';
 import { useActionDialog } from '../shared/useActionDialog';
 
 type Props = {
@@ -76,6 +77,14 @@ function dateText(value?: string | Date | null) {
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-IN', { dateStyle: 'medium' });
 }
 
+function dateInput(value?: string | Date | null) {
+  if (value) {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime())) return date.toISOString().slice(0, 10);
+  }
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function ApplicationAgreementPanel({ application, user, landlordCanManage, onDecision, onNotice, onError }: Props) {
   const actions = useActionDialog();
   const navigate = useNavigate();
@@ -89,9 +98,17 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
   const [templates, setTemplates] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [templateId, setTemplateId] = useState('');
+  const [termChoice, setTermChoice] = useState('12');
+  const [customTerm, setCustomTerm] = useState('');
+  const [agreementStartDate, setAgreementStartDate] = useState(() => dateInput(application?.moveInDate));
+  const [renewalFor, setRenewalFor] = useState<any | null>(null);
   const [firstPartyMarkType, setFirstPartyMarkType] = useState<FirstPartyMarkType>('signature');
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState('');
+
+  const durationMonths = termChoice === 'custom' ? Number(customTerm) : Number(termChoice);
+  const agreementEndDate = type === 'sale' ? '' : calendarMonthEndDate(agreementStartDate, durationMonths);
+  const validAgreementTerm = type === 'sale' || (Number.isInteger(durationMonths) && durationMonths > 0 && Boolean(agreementStartDate) && Boolean(agreementEndDate));
 
   async function reload() {
     if (!accepted || !applicationId) return;
@@ -117,6 +134,10 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
     void reload();
   }, [accepted, applicationId, firstPartySide, type]);
 
+  useEffect(() => {
+    setAgreementStartDate(dateInput(application?.moveInDate));
+  }, [applicationId, application?.moveInDate]);
+
   async function decide(status: 'approved' | 'rejected') {
     if (!onDecision) return;
     setBusy(status);
@@ -128,19 +149,30 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
     }
   }
 
-  async function prepareRequest() {
+  async function prepareRequest(renewalOf = '') {
     if (!templateId) {
       onError?.(`Create or select a ${type} agreement template first`);
       return;
     }
+    if (!validAgreementTerm) {
+      onError?.('Choose a valid positive whole-month agreement term and start date');
+      return;
+    }
+    const termReview = type === 'sale' ? '' : ` Term: ${durationMonths} month${durationMonths === 1 ? '' : 's'}, ${agreementDateLabel(agreementStartDate)} to ${agreementDateLabel(agreementEndDate)}. Rent cycles remain monthly.`;
     const confirmed = await actions.askConfirmation(
-      `Prepare this ${typeLabel(type).toLowerCase()} agreement? You must upload the first-party signature or stamp/seal before the second party can receive it.`,
-      { title: 'Prepare two-party agreement' },
+      `${renewalOf ? 'Prepare a new renewal' : 'Prepare this'} ${typeLabel(type).toLowerCase()} agreement?${termReview} You must upload the first-party signature or stamp/seal before the second party can receive it.`,
+      { title: renewalOf ? 'Prepare renewal agreement' : 'Review agreement term' },
     );
     if (!confirmed) return;
     setBusy('prepare');
     try {
-      const result = await prepareAgreementRequest({ application: applicationId, template: templateId });
+      const result = await prepareAgreementRequest({
+        application: applicationId,
+        template: templateId,
+        ...(type !== 'sale' && { durationMonths, startDate: agreementStartDate }),
+        ...(renewalOf && { renewalOf }),
+      });
+      setRenewalFor(null);
       onNotice?.(result.message || 'Agreement prepared');
       await reload();
     } catch (error) {
@@ -379,6 +411,23 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
     }
   }
 
+  function agreementTermFields() {
+    if (type === 'sale') return null;
+    return <Stack spacing={1} data-secureasset-agreement-term="required-duration-months-v1">
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+        <Select size="small" fullWidth value={termChoice} onChange={(event) => setTermChoice(event.target.value)} displayEmpty aria-label="Agreement duration in months">
+          {[1, 3, 6, 9, 12, 18, 24].map((months) => <MenuItem key={months} value={String(months)}>{months} month{months === 1 ? '' : 's'}</MenuItem>)}
+          <MenuItem value="custom">Custom</MenuItem>
+        </Select>
+        <TextField required fullWidth size="small" type="date" label="Agreement start date" value={agreementStartDate} onChange={(event) => setAgreementStartDate(event.target.value)} InputLabelProps={{ shrink: true }} />
+        {termChoice === 'custom' && <TextField required fullWidth size="small" type="number" label="Custom duration (months)" value={customTerm} onChange={(event) => setCustomTerm(event.target.value)} inputProps={{ min: 1, step: 1 }} />}
+      </Stack>
+      <Alert severity="info" sx={{ py: .15 }}>
+        {validAgreementTerm ? <><strong>{durationMonths} month{durationMonths === 1 ? '' : 's'}</strong> · {agreementDateLabel(agreementStartDate)} to {agreementDateLabel(agreementEndDate)} · Rent remains monthly.</> : 'Enter a positive whole number of months and choose the required start date.'}
+      </Alert>
+    </Stack>;
+  }
+
   const inProgress = requests.some((request) => ACTIVE_REQUEST_STATUSES.includes(requestStatus(request)));
 
   return <Stack spacing={1.7} sx={{ mt: 2 }} data-secureasset-application-agreements="application-agreements-v86">
@@ -419,6 +468,7 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
 
         {firstPartySide && !inProgress && <Stack spacing={1.1} data-secureasset-first-party-agreement-setup="first-party-upload-before-request-v85">
           <Typography sx={{ fontSize: 12, fontWeight: 800, color: 'text.secondary' }}>First-party agreement setup</Typography>
+          {agreementTermFields()}
           {loading && !templates.length ? <CircularProgress size={22} /> : templates.length ? <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <Select size="small" fullWidth value={templateId} onChange={(event) => setTemplateId(event.target.value)} displayEmpty aria-label={`${typeLabel(type)} agreement template`}>
               <MenuItem value="" disabled>Select a template</MenuItem>
@@ -437,7 +487,7 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
             const renewal = lifecycle.renewal || {};
             const cancellation = lifecycle.cancellation || {};
             const cycleEnabled = Boolean(lifecycle.enabled);
-            const cycleActive = Boolean(lifecycle.active);
+            const cycleActive = Boolean(lifecycle.active && lifecycle.current !== false);
             const awaitingFirstPartyApproval = status === 'awaiting_first_party_approval';
             const firstMarked = hasMark(request, 'firstPartyMark');
             const secondSigned = hasMark(request, 'secondPartySignature');
@@ -513,15 +563,32 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
                     </Stack>
                     {cancellation.state === 'requested' && <Alert severity="warning">The applicant tenant requested cancellation. Only the landlord-enabled first party can cancel the cycle or keep it active.</Alert>}
                     {cancellation.state === 'rejected' && <Alert severity="info">The prior cancellation request was not approved; the cycle remains active.</Alert>}
+                    {firstPartySide && <Stack spacing={.8}>
+                      {!renewalFor || idOf(renewalFor) !== requestId
+                        ? <Button size="small" variant="outlined" startIcon={<ReplayRounded />} disabled={Boolean(busy) || !templates.length} onClick={() => { setAgreementStartDate(dateInput(request.endDate || lifecycle.endsAt)); setRenewalFor(request); }}>Prepare renewal agreement</Button>
+                        : <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 2 }}>
+                          <Stack spacing={1}>
+                            <Typography sx={{ fontWeight: 850, fontSize: 12.5 }}>New agreement for this tenancy</Typography>
+                            {agreementTermFields()}
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={.8}>
+                              <Select size="small" fullWidth value={templateId} onChange={(event) => setTemplateId(event.target.value)} displayEmpty aria-label="Renewal agreement template">
+                                <MenuItem value="" disabled>Select a template</MenuItem>
+                                {templates.map((template) => <MenuItem key={idOf(template)} value={idOf(template)}>{template.name} · v{template.version || 1}</MenuItem>)}
+                              </Select>
+                              <Button size="small" variant="contained" disabled={Boolean(busy) || !templateId || !validAgreementTerm} onClick={() => void prepareRequest(requestId)}>{busy === 'prepare' ? 'Preparing…' : 'Prepare renewal'}</Button>
+                              <Button size="small" disabled={Boolean(busy)} onClick={() => setRenewalFor(null)}>Cancel</Button>
+                            </Stack>
+                          </Stack>
+                        </Paper>}
+                    </Stack>}
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={.8} flexWrap="wrap" useFlexGap>
                       <Button size="small" variant="outlined" startIcon={<DownloadRounded />} disabled={busy === `download-${requestId}`} onClick={() => void downloadAgreement(request)}>Download agreement paper</Button>
                       {firstPartySide ? <>
-                        <Button size="small" variant="contained" startIcon={<ReplayRounded />} disabled={Boolean(busy)} onClick={() => void renewCycle(request, true)}>{busy === `renew-${requestId}` ? 'Updating…' : renewal.requested ? 'Approve renewal' : 'Renew cycle'}</Button>
                         {cancellation.state === 'requested' && <Button size="small" variant="outlined" disabled={Boolean(busy)} onClick={() => void keepCycleActive(request)}>{busy === `reject-cancel-${requestId}` ? 'Updating…' : 'Keep cycle active'}</Button>}
                         <Button size="small" variant="outlined" color="error" startIcon={<CloseRounded />} disabled={Boolean(busy)} onClick={() => void cancelCycle(request)}>{busy === `cancel-${requestId}` ? 'Cancelling…' : 'Cancel cycle'}</Button>
                         <Button size="small" variant="outlined" disabled={Boolean(busy) || !lifecycle.expired} onClick={() => void closeCycle(request)}>{busy === `close-${requestId}` ? 'Closing…' : lifecycle.expired ? 'Close cycle' : 'Close after end date'}</Button>
                       </> : tenantSide ? <>
-                        <Button size="small" variant="outlined" startIcon={<ReplayRounded />} disabled={Boolean(busy) || renewal.requested} onClick={() => void renewCycle(request, false)}>{busy === `renew-${requestId}` ? 'Requesting…' : renewal.requested ? 'Renewal requested' : 'Request renewal'}</Button>
+                        <Button size="small" variant="outlined" startIcon={<ReplayRounded />} disabled={Boolean(busy) || renewal.requested} onClick={() => void renewCycle(request, false)}>{busy === `renew-${requestId}` ? 'Requesting…' : renewal.requested ? 'Renewal requested' : 'Request renewal agreement'}</Button>
                         <Button size="small" variant="outlined" color="warning" disabled={Boolean(busy) || !canTenantRequestCancellation} onClick={() => void requestCancellation(request)}>{busy === `cancel-request-${requestId}` ? 'Requesting…' : cancellation.state === 'requested' ? 'Cancellation requested' : 'Request cancellation'}</Button>
                         <Typography variant="caption" color="text.secondary" sx={{ alignSelf: { sm: 'center' } }}>Only the landlord-enabled first party can cancel or close the cycle.</Typography>
                       </> : null}

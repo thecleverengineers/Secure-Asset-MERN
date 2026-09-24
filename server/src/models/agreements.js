@@ -102,6 +102,10 @@ const AgreementRequestSchema = new Schema({
   // Rent/lease lifecycle. Sale agreements retain the completed paper but do
   // not create a tenancy or recurring rental cycle.
   tenancy: { ...objectId('Tenancy'), index: true },
+  renewalOf: { ...objectId('AgreementRequest'), index: true },
+  durationMonths: { type: Number, min: 1 },
+  startDate: Date,
+  endDate: Date,
   cycleStartedAt: Date,
   cycleEndsAt: Date,
   nextDueAt: Date,
@@ -118,7 +122,7 @@ const AgreementRequestSchema = new Schema({
     queuedAt: Date,
     lastError: { type: String, maxlength: 500, default: '' },
   },
-  cycleTermMonths: { type: Number, min: 1, max: 120 },
+  cycleTermMonths: { type: Number, min: 1 },
   renewalRequestedAt: Date,
   renewalRequestedBy: objectId('User'),
   renewalHistory: { type: [AgreementRenewalSchema], default: [] },

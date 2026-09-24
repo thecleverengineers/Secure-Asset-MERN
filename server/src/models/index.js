@@ -350,6 +350,8 @@ ApplicationSchema.add({
   moveInDate: Date, expectedStayMonths: Number, monthlyIncome: Number, rentalBudget: Number,
   vehicles: [VehicleSchema], pets: [PetSchema], references: [{ name: String, phone: String, relation: String }],
   messageToLandlord: String, interviewScore: Number, landlordNotes: String, closedReason: String,
+  documentReviews: [{ document: objectId('Document'), status: { type: String, enum: ['pending', 'approved', 'changes_requested', 'rejected'], default: 'pending' }, note: { type: String, maxlength: 1200, default: '' }, reviewedBy: objectId('User'), reviewedAt: Date }],
+  activity: [{ kind: { type: String, required: true, maxlength: 80 }, title: { type: String, required: true, maxlength: 180 }, detail: { type: String, maxlength: 1200, default: '' }, actor: objectId('User'), audience: { type: String, enum: ['all', 'landlord'], default: 'all' }, at: { type: Date, default: Date.now } }],
 });
 ApplicationSchema.index({ rentalUnit: 1, status: 1, createdAt: -1 }, { name: 'application_rental_unit_status' });
 

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { requireCapabilityPermission, requireFeaturePermission } from '../middleware/rolePermission.js';
-import { getPropertyTree, streamPropertyMedia, streamPropertyMediaForProperty, streamLegacyPropertyImage, getLandlordOverview, submitTenantKyc, reviewTenantKyc, streamTenantKycDocument, createRentalApplication, decideApplication, createTenancyFromApplication, calculateUtility, exportProperty, getPropertyVisitNavigation } from '../controllers/propertyManagementController.js';
+import { getPropertyTree, streamPropertyMedia, streamPropertyMediaForProperty, streamLegacyPropertyImage, getLandlordOverview, submitTenantKyc, reviewTenantKyc, streamTenantKycDocument, createRentalApplication, decideApplication, createTenancyFromApplication, calculateUtility, exportProperty, getPropertyVisitNavigation, getApplicationDetails, updateApplicationPrivateNotes, reviewApplicationDocument, streamApplicationDocument } from '../controllers/propertyManagementController.js';
 import {
   applyRentalUnitPricing,
   archivePropertyFloor,
@@ -59,6 +59,10 @@ router.post('/kyc/submit', requireFeaturePermission('module:tenant-kyc', 'create
 router.post('/kyc/:id/review', requireFeaturePermission('module:tenant-kyc', 'edit'), reviewTenantKyc);
 router.get('/kyc/documents/:documentId/content', requireFeaturePermission('module:tenant-kyc', 'view'), streamTenantKycDocument);
 router.post('/applications', requireFeaturePermission('module:applications', 'create'), createRentalApplication);
+router.get('/applications/:id/details', getApplicationDetails);
+router.patch('/applications/:id/private-notes', updateApplicationPrivateNotes);
+router.patch('/applications/:id/documents/:documentId/review', reviewApplicationDocument);
+router.get('/applications/:id/documents/:documentId/content', streamApplicationDocument);
 router.post('/applications/:id/decision', requireFeaturePermission('module:applications', 'approve'), decideApplication);
 router.post('/applications/:id/create-tenancy', requireFeaturePermission('module:tenancies', 'create'), createTenancyFromApplication);
 router.post('/utility/calculate', requireFeaturePermission('module:utility-readings', 'create'), calculateUtility);

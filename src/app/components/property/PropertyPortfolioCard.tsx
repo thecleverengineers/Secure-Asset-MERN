@@ -14,7 +14,7 @@ import { fetchPropertyImageBlob, fetchPropertyMediaBlob } from '../../services/a
 type PropertyPortfolioCardProps = {
   row: Record<string, any>;
   onOpen: () => void;
-  onEdit?: () => void;
+  onEdit?: (event?: MouseEvent<HTMLButtonElement>) => void;
   onManageRooms?: () => void;
   onMore: (event: MouseEvent<HTMLButtonElement>) => void;
 };
@@ -108,7 +108,7 @@ function mediaIdFromSource(source: string) {
 function PropertyCardCover({ row, title, onEdit, onMore }: {
   row: Record<string, any>;
   title: string;
-  onEdit?: () => void;
+  onEdit?: (event?: MouseEvent<HTMLButtonElement>) => void;
   onMore: (event: MouseEvent<HTMLButtonElement>) => void;
 }) {
   const candidates = useMemo(() => propertyImageCandidates(row), [row]);
@@ -168,7 +168,7 @@ function PropertyCardCover({ row, title, onEdit, onMore }: {
       {onEdit && <IconButton
         size="small"
         aria-label={`Edit ${title}`}
-        onClick={(event) => { event.stopPropagation(); onEdit(); }}
+        onClick={(event) => { event.stopPropagation(); onEdit(event); }}
         onKeyDown={(event) => event.stopPropagation()}
         sx={{ width: { xs: 25, sm: 29 }, height: { xs: 25, sm: 29 }, color: '#0B5270', bgcolor: 'rgba(255,255,255,.94)', border: '1px solid rgba(11,82,112,.16)', boxShadow: '0 2px 7px rgba(20,45,55,.18)', '&:hover': { bgcolor: '#FFFFFF' } }}
       ><EditRounded sx={{ fontSize: { xs: 14, sm: 17 } }} /></IconButton>}

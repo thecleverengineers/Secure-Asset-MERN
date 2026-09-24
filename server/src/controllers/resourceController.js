@@ -164,8 +164,19 @@ function sanitizePropertyVisitRecord(record, user) {
 }
 
 function sanitizeResourceData(resource, data, user) {
-  if (resource !== 'property-visits' || !data) return data;
-  return sanitizePropertyVisitRecord(data, user);
+  if (!data) return data;
+  if (resource === 'property-visits') return sanitizePropertyVisitRecord(data, user);
+  const applicationApplicantSide = resource === 'applications' && sameId(data.applicant, user?._id);
+  const applicationPropertySide = resource === 'applications' && (sameId(data.landlord, user?._id) || sameId(data.property?.owner, user?._id));
+  const canReviewApplication = resource === 'applications' && !applicationApplicantSide && isApplicationDecisionActor(user, data);
+  if (resource === 'applications' && !applicationPropertySide && !canReviewApplication) {
+    const safe = { ...data };
+    delete safe.landlordNotes;
+    if (Array.isArray(safe.activity)) safe.activity = safe.activity.filter((event) => event.audience !== 'landlord');
+    if (Array.isArray(safe.documentReviews)) safe.documentReviews = safe.documentReviews.map((review) => ({ ...review, note: '' }));
+    return safe;
+  }
+  return data;
 }
 
 async function sendResourceList(req, res, config, filter, { page, limit }) {
@@ -1002,6 +1013,9 @@ export const updateResource = asyncHandler(async (req, res) => {
   if (req.params.resource === 'applications' && changes.status !== undefined && !sameId(record.applicant, req.user._id) && isApplicationDecisionActor(req.user, record)) {
     assertApplicationDecisionTransition(record, changes.status, req.user, ApiError);
   }
+  if (req.params.resource === 'applications' && changes.status === 'rejected' && !String(req.body.rejectionReason || req.body.remarks || req.body.comment || '').trim()) {
+    throw new ApiError(422, 'Add a reason before rejecting this application');
+  }
   if (req.params.resource === 'properties' && changes.visibility !== undefined) changes.visibility = normalizePropertyVisibility(changes.visibility);
   if (req.params.resource === 'users' && req.user.role !== 'admin') delete changes.role;
   if (req.user.role === 'surveyor' && req.params.resource === 'surveys') changes = pick(changes, ['responses', 'gps', 'photos', 'signatureUrl', 'notes', 'offlineId', 'syncStatus']);
@@ -1281,6 +1295,10 @@ export const updateResource = asyncHandler(async (req, res) => {
   if (changes.password && req.params.resource === 'users') record.password = changes.password;
   if (req.params.resource === 'applications' && changes.status === 'approved') { changes.acceptedAt = new Date(); changes.acceptedBy = req.user._id; }
   if (req.params.resource === 'applications' && changes.status === 'rejected') { changes.rejectedAt = new Date(); changes.rejectionReason = changes.remarks || req.body.comment || req.body.remarks; }
+  if (req.params.resource === 'applications' && changes.status) {
+    record.activity ||= [];
+    record.activity.push({ kind: changes.status === 'approved' ? 'accepted' : changes.status === 'rejected' ? 'rejected' : 'status_changed', title: changes.status === 'approved' ? 'Application accepted' : changes.status === 'rejected' ? 'Application rejected' : `Application moved to ${String(changes.status).replaceAll('_', ' ')}`, detail: changes.status === 'rejected' ? changes.rejectionReason : String(req.body.comment || ''), actor: req.user._id, audience: 'all', at: new Date() });
+  }
   Object.entries({ ...changes, updatedBy: req.user._id }).forEach(([key, value]) => record.set(key, value));
   await record.save();
   if (req.params.resource === 'survey-quotations'
@@ -1411,6 +1429,7 @@ export const changeStatus = asyncHandler(async (req, res) => {
     if (!applicantSide && !decisionActor) throw new ApiError(403, 'Application decision access denied');
     if (decisionActor && !landlordActions.includes(status)) throw new ApiError(403, 'Landlords cannot set this applicant status');
     if (decisionActor) assertApplicationDecisionTransition(record, status, req.user, ApiError);
+    if (decisionActor && status === 'rejected' && !String(req.body.comment || req.body.remarks || '').trim()) throw new ApiError(422, 'Add a reason before rejecting this application');
   }
   if (req.params.resource === 'facility-bookings' && status === 'approved' && Number(record.amount || 0) + Number(record.deposit || 0) > 0 && record.paymentStatus !== 'paid') {
     throw new ApiError(409, 'Facility booking payment must be verified before approval');
@@ -1450,6 +1469,10 @@ export const changeStatus = asyncHandler(async (req, res) => {
   if (req.params.resource === 'applications' && status === 'submitted') record.submittedAt = new Date();
   if (req.params.resource === 'applications' && status === 'approved') { record.acceptedAt = new Date(); record.acceptedBy = req.user._id; }
   if (req.params.resource === 'applications' && status === 'rejected') { record.rejectedAt = new Date(); record.rejectionReason = req.body.comment || req.body.remarks; }
+  if (req.params.resource === 'applications') {
+    record.activity ||= [];
+    record.activity.push({ kind: status === 'approved' ? 'accepted' : status === 'rejected' ? 'rejected' : 'status_changed', title: status === 'approved' ? 'Application accepted' : status === 'rejected' ? 'Application rejected' : `Application moved to ${status.replaceAll('_', ' ')}`, detail: status === 'rejected' ? record.rejectionReason : String(req.body.comment || ''), actor: req.user._id, audience: 'all', at: new Date() });
+  }
   if (req.params.resource === 'payments' && status === 'paid') { record.paidAt = new Date(); record.paidAmount = record.amount; }
   if (req.params.resource === 'survey-services' && req.user.role === 'admin') {
     record.moderation = { status: status === 'published' ? 'approved' : status === 'unpublished' ? 'rejected' : record.moderation?.status, reviewedBy: req.user._id, reason: req.body.comment, reviewedAt: new Date() };

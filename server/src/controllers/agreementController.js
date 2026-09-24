@@ -16,6 +16,7 @@ import { assertStorageAvailable, changeUsage, logDriveActivity } from '../servic
 import { assertLandlordLimit } from '../services/landlordSubscription.js';
 import { ensureInitialRentalInvoice, monthlyDueAt } from '../services/rentalBilling.js';
 import { syncPropertyRentalSummary, transitionRentalUnitToPaymentPending } from '../services/rentalUnitLifecycle.js';
+import { addCalendarMonthsClamped, formatAgreementDate, parseAgreementDate } from '../utils/agreementDates.js';
 
 const AGREEMENT_TYPES = new Set(['rent', 'lease', 'sale']);
 const REQUEST_ACCESS_STATUSES = new Set([
@@ -37,7 +38,7 @@ const DEFAULT_TEMPLATES = {
     title: 'Residential Rent Agreement',
     body: `This Rent Agreement is made on {{agreement_date}} between {{landlord_name}} (First Party / Property Owner) and {{tenant_name}} (Second Party / Applicant Tenant) for {{property_title}} at {{property_address}}.
 
-The Tenant agrees to occupy {{space_name}} for a monthly rent of {{amount}} and a security deposit of {{security_deposit}}. The premises shall be used only for lawful residential purposes. The Tenant shall keep the premises in reasonable condition and pay all agreed charges on time.
+The Tenant agrees to occupy {{space_name}} for {{duration_months}} months from {{start_date}} to {{end_date}}, for a monthly rent of {{amount}} and a security deposit of {{security_deposit}}. Rent remains payable monthly on the agreed due day. The premises shall be used only for lawful residential purposes. The Tenant shall keep the premises in reasonable condition and pay all agreed charges on time.
 
 The parties agree to the terms recorded in this stamp-paper document and any lawful schedule attached to it.`,
   },
@@ -46,7 +47,7 @@ The parties agree to the terms recorded in this stamp-paper document and any law
     title: 'Property Lease Agreement',
     body: `This Lease Agreement is made on {{agreement_date}} between {{landlord_name}} (First Party / Property Owner) and {{tenant_name}} (Second Party / Applicant Tenant) for {{property_title}} at {{property_address}}.
 
-The lease consideration is {{amount}} for the agreed lease term. The Lessee may use {{space_name}} only for the approved purpose and shall comply with all property rules, maintenance obligations and payment dates.
+The lease consideration is {{amount}} for a term of {{duration_months}} months from {{start_date}} to {{end_date}}. The Lessee may use {{space_name}} only for the approved purpose and shall comply with all property rules, maintenance obligations and monthly payment dates.
 
 The parties agree to the terms recorded in this stamp-paper document and any lawful schedule attached to it.`,
   },
@@ -166,7 +167,7 @@ function drawPartyMark(document, { title, name, mark, x, y, width = 485 }) {
   document.fillColor('#94A3B8').font('Helvetica-Oblique').fontSize(9).text(`${descriptor} not yet uploaded`, x + 14, y + 75, { width: width - 28, align: 'center' });
 }
 
-async function createStampPaperPdf({ title, body, stampPaper, agreementType, landlordName, tenantName, firstPartyMark, secondPartySignature, approvalStatus, approvedAt, cycleStartedAt, cycleEndsAt }) {
+async function createStampPaperPdf({ title, body, stampPaper, agreementType, landlordName, tenantName, firstPartyMark, secondPartySignature, approvalStatus, approvedAt, durationMonths, startDate, endDate, cycleStartedAt, cycleEndsAt }) {
   const [firstMark, secondMark] = await Promise.all([readPartyMark(firstPartyMark), readPartyMark(secondPartySignature)]);
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -200,8 +201,12 @@ async function createStampPaperPdf({ title, body, stampPaper, agreementType, lan
     document.text(approvedAt
       ? `First-party verification and approval: ${new Date(approvedAt).toLocaleString('en-IN')}`
       : 'First-party verification and approval: pending');
-    if (cycleStartedAt || cycleEndsAt) {
-      document.text(`Cycle: ${cycleStartedAt ? new Date(cycleStartedAt).toLocaleDateString('en-IN') : '—'} to ${cycleEndsAt ? new Date(cycleEndsAt).toLocaleDateString('en-IN') : '—'}`);
+    const termStart = startDate || cycleStartedAt;
+    const termEnd = endDate || cycleEndsAt;
+    if (Number(durationMonths || 0) > 0) document.text(`Agreement term: ${Number(durationMonths)} month${Number(durationMonths) === 1 ? '' : 's'}`);
+    if (termStart || termEnd) {
+      document.text(`Agreement dates: ${termStart ? formatAgreementDate(termStart) : '—'} to ${termEnd ? formatAgreementDate(termEnd) : '—'}`);
+      if (['rent', 'lease'].includes(agreementType)) document.text('Rent payment cycle: monthly, regardless of the agreement term.');
     }
     document.addPage();
     document.fillColor('#111827').font('Helvetica-Bold').fontSize(16).text('SIGNATURES / STAMP SEAL', { align: 'center' });
@@ -264,22 +269,11 @@ function validDate(value) {
   return date && !Number.isNaN(date.getTime()) ? date : null;
 }
 
-function addCalendarMonths(value, months) {
-  const source = validDate(value) || new Date();
-  const result = new Date(source);
-  const originalDay = result.getDate();
-  result.setDate(1);
-  result.setMonth(result.getMonth() + Math.max(1, Number(months || 1)));
-  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
-  result.setDate(Math.min(originalDay, lastDay));
-  return result;
-}
-
 function cycleTermMonths(request) {
-  const stored = Number(request?.cycleTermMonths || 0);
-  if (Number.isInteger(stored) && stored >= 1 && stored <= 120) return stored;
+  const stored = Number(request?.durationMonths || request?.cycleTermMonths || 0);
+  if (Number.isInteger(stored) && stored >= 1) return stored;
   const requested = Number(request?.application?.expectedStayMonths || 0);
-  if (Number.isInteger(requested) && requested >= 1 && requested <= 120) return requested;
+  if (Number.isInteger(requested) && requested >= 1) return requested;
   return request?.agreementType === 'lease' ? 12 : 1;
 }
 
@@ -335,6 +329,7 @@ function agreementLifecycle(request, tenancy, now = new Date()) {
   return {
     enabled: isCycle,
     active,
+    current: tenancy?.agreement ? String(tenancy.agreement?._id || tenancy.agreement) === String(request?._id || '') : true,
     tenancyId: String(tenancy?._id || request?.tenancy?._id || request?.tenancy || ''),
     startsAt,
     endsAt,
@@ -436,11 +431,33 @@ async function startAgreementCycle(req, request) {
 
   const now = new Date();
   const termMonths = cycleTermMonths(request);
-  const startsAt = now;
-  const endsAt = addCalendarMonths(startsAt, termMonths);
+  const startsAt = validDate(request.startDate) || now;
+  const endsAt = validDate(request.endDate) || addCalendarMonthsClamped(startsAt, termMonths);
   const dueDay = cycleDueDay(application, startsAt);
   const dueTime = '09:00';
   let tenancy = await tenancyForAgreement(request);
+
+  if (request.renewalOf) {
+    if (!tenancy) throw new ApiError(409, 'The active tenancy for this renewal agreement could not be found');
+    const previousAgreementId = tenancy.agreement?._id || tenancy.agreement;
+    if (mongoose.isValidObjectId(previousAgreementId) && String(previousAgreementId) !== String(request._id)) {
+      tenancy.agreementHistory ||= [];
+      if (!tenancy.agreementHistory.some((item) => String(item?._id || item) === String(previousAgreementId))) tenancy.agreementHistory.push(previousAgreementId);
+    }
+    tenancy.agreement = request._id;
+    tenancy.startDate = startsAt;
+    tenancy.endDate = endsAt;
+    tenancy.durationMonths = termMonths;
+    tenancy.updatedBy = req.user._id;
+    await tenancy.save();
+    const renewalDueAt = nextMonthlyDueAt(now, tenancy.dueDay || dueDay, tenancy.dueTime || dueTime);
+    request.tenancy = tenancy._id;
+    request.cycleStartedAt = startsAt;
+    request.cycleEndsAt = endsAt;
+    request.nextDueAt = renewalDueAt;
+    request.cycleTermMonths = termMonths;
+    return { tenancy, startsAt, endsAt, dueAt: renewalDueAt, termMonths, initialInvoice: null };
+  }
 
   if (!tenancy) {
     if (capabilityRolesForUser(req.user).includes('landlord')) await assertLandlordLimit(req.user._id, 'activeTenants');
@@ -456,6 +473,7 @@ async function startAgreementCycle(req, request) {
       status: rentalUnit ? 'payment_pending' : 'active',
       startDate: startsAt,
       endDate: endsAt,
+      durationMonths: termMonths,
       monthlyRent: agreementAmount(property, request.agreementType, rentalUnit),
       securityDeposit: rentalUnit?.pricing?.securityDeposit ?? property.pricing?.securityDeposit,
       maintenanceCharge: rentalUnit?.pricing?.maintenanceCharge || 0,
@@ -479,6 +497,7 @@ async function startAgreementCycle(req, request) {
     tenancy.status = rentalUnit ? 'payment_pending' : 'active';
     tenancy.startDate = startsAt;
     tenancy.endDate = endsAt;
+    tenancy.durationMonths = termMonths;
     tenancy.monthlyRent = agreementAmount(property, request.agreementType, rentalUnit);
     tenancy.securityDeposit = rentalUnit?.pricing?.securityDeposit ?? property.pricing?.securityDeposit;
     tenancy.maintenanceCharge = rentalUnit?.pricing?.maintenanceCharge || 0;
@@ -666,12 +685,37 @@ export const prepareAgreementRequest = asyncHandler(async (req, res) => {
     throw new ApiError(403, 'You can only prepare agreements for your own properties');
   }
   const agreementType = normalizeType(property.purpose || property.listingType || (property.isSale ? 'sale' : 'rent'));
+  let durationMonths;
+  let startDate;
+  let endDate;
+  if (ACTIVE_CYCLE_AGREEMENT_TYPES.has(agreementType)) {
+    durationMonths = Number(req.body.durationMonths);
+    if (!Number.isInteger(durationMonths) || durationMonths < 1) throw new ApiError(422, 'Agreement duration must be a positive whole number of months');
+    startDate = parseAgreementDate(req.body.startDate);
+    if (!startDate) throw new ApiError(422, 'Choose a valid agreement start date');
+    endDate = addCalendarMonthsClamped(startDate, durationMonths);
+  }
+  const renewalOfId = String(req.body.renewalOf || '').trim();
+  let renewalSource = null;
+  let renewalTenancy = null;
+  if (renewalOfId) {
+    if (!mongoose.isValidObjectId(renewalOfId)) throw new ApiError(422, 'The agreement being renewed is invalid');
+    renewalSource = await AgreementRequest.findById(renewalOfId);
+    if (!renewalSource || renewalSource.status !== 'approved' || !ACTIVE_CYCLE_AGREEMENT_TYPES.has(renewalSource.agreementType) || !sameId(renewalSource.application, application._id) || !sameId(renewalSource.landlord, req.user._id)) {
+      throw new ApiError(409, 'Choose an active approved rent or lease agreement to renew');
+    }
+    renewalTenancy = await tenancyForAgreement(renewalSource);
+    if (!renewalTenancy || !['active', 'payment_pending'].includes(String(renewalTenancy.status || ''))) throw new ApiError(409, 'Only an active tenancy can receive a renewal agreement');
+  }
   if (!mongoose.isValidObjectId(req.body.template)) throw new ApiError(422, 'Choose an agreement template');
   const template = await AgreementTemplate.findOne({ _id: req.body.template, owner: req.user._id, active: true });
   if (!template) throw new ApiError(404, 'Agreement template not found or inactive');
   if (template.agreementType !== agreementType) throw new ApiError(422, `Choose a ${agreementType} agreement template for this property`);
 
-  const activeRequest = await AgreementRequest.findOne({
+  const activeRequest = await AgreementRequest.findOne(renewalSource ? {
+    renewalOf: renewalSource._id,
+    status: { $in: ['draft', 'first_party_signed', 'configuration_required', 'sent', 'viewed', 'awaiting_first_party_approval', 'approved'] },
+  } : {
     application: application._id,
     status: { $in: ['draft', 'first_party_signed', 'configuration_required', 'sent', 'viewed', 'awaiting_first_party_approval', 'approved'] },
   }).sort({ createdAt: -1 });
@@ -695,14 +739,19 @@ export const prepareAgreementRequest = asyncHandler(async (req, res) => {
   const amount = agreementAmount(property, agreementType, rentalUnit);
   const amountLabel = agreementType === 'sale' ? 'Sale consideration' : agreementType === 'lease' ? 'Lease amount' : 'Monthly rent';
   const renderedTitle = renderTemplate(template.title, { agreement_type: agreementType, property_title: property.title, tenant_name: tenantName, landlord_name: landlordName });
-  const renderedBody = renderTemplate(template.body, {
+  let renderedBody = renderTemplate(template.body, {
     agreement_date: new Date().toLocaleDateString('en-IN'), agreement_type: agreementType,
     landlord_name: landlordName, tenant_name: tenantName, property_title: property.title,
     property_address: addressText(property), space_name: applicationSpaceName(application),
     amount_label: amountLabel, amount: formatMoney(amount),
+    duration_months: durationMonths || '', start_date: startDate ? formatAgreementDate(startDate) : '', end_date: endDate ? formatAgreementDate(endDate) : '',
     security_deposit: formatMoney(rentalUnit?.pricing?.securityDeposit ?? property.pricing?.securityDeposit),
     stamp_state: template.stampPaper?.state, stamp_denomination: template.stampPaper?.denomination, stamp_series: template.stampPaper?.series,
   });
+  const templateHasTermFields = ['duration_months', 'start_date', 'end_date'].every((key) => new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, 'i').test(template.body));
+  if (durationMonths && !templateHasTermFields) {
+    renderedBody += `\n\nAGREEMENT TERM\nDuration: ${durationMonths} month${durationMonths === 1 ? '' : 's'}\nStart date: ${formatAgreementDate(startDate)}\nEnd date: ${formatAgreementDate(endDate)}\nRent and due dates continue on a monthly cycle throughout the agreement term.`;
+  }
   const requestValues = {
     application: application._id,
     property: property._id,
@@ -736,7 +785,12 @@ export const prepareAgreementRequest = asyncHandler(async (req, res) => {
     cycleStartedAt: undefined,
     cycleEndsAt: undefined,
     nextDueAt: undefined,
-    cycleTermMonths: undefined,
+    renewalOf: renewalSource?._id,
+    durationMonths,
+    startDate,
+    endDate,
+    cycleTermMonths: durationMonths,
+    ...(renewalTenancy ? { tenancy: renewalTenancy._id } : {}),
     renewalRequestedAt: undefined,
     renewalRequestedBy: undefined,
     renewalHistory: [],
@@ -882,6 +936,23 @@ export const approveAgreementRequest = asyncHandler(async (req, res) => {
     request.application.updatedBy = req.user._id;
     await request.application.save();
   }
+  if (request.rentalUnit) {
+    const waitingApplications = await Application.find({
+      _id: { $ne: request.application?._id || request.application },
+      rentalUnit: request.rentalUnit?._id || request.rentalUnit,
+      status: { $in: ['submitted', 'under_review', 'shortlisted', 'interview_requested', 'interview_scheduled', 'site_visit_scheduled', 'additional_documents_requested', 'documents_pending', 'approved', 'agreement_pending', 'deposit_pending'] },
+    }).select('_id applicant applicationNumber');
+    if (waitingApplications.length) {
+      await Application.updateMany({ _id: { $in: waitingApplications.map((item) => item._id) } }, { $set: { status: 'waiting_list', closedReason: 'The room became unavailable after agreement completion', updatedBy: req.user._id } });
+      await Promise.all(waitingApplications.map((item) => createNotification({
+        user: item.applicant,
+        title: 'Application moved to waiting list',
+        message: 'The room became unavailable after another tenant completed the agreement workflow.',
+        category: 'system',
+        actionUrl: `/app/application_details/${item._id}`,
+      })));
+    }
+  }
   const cycleMessage = request.rentalUnit
     ? `Agreement approved. The initial room invoice is due ${dueAt.toLocaleDateString('en-IN', { dateStyle: 'long' })}. Occupancy starts only after payment is completed and the landlord verifies and starts the rent workflow.`
     : ACTIVE_CYCLE_AGREEMENT_TYPES.has(request.agreementType)
@@ -908,62 +979,25 @@ export const renewAgreementCycle = asyncHandler(async (req, res) => {
   const firstParty = sameId(request.landlord, req.user._id) && isAgreementManager(req.user);
   const secondParty = sameId(request.tenant, req.user._id);
   if (!firstParty && !secondParty) throw new ApiError(403, 'Agreement renewal access denied');
+  if (firstParty) throw new ApiError(409, 'Prepare a new renewal agreement with its term and dates. The signed agreement remains unchanged.');
 
   const previousValue = request.toObject();
   const now = new Date();
-  if (!firstParty) {
-    if (request.renewalRequestedAt) return res.json({ success: true, data: requestPayload(request, await tenancyForAgreement(request)), message: 'Your renewal request is already waiting for the first party.' });
-    request.renewalRequestedAt = now;
-    request.renewalRequestedBy = req.user._id;
-    request.updatedBy = req.user._id;
-    await request.save();
-    await createNotification({
-      user: request.landlord?._id || request.landlord,
-      title: 'Rent / lease renewal requested',
-      message: `${request.tenantName || 'The second party'} requested renewal of the ${request.agreementType} cycle.`,
-      category: 'lease',
-      actionUrl: `/app/applications?record=${request.application?._id || request.application}`,
-      metadata: { agreementRequest: request._id, renewalRequested: true },
-    });
-    await writeAudit(req, { action: 'second-party-renewal-requested', module: 'agreement-requests', recordId: request._id, previousValue, updatedValue: request.toObject() });
-    return res.json({ success: true, data: requestPayload(request, await tenancyForAgreement(request)), message: 'Renewal requested from the landlord-enabled first party.' });
-  }
-
-  const tenancy = await tenancyForAgreement(request);
-  if (!tenancy) throw new ApiError(409, 'The active tenancy cycle could not be found');
-  const termMonths = cycleTermMonths(request);
-  const currentEnd = validDate(request.cycleEndsAt || tenancy.endDate);
-  const startsAt = currentEnd && currentEnd.getTime() > now.getTime() ? currentEnd : now;
-  const endsAt = addCalendarMonths(startsAt, termMonths);
-  tenancy.status = 'active';
-  tenancy.endDate = endsAt;
-  tenancy.updatedBy = req.user._id;
-  await tenancy.save();
-  request.cycleStartedAt ||= tenancy.startDate || now;
-  request.cycleEndsAt = endsAt;
-  request.nextDueAt = nextMonthlyDueAt(now, tenancy.dueDay || 1, tenancy.dueTime || '09:00');
-  request.renewalHistory.push({
-    requestedAt: request.renewalRequestedAt || now,
-    requestedBy: request.renewalRequestedBy || req.user._id,
-    approvedAt: now,
-    approvedBy: req.user._id,
-    cycleStartedAt: startsAt,
-    cycleEndsAt: endsAt,
-  });
-  request.renewalRequestedAt = undefined;
-  request.renewalRequestedBy = undefined;
+  if (request.renewalRequestedAt) return res.json({ success: true, data: requestPayload(request, await tenancyForAgreement(request)), message: 'Your renewal request is already waiting for the first party.' });
+  request.renewalRequestedAt = now;
+  request.renewalRequestedBy = req.user._id;
   request.updatedBy = req.user._id;
   await request.save();
   await createNotification({
-    user: request.tenant?._id || request.tenant,
-    title: 'Rent / lease renewed',
-    message: `The ${request.agreementType} cycle was renewed until ${endsAt.toLocaleDateString('en-IN', { dateStyle: 'long' })}.`,
+    user: request.landlord?._id || request.landlord,
+    title: 'Rent / lease renewal requested',
+    message: `${request.tenantName || 'The second party'} requested renewal of the ${request.agreementType} cycle.`,
     category: 'lease',
-    actionUrl: `/app/my-applications?record=${request.application?._id || request.application}`,
-    metadata: { agreementRequest: request._id, tenancy: tenancy._id, renewalEndsAt: endsAt },
+    actionUrl: `/app/application_details/${request.application?._id || request.application}`,
+    metadata: { agreementRequest: request._id, renewalRequested: true },
   });
-  await writeAudit(req, { action: 'first-party-renewed-cycle', module: 'agreement-requests', recordId: request._id, previousValue, updatedValue: request.toObject() });
-  res.json({ success: true, data: requestPayload(request, tenancy), message: `Cycle renewed until ${endsAt.toLocaleDateString('en-IN', { dateStyle: 'long' })}.` });
+  await writeAudit(req, { action: 'second-party-renewal-requested', module: 'agreement-requests', recordId: request._id, previousValue, updatedValue: request.toObject() });
+  res.json({ success: true, data: requestPayload(request, await tenancyForAgreement(request)), message: 'Renewal requested from the landlord-enabled first party.' });
 });
 
 export const requestAgreementCancellation = asyncHandler(async (req, res) => {
@@ -1154,6 +1188,9 @@ export const previewAgreementRequest = asyncHandler(async (req, res) => {
     secondPartySignature: request.secondPartySignature,
     approvalStatus: visibleRequestStatus(request),
     approvedAt: request.firstPartyApprovalAt,
+    durationMonths: request.durationMonths || request.cycleTermMonths,
+    startDate: request.startDate,
+    endDate: request.endDate,
     cycleStartedAt: request.cycleStartedAt,
     cycleEndsAt: request.cycleEndsAt,
   });

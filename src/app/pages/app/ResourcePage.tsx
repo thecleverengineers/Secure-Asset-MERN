@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 54236)
+Total output lines: 1784
+
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import {
@@ -30,7 +33,7 @@ import ZoomOutRounded from '@mui/icons-material/ZoomOutRounded';
 import ArrowOutwardRounded from '@mui/icons-material/ArrowOutwardRounded';
 import { useAuth } from '../../context/AuthContext';
 import {
-  API_BASE, acceptSurveyQuotation, approveTenantSubscription, rejectTenantSubscription, changeResourceStatus, createResource, deleteResource, downloadReport, downloadSurveyReport, finalizeSurveyReport, fetchPropertyImageBlob, fetchPropertyMediaBlob, getAppConfiguration, getMyListings, getMyTenantApplications, getResource, updateResource, uploadDocument, uploadSiteAsset, paySurveyInvoice, reviewSurveyorVerification,
+  API_BASE, acceptSurveyQuotation, approveTenantSubscription, rejectTenantSubscription, changeResourceStatus, createResource, deleteResource, downloadReport, downloadSurveyReport, finalizeSurveyReport, fetchPropertyImageBlob, fetchPropertyMediaBlob, getAppConfiguration, getMyListings, getMyTenantApplications, getResource, updateResource, uploadDocument, uploadSiteAsset, paySurveyInvoice, reviewSurveyorVerification, decideRentalApplication,
   acceptRentalPayment, rejectRentalPayment, submitRentalInvoicePayment,
 } from '../../services/api';
 import type { UserRole } from '../../services/types';
@@ -45,6 +48,7 @@ import ApplicationAgreementPanel from '../../components/application/ApplicationA
 import LocationFields from '../../components/shared/LocationFields';
 import { PropertyContextBanner, PropertyDataBlock, PropertySectionHeader } from '../../components/property/PropertyWorkspacePrimitives';
 import PropertyPortfolioCard from '../../components/property/PropertyPortfolioCard';
+import PropertyPortfolioMobileCard from '../../components/property/PropertyPortfolioMobileCard';
 
 type Field = { name: string; label: string; type?: 'text' | 'number' | 'date' | 'time' | 'datetime' | 'textarea' | 'select' | 'boolean' | 'radio' | 'array' | 'json' | 'reference' | 'password' | 'image'; options?: string[]; reference?: string; required?: boolean };
 
@@ -184,630 +188,7 @@ Object.assign(configs, {
   'property-type-configs': { singular:'Property type', createRoles:['admin'], editRoles:['admin'], deleteRoles:['admin'], columns:[{path:'label',label:'Label'},{path:'key',label:'Key'},{path:'category',label:'Category'},{path:'active',label:'Active',type:'boolean'}], fields:[{name:'key',label:'Key',required:true},{name:'label',label:'Label',required:true},{name:'category',label:'Category',type:'select',options:['residential','commercial','land','hospitality','event','other']},{name:'hierarchyMode',label:'Hierarchy mode',type:'select',options:['simple','building','apartment_building','pg_hostel','commercial','land']},{name:'fields',label:'Custom fields',type:'json'},{name:'allowedPurposes',label:'Allowed purposes',type:'array'},{name:'active',label:'Active',type:'boolean'},{name:'sortOrder',label:'Sort order',type:'number'}] },
   'area-units': { singular:'Area unit', createRoles:['admin'], editRoles:['admin'], deleteRoles:['admin'], columns:[{path:'label',label:'Label'},{path:'symbol',label:'Symbol'},{path:'region.country',label:'Country'},{path:'squareMetreFactor',label:'Sq. meter factor'},{path:'active',label:'Active',type:'boolean'}], fields:[{name:'key',label:'Key',required:true},{name:'label',label:'Label',required:true},{name:'symbol',label:'Symbol'},{name:'region',label:'Region',type:'json'},{name:'squareMetreFactor',label:'Square metre factor',type:'number'},{name:'active',label:'Active',type:'boolean'},{name:'sortOrder',label:'Sort order',type:'number'}] },
 
-  subscriptions: { singular:'Subscription', createRoles:[], editRoles:['admin'], deleteRoles:['admin'], statuses:['pending','active','expired','cancelled','past_due'], columns:[{path:'user',label:'User',type:'user'},{path:'plan',label:'Plan'},{path:'status',label:'Status',type:'status'},{path:'startedAt',label:'Started',type:'date'},{path:'expiresAt',label:'Expires',type:'date'}], fields:[{name:'status',label:'Status',type:'select',options:['pending','active','expired','cancelled','past_due']},{name:'expiresAt',label:'Expiry date',type:'date'}] },
-  'notification-preferences': { singular:'Notification preference', createRoles:[], editRoles:['admin'], deleteRoles:[], columns:[{path:'user',label:'User',type:'user'},{path:'channels.whatsapp',label:'WhatsApp',type:'boolean'},{path:'channels.sms',label:'SMS',type:'boolean'},{path:'channels.email',label:'Email',type:'boolean'}], fields:[{name:'channels',label:'Channels',type:'json'},{name:'categories',label:'Categories',type:'json'},{name:'quietHours',label:'Quiet hours',type:'json'}] },
-  'notification-deliveries': { singular:'Notification delivery', createRoles:[], editRoles:['admin'], deleteRoles:['admin'], statuses:['pending','sent','failed','skipped'], columns:[{path:'user',label:'User',type:'user'},{path:'channel',label:'Channel',type:'status'},{path:'destination',label:'Destination'},{path:'status',label:'Status',type:'status'},{path:'attempts',label:'Attempts'},{path:'sentAt',label:'Sent',type:'date'},{path:'lastError',label:'Last error'}], fields:[{name:'status',label:'Status',type:'select',options:['pending','sent','failed','skipped']},{name:'nextAttemptAt',label:'Next attempt',type:'datetime'},{name:'lastError',label:'Last error',type:'textarea'},{name:'metadata',label:'Metadata',type:'json'}] },
-  'platform-modules': { singular:'Platform module', createRoles:['admin'], editRoles:['admin'], deleteRoles:['admin'], columns:[{path:'label',label:'Module'},{path:'key',label:'Key'},{path:'scope',label:'Scope',type:'status'},{path:'section',label:'Section'},{path:'path',label:'Path'},{path:'enabled',label:'Enabled',type:'boolean'}], fields:[{name:'key',label:'Module key',required:true},{name:'label',label:'Display label',required:true},{name:'description',label:'Description',type:'textarea'},{name:'path',label:'Route path',required:true},{name:'icon',label:'Icon key'},{name:'scope',label:'Scope',type:'select',options:['public','app'],required:true},{name:'kind',label:'Kind',type:'select',options:['page','resource','system','external']},{name:'section',label:'Navigation section',type:'select',options:['overview','administration','property_management','rental_operations','survey_management','finance','communication','system','general']},{name:'sectionOrder',label:'Section order',type:'number'},{name:'roles',label:'Legacy role access',type:'array'},{name:'modes',label:'Legacy mode access',type:'array'},{name:'accessRules',label:'Role and mode access rules',type:'json'},{name:'enabled',label:'Enabled',type:'boolean'},{name:'mobilePrimary',label:'Mobile primary item',type:'boolean'},{name:'sortOrder',label:'Sort order',type:'number'},{name:'featureFlag',label:'Required feature flag'},{name:'badge',label:'Badge configuration',type:'json'},{name:'metadata',label:'Additional metadata',type:'json'}] },
-  'content-pages': { singular:'Content page', createRoles:['admin'], editRoles:['admin'], deleteRoles:['admin'], columns:[{path:'title',label:'Page title'},{path:'path',label:'Path'},{path:'slug',label:'Slug'},{path:'visibility',label:'Visibility',type:'status'},{path:'active',label:'Active',type:'boolean'},{path:'updatedAt',label:'Updated',type:'date'}], fields:[{name:'path',label:'Public path',required:true},{name:'slug',label:'Slug',required:true},{name:'title',label:'Title',required:true},{name:'subtitle',label:'Subtitle'},{name:'hero',label:'Hero configuration',type:'json'},{name:'sections',label:'Page sections',type:'json'},{name:'visibility',label:'Visibility',type:'select',options:['public','authenticated']},{name:'active',label:'Active',type:'boolean'}] },
-  'integration-settings': { singular:'Integration', createRoles:['admin'], editRoles:['admin'], deleteRoles:['admin'], columns:[{path:'provider',label:'Provider'},{path:'key',label:'Key'},{path:'category',label:'Category',type:'status'},{path:'enabled',label:'Enabled',type:'boolean'},{path:'status',label:'Status',type:'status'},{path:'lastCheckedAt',label:'Last checked',type:'date'}], fields:[{name:'key',label:'Integration key',required:true},{name:'provider',label:'Provider name',required:true},{name:'category',label:'Category',type:'select',options:['storage','payment','email','sms','maps','analytics','identity','other']},{name:'enabled',label:'Enabled',type:'boolean'},{name:'status',label:'Status',type:'select',options:['unconfigured','configured','healthy','degraded','failed','disabled']},{name:'publicConfig',label:'Public configuration',type:'json'},{name:'envRequirements',label:'Required environment variables',type:'array'},{name:'lastError',label:'Last error',type:'textarea'}] },
-  facilities: { singular:'Facility', createRoles:['admin','manager','landlord','tenant'], editRoles:['admin','manager','landlord','tenant'], deleteRoles:['admin','manager','landlord','tenant'], statuses:['active','maintenance','inactive','archived'], columns:[{path:'name',label:'Facility'},{path:'property',label:'Property',type:'property'},{path:'type',label:'Type'},{path:'capacity',label:'Capacity'},{path:'price',label:'Price',type:'money'},{path:'visibility',label:'Visibility',type:'status'},{path:'status',label:'Status',type:'status'}], fields:[{name:'property',label:'Property',type:'reference',reference:'properties',required:true},{name:'manager',label:'Facility manager',type:'reference',reference:'users'},{name:'name',label:'Facility name',required:true},{name:'type',label:'Facility type',required:true},{name:'description',label:'Description',type:'textarea'},{name:'capacity',label:'Maximum guests',type:'number'},{name:'visibility',label:'Visibility',type:'select',options:['private','tenant','public']},{name:'status',label:'Status',type:'select',options:['active','maintenance','inactive','archived']},{name:'bookingRequired',label:'Booking required',type:'boolean'},{name:'price',label:'Booking price',type:'number'},{name:'deposit',label:'Security deposit',type:'number'},{name:'slotMinutes',label:'Slot duration (minutes)',type:'number'},{name:'minimumNoticeHours',label:'Minimum notice (hours)',type:'number'},{name:'maximumAdvanceDays',label:'Maximum advance days',type:'number'},{name:'availableDays',label:'Available days',type:'array'},{name:'availableTimeSlots',label:'Time slots (JSON)',type:'json'},{name:'amenities',label:'Amenities',type:'array'},{name:'rules',label:'Rules',type:'array'},{name:'images',label:'Image URLs',type:'array'}] },
-  'facility-bookings': { singular:'Facility booking', createRoles:['admin','manager','landlord','tenant'], editRoles:['admin','manager','landlord','tenant'], deleteRoles:['admin','landlord'], statuses:['requested','approved','rescheduled','rejected','cancelled','in_progress','completed','no_show'], columns:[{path:'facility.name',label:'Facility'},{path:'requester',label:'Requested by',type:'user'},{path:'startAt',label:'Starts',type:'date'},{path:'endAt',label:'Ends',type:'date'},{path:'guests',label:'Guests'},{path:'amount',label:'Amount',type:'money'},{path:'paymentStatus',label:'Payment',type:'status'},{path:'status',label:'Status',type:'status'}], fields:[{name:'facility',label:'Facility',type:'reference',reference:'facilities',required:true},{name:'requester',label:'Requester',type:'reference',reference:'users'},{name:'startAt',label:'Start date and time',type:'datetime',required:true},{name:'endAt',label:'End date and time',type:'datetime',required:true},{name:'guests',label:'Number of guests',type:'number'},{name:'purpose',label:'Purpose',type:'textarea'},{name:'notes',label:'Notes',type:'textarea'},{name:'status',label:'Status',type:'select',options:['requested','approved','rescheduled','rejected','cancelled','in_progress','completed','no_show']},{name:'paymentStatus',label:'Payment status',type:'select',options:['not_required','pending','paid','failed','refunded']},{name:'decisionNote',label:'Decision note',type:'textarea'}] },
-});
-
-// Property spaces are independent inventory records. Keep the legacy status
-// key `sold` readable, while exposing the clearer Sold Out option for new
-// room, flat, and apartment records.
-const propertySpaceConfig = configs['property-spaces'];
-if (propertySpaceConfig && !propertySpaceConfig.statuses?.includes('sold_out')) propertySpaceConfig.statuses = [...(propertySpaceConfig.statuses || []), 'sold_out'];
-const propertySpaceStatusField = propertySpaceConfig?.fields.find((field) => field.name === 'status');
-if (propertySpaceStatusField && !propertySpaceStatusField.options?.includes('sold_out')) propertySpaceStatusField.options = [...(propertySpaceStatusField.options || []), 'sold_out'];
-if (propertySpaceConfig && !propertySpaceConfig.fields.some((field) => field.name === 'flatNumber')) propertySpaceConfig.fields.push({ name: 'flatNumber', label: 'Flat number' });
-
-function getValue(obj: any, path: string) { return path.split('.').reduce((value, key) => value?.[key], obj); }
-function setValue(obj: any, path: string, value: any) { const keys = path.split('.'); let current = obj; keys.slice(0, -1).forEach((key) => { current[key] ||= {}; current = current[key]; }); current[keys.at(-1)!] = value; }
-function idOf(value: any) { return value && typeof value === 'object' ? value._id || '' : value || ''; }
-function isManagedRentalPayment(value: any) {
-  return Boolean(value?.rentalInvoice) && value?.type === 'rent' && value?.gateway?.source === 'rental_invoice';
-}
-function optionLabel(item: any) { return item.title || item.name || item.unitNumber || item.code || item.email || item._id; }
-const statusLabels: Record<string, string> = {
-  draft: 'Draft', pending_approval: 'Pending Approval', available: 'Available', partially_occupied: 'Partially Occuped', occupied: 'Occupied',
-  reserved: 'Reserved', rented: 'Rented', sold: 'Sold', sold_out: 'Sold Out', leased: 'Leased', maintenance: 'Maintenance', unavailable: 'Unavailable', archived: 'Archidved',
-};
-function optionText(value: any) {
-  const raw = String(value || '');
-  return statusLabels[raw] || raw.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
-}
-function formatCell(value: any, type?: Column['type']) {
-  if (value === null || value === undefined || value === '') return '—';
-  if (type === 'money') return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(value));
-  if (type === 'date') { const date = new Date(value); return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString('en-IN', { dateStyle: 'medium', ...(String(value).includes('T') && { timeStyle: 'short' }) }); }
-  if (type === 'user') return typeof value === 'object' ? value.name || value.email || '—' : value;
-  if (type === 'property') return typeof value === 'object' ? value.title || value.code || '—' : value;
-  if (type === 'boolean') return value ? 'Yes' : 'No';
-  if (typeof value === 'object') return value.name || value.title || value.unitNumber || JSON.stringify(value);
-  return optionText(value);
-}
-
-function formatRecordDate(value: unknown) {
-  if (!value) return '—';
-  const date = new Date(String(value));
-  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function formatDueTime(value: unknown) {
-  const match = String(value || '').match(/^([01]\d|2[0-3]):([0-5]\d)$/);
-  if (!match) return String(value || '—');
-  const hour = Number(match[1]);
-  return `${hour % 12 || 12}:${match[2]} ${hour >= 12 ? 'PM' : 'AM'}`;
-}
-
-function planLimitValue(row: any, path: string) {
-  const value = getValue(row, path);
-  if (value === undefined || value === null || value === '') return '—';
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric.toLocaleString('en-IN') : String(value);
-}
-
-function LandlordPlanResourceAccordion({ row, canEdit, canDelete, onEdit, onRemove }: { row: any; canEdit: boolean; canDelete: boolean; onEdit: () => void; onRemove: () => void }) {
-  const [expanded, setExpanded] = useState(false);
-  const title = row.name || row.key || 'Untitled landlord plan';
-  const cycle = Number(row.prices?.yearly || 0) > 0 && Number(row.prices?.monthly || 0) === 0 ? 'yearly' : 'monthly';
-  const price = Number(row.prices?.[cycle] || 0);
-  const active = row.active !== false;
-  const accent = String(title).toLowerCase().includes('enterprise') ? '#6D4AFF' : String(title).toLowerCase().includes('premium') ? '#B56A00' : '#0B5270';
-  const tint = String(title).toLowerCase().includes('enterprise') ? 'rgba(109,74,255,.10)' : String(title).toLowerCase().includes('premium') ? 'rgba(181,106,0,.10)' : 'rgba(11,82,112,.10)';
-  const limitGroups = [
-    ['Properties', 'limits.properties'], ['Buildings', 'limits.buildings'], ['Apartments', 'limits.apartments'],
-    ['Rooms', 'limits.rooms'], ['Beds', 'limits.beds'], ['Public listings', 'limits.publicListings'],
-    ['Active tenants', 'limits.activeTenants'], ['Vault storage (MB)', 'limits.storageMB'],
-  ];
-  const features = [
-    ['API access', Boolean(row.features?.apiAccess)], ['Priority support', Boolean(row.features?.prioritySupport)],
-  ];
-
-  return <Accordion expanded={expanded} onChange={(_, next) => setExpanded(next)} disableGutters sx={{
-    overflow: 'hidden', border: '1px solid rgba(11,82,112,.14)', borderRadius: '18px !important',
-    background: 'linear-gradient(145deg, #FFFFFF 0%, #F8FCFD 100%)', boxShadow: expanded ? '0 18px 42px rgba(11,82,112,.13)' : '0 8px 24px rgba(15,42,52,.06)',
-    transition: 'box-shadow .22s ease, border-color .22s ease', '&:before': { display: 'none' }, '&:hover': { borderColor: `${accent}66` },
-  }}>
-    <AccordionSummary expandIcon={<ExpandMoreRounded sx={{ color: accent }} />} sx={{ px: { xs: 1.8, sm: 2.4 }, py: 1, minHeight: 84, '&.Mui-expanded': { minHeight: 84 }, '& .MuiAccordionSummary-content': { my: 1.2, minWidth: 0 } }}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1.5} sx={{ width: '100%', minWidth: 0 }}>
-        <Stack direction="row" alignItems="center" spacing={1.4} sx={{ minWidth: 0 }}>
-          <Box sx={{ width: 48, height: 48, flex: '0 0 auto', display: 'grid', placeItems: 'center', borderRadius: 3, color: accent, bgcolor: tint, boxShadow: `inset 0 0 0 1px ${accent}20` }}><WorkspacePremiumRounded sx={{ fontSize: 25 }} /></Box>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography fontWeight={950} noWrap sx={{ fontSize: { xs: 15, sm: 17 }, letterSpacing: '-.02em' }}>{title}</Typography>
-            <Stack direction="row" spacing={.7} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: .55 }}>
-              <Chip size="small" label={`${formatCell(price, 'money')} / ${cycle === 'yearly' ? 'year' : 'month'}`} sx={{ bgcolor: tint, color: accent, fontWeight: 850, border: 'none' }} />
-              <Chip size="small" label={active ? 'Active' : 'Inactive'} sx={{ bgcolor: active ? '#E8F7EF' : '#F3F4F6', color: active ? '#23734A' : '#64748B', fontWeight: 800, border: 'none' }} />
-            </Stack>
-          </Box>
-        </Stack>
-        {(canEdit || canDelete) && <Stack direction="row" spacing={.4} sx={{ flex: '0 0 auto' }} onClick={(event) => event.stopPropagation()}>
-          {canEdit && <IconButton size="small" title="Edit landlord subscription plan" aria-label={`Edit ${title} landlord subscription plan`} onClick={onEdit} sx={{ color: '#0B5270', '&:hover': { bgcolor: '#E4F3F7' } }}><EditRounded fontSize="small" /></IconButton>}
-          {canDelete && <IconButton size="small" title="Delete landlord subscription plan" aria-label={`Delete ${title} landlord subscription plan`} onClick={onRemove} sx={{ color: '#C2413B', '&:hover': { bgcolor: '#FDECEA' } }}><DeleteOutlineRounded fontSize="small" /></IconButton>}
-        </Stack>}
-      </Stack>
-    </AccordionSummary>
-    <AccordionDetails sx={{ px: { xs: 1.8, sm: 2.4 }, pb: 2.4, pt: 0 }}>
-      <Divider sx={{ mb: 2, borderColor: 'rgba(15,42,52,.08)' }} />
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 2fr) minmax(260px, 1fr)' }, gap: 1.5 }}>
-        <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, borderColor: `${accent}22`, bgcolor: `${tint}` }}>
-          <Typography fontWeight={900}>Capacity limits</Typography>
-          <Typography color="text.secondary" fontSize={12} sx={{ mt: .35, mb: 1.5 }}>The maximum resources available to landlords on this plan.</Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(4, minmax(0, 1fr))' }, gap: 1 }}>
-            {limitGroups.map(([label, path]) => <Box key={path} sx={{ p: 1.1, borderRadius: 2.5, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider' }}><Typography color="text.secondary" fontSize={10.5} fontWeight={800}>{label}</Typography><Typography fontWeight={950} sx={{ mt: .25, color: accent }}>{planLimitValue(row, path)}</Typography></Box>)}
-          </Box>
-        </Paper>
-        <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 3, borderColor: 'divider' }}>
-          <Typography fontWeight={900}>Plan features</Typography>
-          <Stack spacing={1.1} sx={{ mt: 1.5 }}>
-            {features.map(([label, enabled]) => <Stack direction="row" justifyContent="space-between" alignItems="center" key={String(label)}><Typography fontSize={12.5}>{label}</Typography><Chip size="small" label={enabled ? 'Included' : 'Not included'} color={enabled ? 'success' : 'default'} variant={enabled ? 'filled' : 'outlined'} /></Stack>)}
-            <Divider />
-            <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography fontSize={12.5}>Billing cycle</Typography><Typography fontWeight={850}>{optionText(cycle)}</Typography></Stack>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2}><Typography fontSize={12.5}>Plan key</Typography><Typography fontSize={11.5} fontWeight={750} color="text.secondary" sx={{ wordBreak: 'break-all', textAlign: 'right' }}>{row.key || 'Generated on save'}</Typography></Stack>
-          </Stack>
-        </Paper>
-      </Box>
-      {(canEdit || canDelete) && <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="flex-end" spacing={1} sx={{ mt: 2 }}>
-        {canDelete && <Button variant="outlined" startIcon={<DeleteOutlineRounded />} color="error" onClick={onRemove}>Delete plan</Button>}
-        {canEdit && <Button variant="contained" startIcon={<EditRounded />} onClick={onEdit}>Edit and update plan</Button>}
-      </Stack>}
-    </AccordionDetails>
-  </Accordion>;
-}
-
-
-type PropertyDetailItem = { label: string; path?: string; value?: any; type?: Column['type']; full?: boolean };
-
-function isFilled(value: any) {
-  if (value === null || value === undefined || value === '') return false;
-  if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === 'object') return Object.keys(value).length > 0;
-  return true;
-}
-
-function detailValue(property: any, item: PropertyDetailItem) {
-  const value = item.path ? getValue(property, item.path) : item.value;
-  if (Array.isArray(value)) return value.length ? value.map((entry) => typeof entry === 'object' ? optionLabel(entry) : optionText(entry)).join(', ') : '—';
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
-  return formatCell(value, item.type);
-}
-
-function PropertyDetailSection({ title, subtitle, property, items, defaultExpanded = false }: { title: string; subtitle?: string; property: any; items: PropertyDetailItem[]; defaultExpanded?: boolean }) {
-  const visible = items.filter((item) => isFilled(item.path ? getValue(property, item.path) : item.value));
-  const theme = useTheme();
-  const mobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [expanded, setExpanded] = useState(defaultExpanded || !mobile);
-  useEffect(() => { setExpanded(defaultExpanded || !mobile); }, [defaultExpanded, mobile]);
-  if (!visible.length) return null;
-  const fields = <Box sx={{ mt: { xs: 1.2, md: 1.8 }, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' }, gap: { xs: .8, sm: 1, lg: 1.2 } }}>
-    {visible.map((item) => <PropertyDataBlock key={`${title}-${item.label}-${item.path || 'value'}`} label={item.label} value={detailValue(property, item)} full={item.full} />)}
-  </Box>;
-  const header = <PropertySectionHeader title={title} description={subtitle} count={visible.length} />;
-  if (!mobile) return <Box data-secureasset-property-detail-section="desktop-grid-v154" sx={{ py: 3, borderTop: '1px solid #DDE4E8' }}>{header}{fields}</Box>;
-  return <Accordion
-    data-secureasset-property-detail-section="mobile-accordion-v154"
-    expanded={expanded}
-    onChange={(_event, next) => setExpanded(next)}
-    disableGutters
-    elevation={0}
-    sx={{ mt: 1.1, overflow: 'hidden', border: '1px solid', borderColor: 'rgba(11,82,112,.16)', borderRadius: '14px !important', bgcolor: '#F8FCFD', '&::before': { display: 'none' }, '&.Mui-expanded': { m: 0, mt: 1.1 } }}
-  >
-    <AccordionSummary expandIcon={<ExpandMoreRounded sx={{ color: '#0B5270' }} />} sx={{ px: 1.35, py: .45, '& .MuiAccordionSummary-content': { my: 1.1, mr: .5 }, '& .MuiAccordionSummary-content.Mui-expanded': { my: 1.1 } }}>
-      {header}
-    </AccordionSummary>
-    <AccordionDetails sx={{ px: 1.1, pt: 0, pb: 1.1, bgcolor: '#FFFFFF' }}>{fields}</AccordionDetails>
-  </Accordion>;
-}
-
-type PropertyMediaRecord = { _id?: unknown; url?: unknown; thumbnailUrl?: unknown; caption?: unknown; category?: unknown; [key: string]: any };
-type PreviewImage = { src: string; previewSrc: string; label: string; filename?: string; recordId?: string; mediaId?: string; previewFileId?: string; secureSource?: string; propertyId?: string; fallbackSources?: string[]; sourceIndex?: number };
-
-function mediaSourceValues(value: unknown): string[] {
-  const entries = Array.isArray(value) ? value : [value];
-  return entries.flatMap((entry) => {
-    const candidate = entry && typeof entry === 'object'
-      ? (entry as PropertyMediaRecord).url || (entry as PropertyMediaRecord).thumbnailUrl
-      : entry;
-    const raw = String(candidate || '').trim();
-    if (!raw) return [];
-    return raw
-      .split(/,\s*(?=(?:https?:\/\/|\/(?:api|uploads)|data:|blob:))/i)
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .map((item) => /^(?:https?:\/\/|data:|blob:)/i.test(item) || item.startsWith('/') ? item : '/' + item);
-  });
-}
-
-function isSecureMediaSource(source: string) {
-  const value = String(source || '').trim();
-  const bare = value.replace(/^\/+/, '').split(/[?#]/, 1)[0];
-  return /^[a-f\d]{24}$/i.test(bare) || /\/(?:api\/v\d+\/)?(?:drive\/files|files|property-media)\/[a-f\d]{24}(?:\/content)?(?:[/?#]|$)/i.test(value);
-}
-
-function uniqueMediaSources(values: unknown[]) {
-  return [...new Set(values.flatMap((value) => mediaSourceValues(value)).filter(Boolean))];
-}
-
-function directBrowserImageSource(source: string) {
-  const value = String(source || '').trim();
-  return Boolean(value) && !isSecureMediaSource(value) && /^(?:https?:\/\/|data:|blob:|\/)/i.test(value);
-}
-
-function propertyMediaIdFromSource(source: string) {
-  return String(source || '').match(/\/(?:api\/v\d+\/)?property-media\/([a-f\d]{24})(?:\/content)?(?:[/?#]|$)/i)?.[1] || '';
-}
-
-function applicationPropertyImage(property: any) {
-  const propertyId = String(property?._id || property?.id || '');
-  const entries = [property?.propertyMedia, property?.media, property?.galleryCover, property?.coverImage, property?.mainImage, property?.primaryImage, property?.images]
-    .flatMap((entry) => Array.isArray(entry) ? entry : entry ? [entry] : []);
-  const mediaIds: string[] = [];
-  const previewFileIds: string[] = [];
-  const secureSources: string[] = [];
-  const directSources: string[] = [];
-
-  entries.forEach((entry) => {
-    if (entry && typeof entry === 'object') {
-      const mediaId = String(entry.mediaId || entry.propertyMediaId || entry.media?._id || '');
-      const previewFileId = String(entry.previewFileId || entry.driveFileId || entry.fileId || entry.driveFile?._id || '');
-      if (mediaId) mediaIds.push(mediaId);
-      if (previewFileId) previewFileIds.push(previewFileId);
-    }
-    mediaSourceValues(entry && typeof entry === 'object'
-      ? [entry.url, entry.thumbnailUrl, entry.previewUrl, entry.secureSource, entry.path]
-      : entry).forEach((source) => {
-      if (isSecureMediaSource(source)) secureSources.push(source);
-      else if (directBrowserImageSource(source)) directSources.push(source);
-    });
-  });
-
-  const secureMediaIds = secureSources.map((source) => propertyMediaIdFromSource(source) || (/^[a-f\d]{24}$/i.test(source.replace(/^\/+/, '').split(/[?#]/, 1)[0]) ? source.replace(/^\/+/, '').split(/[?#]/, 1)[0] : '')).filter(Boolean);
-  return {
-    propertyId,
-    mediaIds: [...new Set([...mediaIds, ...secureMediaIds])],
-    previewFileIds: [...new Set(previewFileIds)],
-    secureSources: [...new Set(secureSources.filter((source) => !propertyMediaIdFromSource(source) && !/^[a-f\d]{24}$/i.test(source.replace(/^\/+/, '').split(/[?#]/, 1)[0])))],
-    directSources: [...new Set(directSources)],
-  };
-}
-
-function ApplicationPropertyThumbnail({ property }: { property: any }) {
-  const image = useMemo(() => applicationPropertyImage(property), [property]);
-  const [src, setSrc] = useState('');
-
-  useEffect(() => {
-    let active = true;
-    let objectUrl = '';
-    setSrc('');
-    async function resolveImage() {
-      const loaders: Array<() => Promise<Blob>> = [
-        ...image.mediaIds.map((mediaId) => () => fetchPropertyMediaBlob(mediaId, image.propertyId)),
-        ...image.previewFileIds.map((fileId) => () => fetchPropertyImageBlob(`${API_BASE}/drive/files/${encodeURIComponent(fileId)}/content`, image.propertyId)),
-        ...image.secureSources.map((source) => () => fetchPropertyImageBlob(source, image.propertyId)),
-      ];
-      for (const load of loaders) {
-        try {
-          const blob = await load();
-          if (!active) return;
-          objectUrl = URL.createObjectURL(blob);
-          setSrc(objectUrl);
-          return;
-        } catch {
-          // Try the next stored source; the list row remains usable while images resolve.
-        }
-      }
-      if (active) setSrc(image.directSources[0] || '');
-    }
-    void resolveImage();
-    return () => {
-      active = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [image]);
-
-  return <Box sx={{ gridArea: 'image', width: { xs: 52, md: 58 }, height: { xs: 46, md: 52 }, overflow: 'hidden', border: '1px solid rgba(11,82,112,.12)', borderRadius: '5px', bgcolor: '#EDF4F5', display: 'grid', placeItems: 'center', color: '#6C8991' }}>
-    {src ? <Box component="img" src={src} alt={property?.title ? `${property.title} property` : 'Property'} loading="lazy" decoding="async" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageNotSupportedRounded sx={{ fontSize: 21 }} />}
-  </Box>;
-}
-
-function PropertyImageCard({ image, onPreview, onEdit, onDelete, variant = 'grid', active = false }: { image: PreviewImage; onPreview: (image: PreviewImage) => void; onEdit?: (recordId: string) => void; onDelete?: (recordId: string, label: string) => void; variant?: 'grid' | 'carousel'; active?: boolean }) {
-  const [failed, setFailed] = useState(false);
-  const [retryNonce, setRetryNonce] = useState(0);
-  const fallbackKey = (image.fallbackSources || []).join('|');
-  const needsAuthenticatedFetch = Boolean(image.mediaId || image.previewFileId || image.secureSource || (image.fallbackSources || []).some(isSecureMediaSource));
-  const [loading, setLoading] = useState(needsAuthenticatedFetch);
-  const [resolvedSrc, setResolvedSrc] = useState(needsAuthenticatedFetch ? '' : image.src);
-  const carousel = variant === 'carousel';
-
-  useEffect(() => {
-    let active = true;
-    let objectUrl = '';
-    const shouldFetch = Boolean(image.mediaId || image.previewFileId || image.secureSource || (image.fallbackSources || []).some(isSecureMediaSource));
-    const sourceCandidates = uniqueMediaSources([image.src, ...(image.fallbackSources || [])]);
-    setFailed(false);
-    setLoading(shouldFetch);
-    setResolvedSrc(shouldFetch ? '' : image.src);
-    if (!shouldFetch) return () => {};
-    async function loadImage() {
-      const loaders: Array<() => Promise<Blob>> = [];
-      const attemptedMediaIds = new Set<string>();
-      if (image.mediaId) {
-        attemptedMediaIds.add(image.mediaId);
-        loaders.push(() => fetchPropertyMediaBlob(image.mediaId as string, image.propertyId || ''));
-      }
-      if (image.previewFileId) {
-        loaders.push(() => fetchPropertyImageBlob(`${API_BASE}/drive/files/${encodeURIComponent(image.previewFileId as string)}/content`, image.propertyId || ''));
-      }
-      if (image.secureSource) {
-        const referencedMediaId = propertyMediaIdFromSource(image.secureSource);
-        if (referencedMediaId && !attemptedMediaIds.has(referencedMediaId)) {
-          attemptedMediaIds.add(referencedMediaId);
-          loaders.push(() => fetchPropertyMediaBlob(referencedMediaId, image.propertyId || ''));
-        } else if (!referencedMediaId) {
-          loaders.push(() => fetchPropertyImageBlob(image.secureSource as string, image.propertyId || ''));
-        }
-      }
-      for (const source of sourceCandidates) {
-        const referencedMediaId = propertyMediaIdFromSource(source);
-        if (referencedMediaId && !attemptedMediaIds.has(referencedMediaId)) {
-          attemptedMediaIds.add(referencedMediaId);
-          loaders.push(() => fetchPropertyMediaBlob(referencedMediaId, image.propertyId || ''));
-        } else if (isSecureMediaSource(source)) {
-          loaders.push(() => fetchPropertyImageBlob(source, image.propertyId || ''));
-        }
-      }
-      let lastError: unknown = null;
-      for (const load of loaders) {
-        try {
-          const blob = await load();
-          if (!active) return;
-          objectUrl = URL.createObjectURL(blob);
-          setResolvedSrc(objectUrl);
-          setLoading(false);
-          return;
-        } catch (error) {
-          lastError = error;
-        }
-      }
-      const directFallback = sourceCandidates.find(directBrowserImageSource);
-      if (directFallback) {
-        if (!active) return;
-        setResolvedSrc(directFallback);
-        setLoading(false);
-        return;
-      }
-      throw lastError || new Error('No stored image source was available');
-    }
-    void loadImage().catch(() => {
-      if (!active) return;
-      setLoading(false);
-      setFailed(true);
-    });
-    return () => {
-      active = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [fallbackKey, image.mediaId, image.previewFileId, image.previewSrc, image.propertyId, image.secureSource, image.src, retryNonce]);
-
-  const previewImage = { ...image, src: resolvedSrc, previewSrc: resolvedSrc };
-  return <Box data-secureasset-property-gallery-card={carousel ? (active ? 'active-v155' : 'slide-v155') : undefined} sx={{ position: 'relative', height: carousel ? '100%' : undefined, overflow: 'hidden', border: '1px solid #D9E0E5', borderRadius: carousel ? 3 : 2, bgcolor: 'background.paper', boxShadow: carousel && active ? '0 18px 44px rgba(15,23,42,.22)' : undefined }}>
-    {loading
-      ? <Box sx={{ width: '100%', height: carousel ? '100%' : undefined, aspectRatio: carousel ? 'auto' : '4 / 3', display: 'grid', placeItems: 'center', bgcolor: '#F4F6F7' }}><CircularProgress size={24} sx={{ color: '#0F172A' }} /></Box>
-      : failed
-      ? <Box sx={{ width: '100%', height: carousel ? '100%' : undefined, aspectRatio: carousel ? 'auto' : '4 / 3', display: 'grid', placeItems: 'center', bgcolor: 'action.hover', px: 2, textAlign: 'center' }}>
-        <Stack spacing={.5} alignItems="center"><Typography color="text.secondary" sx={{ fontSize: 12 }}>Image preview unavailable</Typography><Typography color="text.secondary" sx={{ fontSize: 10.5 }}>The uploaded file is still saved.</Typography><Button size="small" onClick={() => setRetryNonce((value) => value + 1)}>Retry preview</Button></Stack>
-      </Box>
-      : <ButtonBase
-        aria-label={'Preview ' + image.label}
-        onClick={() => onPreview(previewImage)}
-        sx={{ display: 'block', width: '100%', height: carousel ? '100%' : undefined, position: 'relative', textAlign: 'left', '&:hover .sa-image-preview-overlay': { opacity: 1 } }}
-      >
-        <Box component="img" src={resolvedSrc} alt={image.label} decoding="async" onError={() => setFailed(true)} sx={{ display: 'block', width: '100%', height: carousel ? '100%' : undefined, aspectRatio: carousel ? 'auto' : '4 / 3', objectFit: 'cover', bgcolor: 'action.hover' }} />
-        <Box className="sa-image-preview-overlay" sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'flex-end', gap: .6, p: carousel ? 1.35 : 1, color: 'white', background: 'linear-gradient(transparent, rgba(0,0,0,.72))', opacity: carousel ? 1 : { xs: 1, sm: 0 }, transition: 'opacity .18s ease' }}>
-          <VisibilityRounded fontSize="small" />
-          <Box sx={{ minWidth: 0 }}><Typography noWrap sx={{ fontSize: carousel ? 13 : 11.5, fontWeight: 850 }}>{image.label}</Typography><Typography noWrap sx={{ mt: .15, fontSize: 10.5, opacity: .86 }}>Click to preview</Typography></Box>
-        </Box>
-      </ButtonBase>}
-    {carousel && image.recordId && (onEdit || onDelete) && <Stack data-secureasset-property-gallery-overlay-actions="top-corner-v155" direction="row" spacing={.45} sx={{ position: 'absolute', top: 10, right: 10, zIndex: 2 }}>
-      {onEdit && <Tooltip title="Edit image"><IconButton aria-label={'Edit ' + image.label} size="small" onClick={(event) => { event.stopPropagation(); onEdit(image.recordId as string); }} sx={{ color: '#10212B', bgcolor: 'rgba(255,255,255,.94)', boxShadow: '0 4px 12px rgba(0,0,0,.18)', '&:hover': { bgcolor: '#FFFFFF' } }}><EditRounded fontSize="small" /></IconButton></Tooltip>}
-      {onDelete && <Tooltip title="Delete image"><IconButton aria-label={'Delete ' + image.label} size="small" onClick={(event) => { event.stopPropagation(); onDelete(image.recordId as string, image.label); }} sx={{ color: '#B42318', bgcolor: 'rgba(255,255,255,.94)', boxShadow: '0 4px 12px rgba(0,0,0,.18)', '&:hover': { bgcolor: '#FFFFFF' } }}><DeleteOutlineRounded fontSize="small" /></IconButton></Tooltip>}
-    </Stack>}
-    {!carousel && <Box sx={{ px: 1.2, py: 1 }}>
-      <Typography noWrap sx={{ fontSize: 12, fontWeight: 800 }}>{image.label}</Typography>
-      {!failed && !loading && <Typography noWrap color="text.secondary" sx={{ fontSize: 10.5, mt: .2 }}>{image.filename || 'Uploaded image'} · click for full preview</Typography>}
-      {image.recordId && (onEdit || onDelete) && <Stack direction="row" spacing={.5} sx={{ mt: .8, '& .MuiButton-root': { flex: { xs: 1, sm: '0 1 auto' } } }}>
-        {onEdit && <Button size="small" variant="outlined" onClick={() => onEdit(image.recordId as string)}>Edit</Button>}
-        {onDelete && <Button size="small" color="error" onClick={() => onDelete(image.recordId as string, image.label)}>Delete</Button>}
-      </Stack>}
-    </Box>}
-  </Box>;
-}
-
-function carouselOffset(index: number, activeIndex: number, length: number) {
-  let offset = index - activeIndex;
-  if (offset > length / 2) offset -= length;
-  if (offset < -length / 2) offset += length;
-  return offset;
-}
-
-function PropertyGalleryCarousel({ images, onPreview, onEdit, onDelete }: { images: PreviewImage[]; onPreview: (image: PreviewImage) => void; onEdit?: (recordId: string) => void; onDelete?: (recordId: string, label: string) => void }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  useEffect(() => setActiveIndex((current) => Math.min(Math.max(current, 0), Math.max(images.length - 1, 0))), [images.length]);
-  const move = (direction: number) => setActiveIndex((current) => images.length ? (current + direction + images.length) % images.length : 0);
-
-  return <Box data-secureasset-property-gallery-carousel="attachment-style-v155" sx={{ pt: .5 }}>
-    <Box data-secureasset-property-gallery-slides="centered-v155" sx={{ position: 'relative', height: { xs: 248, sm: 320, md: 365 }, overflow: 'hidden', isolation: 'isolate' }}>
-      {images.map((image, index) => {
-        const offset = carouselOffset(index, activeIndex, images.length);
-        const distance = Math.abs(offset);
-        if (distance > 2) return null;
-        const active = offset === 0;
-        return <Box
-          key={image.recordId ? `media:${image.recordId}:${image.sourceIndex ?? 0}` : `${image.previewSrc}:${index}`}
-          data-secureasset-property-gallery-slide={active ? 'active-v155' : 'adjacent-v155'}
-          sx={{ position: 'absolute', top: 0, left: '50%', width: { xs: '84%', sm: '64%', md: '57%' }, height: '100%', transform: `translateX(calc(-50% + ${offset * 76}%)) scale(${active ? 1 : distance === 1 ? .86 : .74})`, transformOrigin: 'center center', opacity: active ? 1 : distance === 1 ? .62 : .26, zIndex: 5 - distance, transition: 'transform .42s cubic-bezier(.22,.8,.26,1), opacity .32s ease', pointerEvents: active || distance === 1 ? 'auto' : 'none' }}
-        >
-          <PropertyImageCard image={image} onPreview={onPreview} onEdit={onEdit} onDelete={onDelete} variant="carousel" active={active} />
-        </Box>;
-      })}
-    </Box>
-    {images.length > 1 && <Stack data-secureasset-property-gallery-controls="slide-v155" direction="row" alignItems="center" justifyContent="center" spacing={1.2} sx={{ mt: 1.4 }}>
-      <IconButton aria-label="Previous gallery image" size="small" onClick={() => move(-1)} sx={{ border: '1px solid #B8C8D0', color: '#18313D' }}><ChevronLeftRounded fontSize="small" /></IconButton>
-      <Typography aria-live="polite" sx={{ minWidth: 46, color: 'text.secondary', fontSize: 12, textAlign: 'center' }}>{activeIndex + 1} / {images.length}</Typography>
-      <IconButton aria-label="Next gallery image" size="small" onClick={() => move(1)} sx={{ border: '1px solid #B8C8D0', color: '#18313D' }}><ChevronRightRounded fontSize="small" /></IconButton>
-    </Stack>}
-  </Box>;
-}
-
-function PropertyMediaPreview({ property, propertyMedia = [], onManage, onAdd, onEdit, onDelete, variant = 'grid' }: { property: any; propertyMedia?: PropertyMediaRecord[]; onManage?: () => void; onAdd?: () => void; onEdit?: (recordId: string) => void; onDelete?: (recordId: string, label: string) => void; variant?: 'grid' | 'carousel' }) {
-  const [selectedImage, setSelectedImage] = useState<PreviewImage | null>(null);
-  const [previewError, setPreviewError] = useState(false);
-  const propertyId = String(property?._id || '');
-  const legacyImage = (src: string, label: string): PreviewImage => ({
-    src,
-    previewSrc: src,
-    label,
-    propertyId,
-    ...(propertyMediaIdFromSource(src) ? { mediaId: propertyMediaIdFromSource(src) } : {}),
-    ...(isSecureMediaSource(src) ? { secureSource: src } : {}),
-  });
-  const coverImages = mediaSourceValues(property?.galleryCover).map((src) => legacyImage(src, 'Cover image'));
-  const galleryImages = mediaSourceValues(property?.images).map((src, index) => legacyImage(src, 'Property image ' + (index + 1)));
-  const attachedImages = propertyMedia.flatMap((item) => {
-    const mediaType = String(item?.mediaType || 'image').trim().toLowerCase();
-    const mediaSources = uniqueMediaSources([item?.url, item?.thumbnailUrl]);
-    const looksLikeImage = mediaType === 'image' || mediaType === 'photo' || mediaType.startsWith('image/')
-      || String(item?.mimeType || '').toLowerCase().startsWith('image/')
-      || mediaSources.some((source) => /\.(?:jpe?g|png|gif|webp|bmp|ico)(?:[?#]|$)/i.test(source));
-    if (!looksLikeImage) return [];
-    const mediaId = String(item?._id || '') || undefined;
-    const rawPreviewFileId = item?.previewFileId || (item?.driveFile && typeof item.driveFile === 'object' ? item.driveFile._id : item?.driveFile);
-    const previewFileId = String(rawPreviewFileId || '').trim() || undefined;
-    const authenticatedPreview = mediaId ? `${API_BASE}/property-management/properties/${encodeURIComponent(propertyId)}/media/${encodeURIComponent(mediaId)}/content` : '';
-    const publicPreview = mediaId ? `${API_BASE}/public/property-media/${encodeURIComponent(mediaId)}/content` : '';
-    const fullSources = mediaSourceValues(item?.url);
-    const thumbnailSources = mediaSourceValues(item?.thumbnailUrl);
-    // One PropertyMedia record represents one gallery image. Prefer its full
-    // source for the card count, while keeping the thumbnail/source values as
-    // fallbacks for older records whose fields were stored inconsistently.
-    const displaySources = fullSources.length ? fullSources : thumbnailSources;
-    const fallbackSources = uniqueMediaSources([displaySources, thumbnailSources]);
-    const previewCount = Math.max(displaySources.length, mediaId ? 1 : 0);
-    if (!previewCount) return [];
-    return Array.from({ length: previewCount }, (_unused, sourceIndex) => {
-      const rawSource = displaySources[sourceIndex] || thumbnailSources[sourceIndex] || '';
-      return {
-      src: fallbackSources.find(directBrowserImageSource) || authenticatedPreview || publicPreview || rawSource,
-      previewSrc: authenticatedPreview || publicPreview || rawSource,
-      mediaId,
-      previewFileId,
-      recordId: mediaId,
-      propertyId,
-      fallbackSources,
-      sourceIndex,
-      label: String(item?.caption || item?.category || 'Uploaded property image') + (displaySources.length > 1 ? ' ' + (sourceIndex + 1) : ''),
-      filename: String(item?.previewFileName || item?.altText || '').trim() || undefined,
-      };
-    });
-  });
-  // Keep legacy Property.images/galleryCover entries visible while preferring
-  // the PropertyMedia record when both point to the same media item. This is
-  // important for older properties whose gallery references were written
-  // before PropertyMedia became the canonical collection.
-  const imageMap = new Map<string, PreviewImage>();
-  for (const image of [...coverImages, ...galleryImages, ...attachedImages]) {
-    const key = image.mediaId ? `media:${image.mediaId}:${image.sourceIndex ?? 0}` : `source:${image.previewSrc}`;
-    const existing = imageMap.get(key);
-    if (!existing || image.recordId) imageMap.set(key, image);
-  }
-  const images = [...imageMap.values()];
-  const [zoomed, setZoomed] = useState(false);
-  const closePreview = () => { setSelectedImage(null); setPreviewError(false); setZoomed(false); };
-  const openPreview = (image: PreviewImage) => { setPreviewError(false); setZoomed(false); setSelectedImage(image); };
-  if (!images.length && !onManage && !onAdd) return null;
-  return <>
-    <Box data-secureasset-gallery-preview="secureasset-gallery-preview-v65" sx={{ py: { xs: 2.5, md: 3 }, borderTop: '1px solid #DDE4E8' }}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} gap={1}>
-        <Box>
-          <Typography sx={{ fontWeight: 950, fontSize: 18, letterSpacing: '-.02em' }}>Property Galleries · Media Preview</Typography>
-          <Typography color="text.secondary" sx={{ fontSize: 12.5, mt: .35 }}>Every uploaded property image is loaded securely. Click any image to enlarge it.</Typography>
-        </Box>
-        <Stack direction="row" spacing={.7} flexWrap="wrap" useFlexGap>
-          <Chip size="small" label={images.length + ' image' + (images.length === 1 ? '' : 's')} variant="outlined" />
-          {onManage && <Button size="small" variant="outlined" onClick={onManage}>Manage gallery</Button>}
-          {onAdd && <Button size="small" variant="contained" startIcon={<AddRounded />} onClick={onAdd}>Add gallery media</Button>}
-        </Stack>
-      </Stack>
-      <Divider sx={{ my: 2, borderColor: '#E4EAED' }} />
-      {images.length ? variant === 'carousel'
-        ? <PropertyGalleryCarousel images={images} onPreview={openPreview} onEdit={onEdit} onDelete={onDelete} />
-        : <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(3, 1fr)' }, gap: 1.2 }}>
-          {images.map((image, index) => <PropertyImageCard key={image.recordId ? `media:${image.recordId}:${image.sourceIndex ?? 0}` : `${image.previewSrc}:${index}`} image={image} onPreview={openPreview} onEdit={onEdit} onDelete={onDelete} />)}
-        </Box>
-      : <Box sx={{ py: 5, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 3 }}>
-        <Typography sx={{ fontWeight: 850 }}>No gallery media attached yet</Typography>
-        <Typography color="text.secondary" sx={{ fontSize: 13, mt: .5 }}>Use Add gallery media above to upload the first image for this property.</Typography>
-      </Box>}
-    </Box>
-    <ProfessionalDialog
-      open={Boolean(selectedImage)}
-      onClose={closePreview}
-      fullWidth
-      maxWidth="lg"
-      fullScreen
-      professionalTitle={selectedImage?.label || 'Property image preview'}
-      professionalSubtitle="Full-size property media preview"
-      enableMinimize={false}
-      enableMaximize={false}
-    >
-      <DialogContent dividers sx={{ minHeight: { xs: 'calc(100dvh - 58px)', sm: 620 }, display: 'flex', flexDirection: 'column', bgcolor: '#101418', p: { xs: 1, sm: 2 }, overflow: 'hidden' }}>
-        {selectedImage && !previewError
-          ? <>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1} sx={{ color: 'white', pb: 1 }}>
-              <Typography sx={{ fontSize: 12, opacity: .78 }}>Click the image to zoom · {zoomed ? 'zoomed view' : 'fit view'}</Typography>
-              <Stack direction="row" spacing={.35}>
-                <Tooltip title="Zoom out"><span><IconButton size="small" disabled={!zoomed} onClick={() => setZoomed(false)} sx={{ color: 'white' }}><ZoomOutRounded fontSize="small" /></IconButton></span></Tooltip>
-                <Tooltip title="Reset zoom"><span><IconButton size="small" disabled={!zoomed} onClick={() => setZoomed(false)} sx={{ color: 'white' }}><RestartAltRounded fontSize="small" /></IconButton></span></Tooltip>
-                <Tooltip title="Zoom in"><span><IconButton size="small" onClick={() => setZoomed(true)} sx={{ color: 'white' }}><ZoomInRounded fontSize="small" /></IconButton></span></Tooltip>
-              </Stack>
-            </Stack>
-            <Box sx={{ flex: 1, minHeight: 0, width: '100%', overflow: 'auto', display: 'grid', placeItems: 'center', position: 'relative', bgcolor: '#0B0F12', borderRadius: 2 }}>
-              <ButtonBase
-                aria-label={zoomed ? 'Zoom out image' : 'Zoom in image'}
-                onClick={() => setZoomed((value) => !value)}
-                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: zoomed ? '200%' : '100%', minHeight: '100%', cursor: zoomed ? 'zoom-out' : 'zoom-in' }}
-              >
-                <Box component="img" src={selectedImage.previewSrc} alt={selectedImage.label} onError={() => setPreviewError(true)} sx={{ display: 'block', width: zoomed ? '100%' : 'auto', maxWidth: zoomed ? 'none' : '100%', maxHeight: zoomed ? 'none' : 'calc(100dvh - 150px)', objectFit: 'contain' }} />
-              </ButtonBase>
-              {selectedImage.recordId && (onEdit || onDelete) && <Stack data-secureasset-property-gallery-preview-actions="top-corner-v155" direction="row" spacing={.45} sx={{ position: 'absolute', top: 10, right: 10, zIndex: 2 }}>
-                {onEdit && <Tooltip title="Edit image"><IconButton aria-label={'Edit ' + selectedImage.label} size="small" onClick={(event) => { event.stopPropagation(); closePreview(); onEdit(selectedImage.recordId as string); }} sx={{ color: '#10212B', bgcolor: 'rgba(255,255,255,.94)', boxShadow: '0 4px 12px rgba(0,0,0,.28)', '&:hover': { bgcolor: '#FFFFFF' } }}><EditRounded fontSize="small" /></IconButton></Tooltip>}
-                {onDelete && <Tooltip title="Delete image"><IconButton aria-label={'Delete ' + selectedImage.label} size="small" onClick={(event) => { event.stopPropagation(); closePreview(); onDelete(selectedImage.recordId as string, selectedImage.label); }} sx={{ color: '#B42318', bgcolor: 'rgba(255,255,255,.94)', boxShadow: '0 4px 12px rgba(0,0,0,.28)', '&:hover': { bgcolor: '#FFFFFF' } }}><DeleteOutlineRounded fontSize="small" /></IconButton></Tooltip>}
-              </Stack>}
-            </Box>
-          </>
-          : <Alert severity="warning">This image preview is unavailable. The original media record is still preserved.</Alert>}
-      </DialogContent>
-    </ProfessionalDialog>
-  </>;
-}
-
-export function PropertyFullDetailsView({ property, propertyMedia = [], onManageGallery, onAddGallery, onEditGallery, onDeleteGallery, showContextBanner = true, galleryVariant = 'grid' }: { property: any; propertyMedia?: PropertyMediaRecord[]; onManageGallery?: () => void; onAddGallery?: () => void; onEditGallery?: (recordId: string) => void; onDeleteGallery?: (recordId: string, label: string) => void; showContextBanner?: boolean; galleryVariant?: 'grid' | 'carousel' }) {
-  const listingType = property?.purpose || property?.listingType;
-  const priceLabel = listingType === 'sale' ? 'Sale Price' : listingType === 'lease' ? 'Lease Amount' : 'Monthly Rent';
-  const pricePath = listingType === 'sale' ? 'pricing.salePrice' : listingType === 'lease' ? 'pricing.leaseAmount' : 'pricing.monthlyRent';
-  const contextLocation = [property?.address?.city, property?.address?.state].filter(Boolean).join(', ');
-  const contextPrice = detailValue(property, { label: priceLabel, path: pricePath, type: 'money' });
-  const propertyDetails: PropertyDetailItem[] = [
-    { label: 'Property Title', path: 'title' }, { label: 'Reference Number', path: 'referenceNumber' }, { label: 'Property Code', path: 'code' },
-    { label: 'Property Type', path: 'type' }, { label: 'Listing Type', value: listingType, type: 'status' }, { label: 'Property Status', path: 'status', type: 'status' },
-    { label: 'Visibility', path: 'visibility', type: 'status' }, { label: 'Publication Status', path: 'publicationStatus', type: 'status' },
-    { label: priceLabel, path: pricePath, type: 'money' }, { label: 'Display Price', path: 'price', type: 'money' }, { label: 'Security Deposit', path: 'pricing.securityDeposit', type: 'money' },
-    { label: 'Maintenance Charges', path: 'pricing.maintenanceCharge', type: 'money' }, { label: 'Price per sq. feet', path: 'pricing.pricePerUnitArea', type: 'money' }, { label: 'Tax', path: 'pricing.tax', type: 'money' },
-    { label: 'Country', path: 'address.country' }, { label: 'State / Province', path: 'address.state' }, { label: 'City', path: 'address.city' }, { label: 'Locality', path: 'address.locality' },
-    { label: 'Landmark', path: 'address.landmark' }, { label: 'PIN Code', path: 'address.postalCode' }, { label: 'Full Address', path: 'address.line1', full: true },
-    { label: 'Google Map Location', path: 'map.googleMapsLocation', full: true }, { label: 'Latitude', path: 'map.latitude' }, { label: 'Longitude', path: 'map.longitude' },
-    { label: 'Bedrooms', path: 'specifications.bedrooms' }, { label: 'Bathrooms', path: 'specifications.bathrooms' }, { label: 'Balconies', path: 'specifications.balconies' },
-    { label: 'Floor Number', path: 'specifications.floorNumber' }, { label: 'Kitchen Attached', path: 'specifications.kitchenAttached', type: 'boolean' }, { label: 'Area in sq. feet', path: 'specifications.builtUpAreaSqft' },
-    { label: 'Built-up Area', path: 'areas.builtUp' }, { label: 'Carpet Area', path: 'areas.carpet' }, { label: 'Property Age', path: 'specifications.propertyAge' },
-    { label: 'Furnishing Status', path: 'specifications.furnishingStatus', type: 'status' }, { label: 'Ownership Type', path: 'specifications.ownershipType', type: 'status' }, { label: 'Available From', path: 'specifications.availableFrom', type: 'date' },
-    { label: 'Car Parking Spaces', path: 'parking.carSpaces' }, { label: 'Two Wheeler Parking Spaces', path: 'parking.twoWheelerSpaces' }, { label: 'Visitor Parking', path: 'parking.visitorParking', type: 'boolean' },
-    { label: 'Property Description', path: 'description', full: true },
-    { label: 'Featured promotion', path: 'promotion.featured', type: 'boolean' }, { label: 'Top listing promotion', path: 'promotion.topListing', type: 'boolean' },
-    { label: 'Urgency promotion', path: 'promotion.urgentType', type: 'status' }, { label: 'Promotion starts', path: 'promotion.startsAt', type: 'date' }, { label: 'Promotion ends', path: 'promotion.endsAt', type: 'date' },
-  ];
-  const utilitiesAmenities: PropertyDetailItem[] = [
-    { label: 'Amenities', path: 'amenities', full: true }, { label: 'Water Supply', path: 'utilities.waterSupply' }, { label: 'Electricity Connection', path: 'utilities.electricityConnection' },
-    { label: 'Power Backup', path: 'utilities.powerBackup' }, { label: 'Internet Availability', path: 'utilities.internetAvailability', type: 'boolean' }, { label: 'Gas Connection', path: 'utilities.gasConnection', type: 'boolean' },
-    { label: 'Sewage Connection', path: 'utilities.sewageConnection', type: 'boolean' }, { label: 'Lift', path: 'amenityDetails.lift', type: 'boolean' }, { label: 'Security', path: 'amenityDetails.security', type: 'boolean' },
-    { label: 'CCTV', path: 'amenityDetails.cctv', type: 'boolean' }, { label: 'Gated Community', path: 'amenityDetails.gatedCommunity', type: 'boolean' }, { label: 'Garden', path: 'amenityDetails.garden', type: 'boolean' },
-    { label: 'Swimming Pool', path: 'amenityDetails.swimmingPool', type: 'boolean' }, { label: 'Gym', path: 'amenityDetails.gym', type: 'boolean' }, { label: 'Clubhouse', path: 'amenityDetails.clubhouse', type: 'boolean' },
-    { label: "Children's Play Area", path: 'amenityDetails.childrenPlayArea', type: 'boolean' }, { label: 'Jogging Track', path: 'amenityDetails.joggingTrack', type: 'boolean' }, { label: 'Community Hall', path: 'amenityDetails.communityHall', type: 'boolean' },
-    { label: 'Terrace', path: 'amenityDetails.terrace', type: 'boolean' }, { label: 'Balcony', path: 'amenityDetails.balcony', type: 'boolean' }, { label: 'Air Conditioning', path: 'amenityDetails.airConditioning', type: 'boolean' },
-    { label: 'Modular Kitchen', path: 'amenityDetails.modularKitchen', type: 'boolean' }, { label: 'Store Room', path: 'amenityDetails.storeRoom', type: 'boolean' }, { label: 'Servant Room', path: 'amenityDetails.servantRoom', type: 'boolean' },
-    { label: 'Wheelchair Access', path: 'amenityDetails.wheelchairAccess', type: 'boolean' }, { label: 'School', path: 'nearbyFacilities.school' }, { label: 'Hospital', path: 'nearbyFacilities.hospital' },
-    { label: 'Market', path: 'nearbyFacilities.market' }, { label: 'Bus Stop', path: 'nearbyFacilities.busStop' }, { label: 'Railway Station', path: 'nearbyFacilities.railwayStation' },
-    { label: 'Airport', path: 'nearbyFacilities.airport' }, { label: 'Shopping Mall', path: 'nearbyFacilities.shoppingMall' }, { label: 'Park', path: 'nearbyFacilities.park' },
-    { label: 'Bank', path: 'nearbyFacilities.bank' }, { label: 'Pharmacy', path: 'nearbyFacilities.pharmacy' },
-  ];
-  const legalDetails: PropertyDetailItem[] = [
-    { label: 'RERA Number', path: 'legalDetails.reraNumber' }, { label: 'Title Clear', path: 'legalDetails.titleClear', type: 'boolean' }, { label: 'Loan Approved', path: 'legalDetails.loanApproved', type: 'boolean' },
-    { label: 'Occupancy Certificate', path: 'legalDetails.occupancyCertificate', type: 'boolean' }, { label: 'Completion Certificate', path: 'legalDetails.completionCertificate', type: 'boolean' },
-    { label: 'Verified Property', path: 'isVerified', type: 'boolean' }, { label: 'Location Privacy', path: 'locationPrivacy', type: 'status' }, { label: 'Documents', path: 'documents', full: true },
-    { label: 'Created By', path: 'createdBy', type: 'user' }, { label: 'Updated By', path: 'updatedBy', type: 'user' }, { label: 'Created At', path: 'createdAt', type: 'date' }, { label: 'Updated At', path: 'updatedAt', type: 'date' },
-  ];
-  const mediaContacts: PropertyDetailItem[] = [
-    { label: 'Owner Name', path: 'contactInformation.ownerName' },
-    { label: 'Agent Name', path: 'contactInformation.agentName' }, { label: 'Phone Number', path: 'contactInformation.phoneNumber' }, { label: 'Email Address', path: 'contactInformation.emailAddress' },
-    { label: 'Preferred Contact Method', path: 'contactInformation.preferredContactMethod', type: 'status' }, { label: 'Owner Account', path: 'owner', type: 'user' }, { label: 'Manager Account', path: 'manager', type: 'user' },
-  ];
-  return <Stack spacing={0}>
-    {showContextBanner && <PropertyContextBanner
-      marker="property-details-context-v154"
-      title={property?.title || 'Property Details'}
-      description={property?.description || 'Complete property information grouped for quick review.'}
-      status={property?.status ? optionText(property.status) : undefined}
+  subscriptions: { singular:'Subscription', createRoles:[], editRoles:['admin'], deleteRoles:['admin'], statuses:['pending','active','expired','cancelled','past_due'], columns:[{path:'user',label:'User',type:'user'},{path:'plan',label:'Plan'},{path:'status',label:'Status',type:'status'},{path:'startedAt',label:'Started',type:'date'…14236 tokens truncated…ptionText(property.status) : undefined}
       visibility={property?.visibility ? optionText(property.visibility) : undefined}
       reference={property?.referenceNumber ? `Ref ${property.referenceNumber}` : undefined}
       location={contextLocation || undefined}
@@ -997,6 +378,10 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
   }
 
   function openRecord(row: any) {
+    if (module === 'applications' && row?._id) {
+      navigate(`/app/application_details/${encodeURIComponent(row._id)}`);
+      return;
+    }
     if (module === 'tenancies' && row?._id) {
       navigate(`/app/tenancy_details/${encodeURIComponent(row._id)}`);
       return;
@@ -1113,15 +498,19 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
       setError('Accept or reject is available only to the property landlord while the application is under review.');
       return;
     }
+    const rejectionReason = next === 'rejected'
+      ? await actions.askText('Add the reason that will be shared with the applicant.', { title: 'Rejection reason', label: 'Reason' })
+      : '';
+    if (next === 'rejected' && !String(rejectionReason || '').trim()) return;
     const confirmed = await actions.askConfirmation(
       next === 'approved'
         ? 'Accept this application? The matching rent, lease or sale agreement workflow will become available.'
-        : 'Reject this application? Accept and reject will no longer be available for this record.',
+        : `Reject this application and share the reason “${String(rejectionReason).trim()}”? Accept and reject will no longer be available for this record.`,
       { title: next === 'approved' ? 'Accept application' : 'Reject application', danger: next === 'rejected' },
     );
     if (!confirmed) return;
     try {
-      const result = await changeResourceStatus('applications', row._id, next);
+      const result = await decideRentalApplication(row._id, { status: next, ...(next === 'rejected' && { remarks: String(rejectionReason).trim() }) });
       setActionAnchor(null);
       setRows((current) => current.map((item) => item._id === row._id ? { ...item, ...(result.data || {}), status: next } : item));
       setDialog((current) => {
@@ -1503,8 +892,8 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
         })}
       </Stack>
     ) : mobile ? (
-      <Stack spacing={1.2} data-secureasset-property-mobile-list={module === 'properties' ? 'portfolio-v154' : undefined}>
-        {module === 'properties' ? rows.map((row) => <PropertyPortfolioCard
+      <Box data-secureasset-property-mobile-list={module === 'properties' ? 'portfolio-v154' : undefined} sx={module === 'properties' ? { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1 } : { display: 'flex', flexDirection: 'column', gap: 1.2 }}>
+        {module === 'properties' ? rows.map((row) => <PropertyPortfolioMobileCard
           key={row._id}
           row={row}
           onOpen={() => openRecord(row)}
@@ -1577,7 +966,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
           </CardContent>
         </Card>;
         })}
-      </Stack>
+      </Box>
     ) : (
       <TableContainer component={Paper} className="sa-surface-card" elevation={0} sx={{ overflow: 'hidden', borderRadius: 4 }}>
         <Table>
@@ -1666,7 +1055,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
       {module === 'properties' && actionRow && canEdit && <MenuItem onClick={() => void changeVisibility(actionRow)}>{actionRow.visibility === 'public' ? 'Make private' : 'Make public'}</MenuItem>}
       {module === 'properties' && actionRow && canEdit && (actionRow.purpose || actionRow.listingType) === 'rent' && <MenuItem sx={{ color: 'primary.main', fontWeight: 850 }} onClick={() => { setActionAnchor(null); navigate(`/app/my-listings/${encodeURIComponent(actionRow._id)}/rooms`); }}>Manage Rooms & Tenancy</MenuItem>}
       {module === 'applications' && actionRow && canDecideApplication(actionRow) && <><MenuItem sx={{ color: 'success.main', fontWeight: 850 }} onClick={() => { setActionAnchor(null); void decideApplication(actionRow, 'approved'); }}>Accept application</MenuItem><MenuItem sx={{ color: 'error.main', fontWeight: 850 }} onClick={() => { setActionAnchor(null); void decideApplication(actionRow, 'rejected'); }}>Reject application</MenuItem></>}
-      {module === 'applications' && actionRow && applicationAcceptedStatuses.includes(String(actionRow.status || '').toLowerCase()) && <MenuItem onClick={() => { setActionAnchor(null); openRecord(actionRow); }}>Open agreement workflow</MenuItem>}
+      {module === 'applications' && actionRow && applicationAcceptedStatuses.includes(String(actionRow.status || '').toLowerCase()) && <MenuItem onClick={() => { setActionAnchor(null); openRecord(actionRow); }}>View application details & agreement</MenuItem>}
       {config.statuses && canEdit && module !== 'subscriptions' && !isManagedRentalPayment(actionRow) && (module === 'applications' ? applicationStatusOptions(actionRow) : config.statuses).map((item) => <MenuItem key={item} onClick={() => changeStatus(item)}>{optionText(item)}</MenuItem>)}
       {canEdit && module !== 'subscriptions' && !isManagedRentalPayment(actionRow) && <MenuItem sx={{ color: '#D97706' }} onClick={() => { setActionAnchor(null); openDialog('edit', actionRow); }}>Edit</MenuItem>}
       {canDelete && <MenuItem sx={{ color: 'error.main' }} onClick={() => { setActionAnchor(null); remove(actionRow); }}><DeleteOutlineRounded fontSize="small" sx={{ mr: 1 }} />Delete</MenuItem>}
