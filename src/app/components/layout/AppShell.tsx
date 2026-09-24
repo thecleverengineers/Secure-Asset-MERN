@@ -210,6 +210,15 @@ const regularTenantPropertyMenu: MenuDef[] = [
 const regularTenantMenu: MenuDef[] = [...regularTenantWorkspaceMenu, ...regularTenantPropertyMenu, ...regularTenantFinanceMenu];
 
 const LANDLORD_FEATURE_MENU_KEYS = ['my-listings', 'applications', 'tenancies', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects'] as const;
+const LANDLORD_SUBSCRIBER_WORKSPACE: Array<Pick<MenuDef, 'key' | 'label' | 'path' | 'icon'>> = [
+  { key: 'dashboard', label: 'Dashboard', path: '/app/dashboard', icon: DashboardRounded },
+  { key: 'my-listings', label: 'My Listings', path: '/app/my-listings', icon: ApartmentRounded },
+  { key: 'applications', label: 'Tenant Applications', path: '/app/applications', icon: FactCheckRounded },
+  { key: 'tenancies', label: 'Tenancies', path: '/app/tenancies', icon: HomeWorkRounded },
+  { key: 'documents', label: 'Documents', path: '/app/documents', icon: FolderRounded },
+  { key: 'notifications', label: 'Notifications', path: '/app/notifications', icon: NotificationsRounded },
+  { key: 'profile', label: 'Profile & Settings', path: '/app/profile', icon: PersonRounded },
+];
 const LANDLORD_FEATURE_LABELS: Record<string, string> = {
   'my-listings': 'My Listings',
   applications: 'Tenant Applications',
@@ -310,6 +319,7 @@ export default function AppShell() {
   const [sidebarScroll, setSidebarScroll] = useState({ canScrollUp: false, canScrollDown: false });
   const userLandlordFeatures = tenantCapabilityEnabled(user, 'landlord');
   const userSurveyorFeatures = tenantCapabilityEnabled(user, 'surveyor');
+  const hasLandlordSubscription = Boolean(user?.role === 'tenant' && (tenantSubscription.landlord || userLandlordFeatures));
   const hasTenantSubscription = Boolean(user?.role === 'tenant' && (tenantSubscription.landlord || tenantSubscription.surveyor || userLandlordFeatures || userSurveyorFeatures));
   const isRegularTenant = user?.role === 'tenant' && !hasTenantSubscription;
   async function loadModules() {
@@ -368,10 +378,36 @@ export default function AppShell() {
     // The server remains authoritative for every API action and ownership check.
     if (userLandlordFeatures || tenantSubscription.landlord) {
       [...LANDLORD_FEATURE_MENU_KEYS].forEach((key) => {
-        const fallback = fallbackMenu.find((item) => item.key === key);
+        const fallback = fallbackMenu.find((item) => item.key === key) || items[key];
         const canonical = key === 'agreement-templates' ? items['agreement-templates'] : fallback;
         if (canonical && !source.has(key)) source.set(key, canonical);
       });
+    }
+    if (tenantSubscription.landlord || userLandlordFeatures) {
+      ['notifications', 'profile'].forEach((key) => {
+        if (!source.has(key) && items[key]) source.set(key, items[key]);
+      });
+      const landlordWorkspace = LANDLORD_SUBSCRIBER_WORKSPACE.reduce<MenuDef[]>((workspace, entry, index) => {
+        const configured = source.get(entry.key);
+        if (configured) workspace.push({
+          ...configured,
+          ...entry,
+          section: 'landlord_workspace',
+          sectionOrder: 1,
+          sortOrder: index * 10,
+          mobilePrimary: index < 5,
+          placement: 'sidebar' as const,
+        });
+        return workspace;
+      }, []);
+      if (tenantSubscription.surveyor || userSurveyorFeatures) {
+        const seen = new Set(landlordWorkspace.map((item) => item.key));
+        surveyorFeatureKeys.forEach((key) => {
+          const item = source.get(key);
+          if (item && !seen.has(key)) landlordWorkspace.push({ ...item, section: 'surveyor_features', sectionOrder: 2, sortOrder: landlordWorkspace.length * 10 });
+        });
+      }
+      return landlordWorkspace;
     }
     const result: MenuDef[] = regularTenantMenu.map((item) => source.get(item.key) || item);
     const seen = new Set(result.map((item) => item.key));
@@ -598,15 +634,24 @@ export default function AppShell() {
       <Box sx={{ p: collapsed && !isMobile ? 1 : 1.25, pt: 0 }}>
         <Button fullWidth onClick={() => navigate('/app/profile')} sx={{ justifyContent: collapsed && !isMobile ? 'center' : 'flex-start', px: 1.15, py: 1.05, color: 'text.primary', background: 'linear-gradient(135deg, rgba(10,96,122,.075), rgba(32,132,99,.055))', border: '1px solid', borderColor: 'rgba(10,96,122,.12)', '&:hover': { bgcolor: 'action.selected', borderColor: 'rgba(10,96,122,.24)' } }}>
           <Avatar src={user?.avatar} sx={{ width: 30, height: 30, mr: collapsed && !isMobile ? 0 : 1.05, bgcolor: 'primary.main', fontSize: 12, fontWeight: 800 }}>{user?.name?.[0]}</Avatar>
-          {(!collapsed || isMobile) && <Box sx={{ textAlign: 'left', overflow: 'hidden' }}><Typography noWrap sx={{ fontSize: 12.1, fontWeight: 800 }}>{user?.name}</Typography><Typography noWrap sx={{ fontSize: 10.2, color: 'text.secondary' }}>Account & preferences</Typography></Box>}
+          {(!collapsed || isMobile) && <Box sx={{ textAlign: 'left', overflow: 'hidden' }}><Typography noWrap sx={{ fontSize: 12.1, fontWeight: 800 }}>{user?.name}</Typography><Typography noWrap sx={{ fontSize: 10.2, color: 'text.secondary' }}>{hasLandlordSubscription ? 'Profile & Settings' : 'Account & preferences'}</Typography></Box>}
         </Button>
+        {hasLandlordSubscription && <Button fullWidth onClick={() => void handleLogout()} startIcon={!collapsed || isMobile ? <LogoutRounded fontSize="small" /> : undefined} aria-label="Log out" sx={{ mt: .65, justifyContent: collapsed && !isMobile ? 'center' : 'flex-start', minHeight: 38, px: 1.25, color: 'text.secondary', borderRadius: design.borders.navigationRadius, '&:hover': { color: 'error.main', bgcolor: 'rgba(193,62,62,.07)' } }}><Box component="span" sx={{ display: collapsed && !isMobile ? 'grid' : 'none', placeItems: 'center' }}><LogoutRounded fontSize="small" /></Box>{(!collapsed || isMobile) && 'Log out'}</Button>}
       </Box>
     </Box>
   );
 
   const width = collapsed ? collapsedWidth : drawerWidth;
   const mobilePropertyPath = menu.some((item) => item.key === 'properties') ? '/app/properties' : menu.some((item) => item.key === 'my-property') ? '/app/my-property' : menu.some((item) => item.key === 'marketplace') ? '/marketplace' : '/app/dashboard';
-  const mobileBottomItems = user?.role === 'tenant'
+  const mobileBottomItems = user?.role === 'tenant' && hasLandlordSubscription
+    ? [
+      { key: 'mobile-home', label: 'Home', path: '/app/dashboard', icon: HomeRounded },
+      { key: 'mobile-listings', label: 'Listings', path: '/app/my-listings', icon: ApartmentRounded },
+      { key: 'mobile-applications', label: 'Applications', path: '/app/applications', icon: FactCheckRounded },
+      { key: 'mobile-tenancies', label: 'Tenancies', path: '/app/tenancies', icon: HomeWorkRounded },
+      { key: 'mobile-profile', label: 'Account', path: '/app/profile', icon: PersonRounded },
+    ]
+    : user?.role === 'tenant'
     ? [
       { key: 'mobile-home', label: 'Home', path: '/app/dashboard', icon: HomeRounded },
       { key: 'mobile-explore', label: 'Explore', path: '/marketplace', icon: ExploreRounded },
@@ -620,7 +665,9 @@ export default function AppShell() {
       { key: 'mobile-property', label: 'Property', path: mobilePropertyPath, icon: ApartmentRounded },
       { key: 'mobile-account', label: 'Account', path: '/app/profile', icon: PersonRounded },
     ];
-  const mobileBottomValue = user?.role === 'tenant'
+  const mobileBottomValue = user?.role === 'tenant' && hasLandlordSubscription
+    ? location.pathname.startsWith('/app/my-listings') || location.pathname.startsWith('/app/property-details') ? 'mobile-listings' : location.pathname.startsWith('/app/applications') ? 'mobile-applications' : location.pathname.startsWith('/app/tenancies') ? 'mobile-tenancies' : location.pathname.startsWith('/app/profile') || location.pathname.startsWith('/app/documents') || location.pathname.startsWith('/app/notifications') || location.pathname.startsWith('/app/security') ? 'mobile-profile' : 'mobile-home'
+    : user?.role === 'tenant'
     ? location.pathname.startsWith('/app/documents') ? 'mobile-vault' : location.pathname.startsWith('/app/wishlist') ? 'mobile-wishlist' : location.pathname.startsWith('/marketplace') ? 'mobile-explore' : location.pathname.startsWith('/app/profile') ? 'mobile-profile' : 'mobile-home'
     : location.pathname.startsWith('/app/documents') ? 'mobile-vault' : location.pathname.startsWith('/app/property') || location.pathname.startsWith('/app/my-property') || location.pathname.startsWith('/marketplace') ? 'mobile-property' : location.pathname.startsWith('/app/profile') ? 'mobile-account' : 'mobile-home';
   const currentModule = menu.find((item) => isItemActive(item)) || menu.find((item) => item.key === currentKey);
@@ -652,7 +699,7 @@ export default function AppShell() {
           <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)} PaperProps={{ sx: { mt: 1, minWidth: 228, p: .5 } }}>
             <Box sx={{ px: 1.5, py: 1.15 }}><Typography sx={{ fontWeight: 850, fontSize: 13.2 }}>{user?.name}</Typography><Typography noWrap sx={{ color: 'text.secondary', fontSize: 11.3 }}>{user?.email}</Typography></Box>
             <Divider />
-            <MenuItem onClick={() => { setAnchor(null); navigate('/app/profile'); }}><PersonRounded fontSize="small" sx={{ mr: 1.2 }} />Profile</MenuItem>
+            <MenuItem onClick={() => { setAnchor(null); navigate('/app/profile'); }}><PersonRounded fontSize="small" sx={{ mr: 1.2 }} />{hasLandlordSubscription ? 'Profile & Settings' : 'Profile'}</MenuItem>
             <MenuItem onClick={() => { setAnchor(null); navigate('/app/security'); }}><SecurityRounded fontSize="small" sx={{ mr: 1.2 }} />Security</MenuItem>
             {['tenant', 'surveyor'].includes(String(user?.role || '')) && <>
               <Divider sx={{ my: .4 }} />

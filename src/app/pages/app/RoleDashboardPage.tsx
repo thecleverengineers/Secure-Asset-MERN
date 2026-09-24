@@ -19,14 +19,13 @@ import RouteRounded from '@mui/icons-material/RouteRounded';
 import CloudSyncRounded from '@mui/icons-material/CloudSyncRounded';
 import BusinessRounded from '@mui/icons-material/BusinessRounded';
 import BedRounded from '@mui/icons-material/BedRounded';
-import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded';
-import ReceiptLongRounded from '@mui/icons-material/ReceiptLongRounded';
 import HomeWorkRounded from '@mui/icons-material/HomeWorkRounded';
 import TrendingUpRounded from '@mui/icons-material/TrendingUpRounded';
 import ExploreRounded from '@mui/icons-material/ExploreRounded';
 import EngineeringRounded from '@mui/icons-material/EngineeringRounded';
 import RequestQuoteRounded from '@mui/icons-material/RequestQuoteRounded';
 import ArrowOutwardRounded from '@mui/icons-material/ArrowOutwardRounded';
+import NotificationsRounded from '@mui/icons-material/NotificationsRounded';
 import { useAuth } from '../../context/AuthContext';
 import {
   getDashboardOverview, getLandlordOverview, getMySubscription, getMySurveyorSubscription,
@@ -259,16 +258,19 @@ export default function RoleDashboardPage() {
     const usageCards = [
       ['buildings', 'Buildings', BusinessRounded], ['apartments', 'Apartments', ApartmentRounded], ['rooms', 'Rooms', MeetingRoomRounded], ['beds', 'Beds', BedRounded],
     ] as const;
-    const businessCards = [
-      ['occupiedRooms', 'Occupied', HomeWorkRounded], ['vacantRooms', 'Vacant', MeetingRoomRounded], ['reservedRooms', 'Reserved', ApartmentRounded], ['pendingApplications', 'Applications', FactCheckRounded],
-      ['scheduledInterviews', 'Interviews', PeopleRounded], ['scheduledSiteVisits', 'Site visits', CalendarMonthRounded], ['monthlyRentExpected', 'Rent expected', ReceiptLongRounded], ['rentCollected', 'Rent collected', PaymentsRounded], ['pendingRent', 'Pending rent', AccountBalanceWalletRounded], ['overdueRent', 'Overdue rent', BuildRounded],
+    const portfolioCards = [
+      ['Listings', Number(landlord.usage?.properties || 0), ApartmentRounded, 'Manage properties and visibility'],
+      ['Tenant applications', Number(landlord.kpis?.pendingApplications || 0), FactCheckRounded, 'Review booking requests'],
+      ['Active tenancies', Number(landlord.kpis?.activeTenancies || 0), HomeWorkRounded, 'Current tenant agreements'],
+      ['Rent due', money(Number(landlord.kpis?.pendingRent || 0)), AccountBalanceWalletRounded, 'Outstanding this month'],
     ] as const;
     const landlordQuickLinks = [
-      ['Property structure', 'Manage buildings, units and rooms.', '/app/property-management', ApartmentRounded],
-      ['Applications', 'Review applicant activity and decisions.', '/app/applications', FactCheckRounded],
-      ['Site visits', 'Plan and review property visits.', '/app/property-visits', CalendarMonthRounded],
-      ['Tenancies', 'Manage active tenancy records.', '/app/tenancies', HomeWorkRounded],
+      ['My Listings', 'Create properties, add rooms and manage visibility.', '/app/my-listings', ApartmentRounded],
+      ['Tenant Applications', 'Review booking requests and decisions.', '/app/applications', FactCheckRounded],
+      ['Tenancies', 'Review tenants, agreements and rent status.', '/app/tenancies', HomeWorkRounded],
+      ['Documents', 'Open property, agreement and vault documents.', '/app/documents', DescriptionRounded],
     ] as const;
+    const recentUpdates = safeRecordArray(landlord.recentUpdates);
     const expected = Number(landlord.kpis?.monthlyRentExpected || 0);
     const collected = Number(landlord.kpis?.rentCollected || 0);
     const collectionPercent = expected ? Math.min(100, (collected / expected) * 100) : 0;
@@ -292,17 +294,34 @@ export default function RoleDashboardPage() {
           return <Grid size={{ xs: 6, md: 3 }} key={key}><Card className="sa-surface-card" elevation={0} sx={{ height: '100%' }}><CardContent sx={{ p: 2.1, '&:last-child': { pb: 2.1 } }}><Stack direction="row" justifyContent="space-between" alignItems="flex-start"><Box><Typography color="text.secondary" sx={{ fontSize: 11.2, fontWeight: 780, textTransform: 'uppercase', letterSpacing: '.04em' }}>{label}</Typography><Typography sx={{ fontSize: 26, lineHeight: 1.1, fontWeight: 900, letterSpacing: '-.05em', mt: .5 }}>{used}<Typography component="span" color="text.secondary" sx={{ fontSize: 12, fontWeight: 650 }}> / {unlimited ? '∞' : limit}</Typography></Typography></Box><Box sx={{ width: 38, height: 38, display: 'grid', placeItems: 'center', borderRadius: 2.5, bgcolor: index % 2 ? 'rgba(35,128,98,.10)' : 'rgba(7,63,86,.10)', color: index % 2 ? 'success.main' : 'primary.main' }}><Icon fontSize="small" /></Box></Stack>{!unlimited && <LinearProgress variant="determinate" value={limit ? Math.min(100, (used / limit) * 100) : 0} sx={{ mt: 1.55, height: 6 }} />}<Typography color="text.secondary" sx={{ mt: 1, fontSize: 11 }}>{unlimited ? 'No plan limit' : `${Math.max(Number(landlord.remaining?.[key] || 0), 0)} remaining`}</Typography></CardContent></Card></Grid>;
         })}
       </Grid>
-      <Typography className="sa-page-kicker" sx={{ mb: 1 }}>Business pulse</Typography>
+      <Typography className="sa-page-kicker" sx={{ mb: 1 }}>Portfolio overview</Typography>
       <Grid container spacing={1.7}>
-        {businessCards.map(([key, label, Icon], index) => {
-          const raw = landlord.kpis?.[key] || 0;
-          const value = ['monthlyRentExpected', 'rentCollected', 'pendingRent', 'overdueRent'].includes(key) ? money(Number(raw)) : raw;
-          return <Grid size={{ xs: 6, md: 3 }} key={key}><MetricCard label={label} value={value} Icon={Icon} tone={index % 4 === 1 ? 'success' : index % 4 === 2 ? 'secondary' : index % 4 === 3 ? 'warning' : 'primary'} /></Grid>;
-        })}
+        {portfolioCards.map(([label, value, Icon, detail], index) => <Grid size={{ xs: 6, md: 3 }} key={label}><MetricCard label={label} value={value} Icon={Icon} detail={detail} tone={index === 2 ? 'success' : index === 3 ? 'warning' : index === 1 ? 'secondary' : 'primary'} /></Grid>)}
       </Grid>
       <DashboardQuickLinks links={landlordQuickLinks} navigate={navigate} />
       <Paper className="sa-surface-card" elevation={0} sx={{ mt: 2, p: { xs: 2, md: 2.5 } }}><Stack direction="row" justifyContent="space-between" alignItems="flex-start"><Box><Typography variant="h6">Collection health</Typography><Typography color="text.secondary" sx={{ mt: .35, fontSize: 12.5 }}>This month’s payment progress</Typography></Box><TrendingUpRounded color="success" /></Stack><Typography sx={{ mt: 2.5, fontSize: 28, fontWeight: 900, letterSpacing: '-.05em' }}>{money(collected)}</Typography><Typography color="text.secondary" sx={{ fontSize: 12 }}>{money(Math.max(expected - collected, 0))} still to collect</Typography><LinearProgress variant="determinate" value={collectionPercent} sx={{ mt: 1.6, height: 9 }} /><Stack direction="row" justifyContent="space-between" sx={{ mt: .8 }}><Typography color="text.secondary" sx={{ fontSize: 11.5 }}>{Math.round(collectionPercent)}% collected</Typography><Typography sx={{ fontSize: 11.5, fontWeight: 800 }}>{money(expected)} expected</Typography></Stack></Paper>
-      {user?.role === 'tenant' && <TenantEssentials navigate={navigate} />}
+      <Paper className="sa-surface-card" elevation={0} sx={{ mt: 2, p: { xs: 2, md: 2.5 } }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+          <Box><Typography className="sa-page-kicker">Activity</Typography><Typography variant="h6" sx={{ mt: .35 }}>Recent updates</Typography><Typography color="text.secondary" sx={{ mt: .25, fontSize: 12 }}>Applications, agreements, rent reminders and property activity.</Typography></Box>
+          <Button size="small" endIcon={<ArrowOutwardRounded />} onClick={() => navigate('/app/notifications')}>All notifications</Button>
+        </Stack>
+        <Stack divider={<Box sx={{ borderTop: '1px solid', borderColor: 'divider' }} />} sx={{ mt: 1.35 }}>
+          {recentUpdates.map((update, index) => {
+            const item = safeRecord(update);
+            const actionUrl = String(item.actionUrl || '');
+            const target = actionUrl.startsWith('/app/') ? actionUrl : '/app/notifications';
+            const createdAt = item.createdAt ? new Date(String(item.createdAt)) : null;
+            return <Button key={String(item._id || `${item.title || 'update'}-${index}`)} onClick={() => navigate(target)} sx={{ px: .5, py: 1.15, textAlign: 'left', justifyContent: 'flex-start', color: 'text.primary', textTransform: 'none', borderRadius: 1.5 }}>
+              <Stack direction="row" alignItems="center" gap={1.2} sx={{ width: '100%', minWidth: 0 }}>
+                <Box sx={{ width: 34, height: 34, flexShrink: 0, display: 'grid', placeItems: 'center', color: 'primary.main', bgcolor: 'rgba(7,63,86,.09)', borderRadius: 2 }}><NotificationsRounded fontSize="small" /></Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}><Typography noWrap sx={{ fontSize: 12.5, fontWeight: item.readAt ? 650 : 850 }}>{String(item.title || 'Property update')}</Typography><Typography noWrap color="text.secondary" sx={{ mt: .15, fontSize: 11 }}>{String(item.message || 'Open notifications to review this update.')}</Typography></Box>
+                <Typography color="text.secondary" sx={{ flexShrink: 0, fontSize: 10.5 }}>{createdAt && Number.isFinite(createdAt.getTime()) ? createdAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}</Typography>
+              </Stack>
+            </Button>;
+          })}
+          {!recentUpdates.length && <Stack direction="row" alignItems="center" gap={1.2} sx={{ py: 2 }}><Box sx={{ width: 34, height: 34, display: 'grid', placeItems: 'center', color: 'text.secondary', bgcolor: 'action.hover', borderRadius: 2 }}><NotificationsRounded fontSize="small" /></Box><Box><Typography sx={{ fontSize: 12.5, fontWeight: 750 }}>You’re all caught up</Typography><Typography color="text.secondary" sx={{ fontSize: 11 }}>New application and property updates will appear here.</Typography></Box></Stack>}
+        </Stack>
+      </Paper>
       {isSurveyor && surveyor && <SurveyorAnalyticsSection data={surveyor} navigate={navigate} />}
     </Box>;
   }

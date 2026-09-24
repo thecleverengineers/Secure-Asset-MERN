@@ -13,6 +13,7 @@ import FavoriteRounded from '@mui/icons-material/FavoriteRounded';
 import FolderRounded from '@mui/icons-material/FolderRounded';
 import GavelRounded from '@mui/icons-material/GavelRounded';
 import HomeWorkRounded from '@mui/icons-material/HomeWorkRounded';
+import KeyRounded from '@mui/icons-material/KeyRounded';
 import LocationOnRounded from '@mui/icons-material/LocationOnRounded';
 import MoreVertRounded from '@mui/icons-material/MoreVertRounded';
 import PaymentsRounded from '@mui/icons-material/PaymentsRounded';
@@ -47,6 +48,12 @@ function sameProfile(left: ProfileDraft, right: ProfileDraft) {
   return left.name === right.name && left.avatar === right.avatar && left.country === right.country && left.state === right.state && left.city === right.city;
 }
 
+function hasActiveCapability(user: any, capability: 'landlord' | 'surveyor') {
+  if (!user?.[`${capability}Enabled`]) return false;
+  const expiry = user?.[`${capability}SubscriptionExpiresAt`];
+  return !expiry || new Date(expiry).getTime() > Date.now();
+}
+
 type ProfileQuickAction = { label: string; detail: string; icon: any; path: string; tone: string };
 type KycChipColor = 'default' | 'success' | 'warning' | 'error';
 
@@ -60,8 +67,8 @@ function accountFeatureNames(user: any) {
   const role = String(user?.role || '').toLowerCase();
   const primary = role === 'tenant' ? 'Tenant' : role === 'landlord' ? 'Landlord' : role === 'surveyor' ? 'Surveyor' : role === 'admin' ? 'Administrator' : role === 'manager' ? 'Manager' : 'Member';
   names.push(primary);
-  if (user?.landlordEnabled && !names.includes('Landlord')) names.push('Landlord');
-  if (user?.surveyorEnabled && !names.includes('Surveyor')) names.push('Surveyor');
+  if (hasActiveCapability(user, 'landlord') && !names.includes('Landlord')) names.push('Landlord');
+  if (hasActiveCapability(user, 'surveyor') && !names.includes('Surveyor')) names.push('Surveyor');
   return names;
 }
 
@@ -99,7 +106,13 @@ function profileQuickActions(user: any): ProfileQuickAction[] {
   const role = String(user?.role || '').toLowerCase();
   if (role === 'surveyor') return [vault, ...surveyor];
   if (role === 'landlord') return [vault, ...landlord];
-  if (role === 'tenant') return [vault, ...tenant, ...(user?.landlordEnabled ? landlord : []), ...(user?.surveyorEnabled ? surveyor : [])];
+  if (role === 'tenant' && hasActiveCapability(user, 'landlord')) return [
+    { label: 'Vault Security', detail: 'Change 6-digit code', icon: KeyRounded, path: '/app/documents', tone: '#0B5270' },
+    { label: 'Security', detail: 'Account access', icon: VerifiedUserRounded, path: '/app/security', tone: '#506A8A' },
+    ...landlord,
+    ...(hasActiveCapability(user, 'surveyor') ? surveyor : []),
+  ];
+  if (role === 'tenant') return [vault, ...tenant, ...(hasActiveCapability(user, 'surveyor') ? surveyor : [])];
   return [vault, { label: 'Security', detail: 'Account access', icon: VerifiedUserRounded, path: '/app/security', tone: '#506A8A' }];
 }
 
@@ -131,8 +144,8 @@ export default function UtilityPage() {
   const profileDirty = useMemo(() => !sameProfile(profile, savedProfile), [profile, savedProfile]);
   const trimmedName = profile.name.trim().replace(/\s+/g, ' ');
   const profileNameError = trimmedName.length === 0 ? 'Enter your name.' : trimmedName.length < 2 ? 'Name must contain at least 2 characters.' : trimmedName.length > 120 ? 'Name must be 120 characters or fewer.' : '';
-  const accountFeatures = useMemo(() => accountFeatureNames(user), [user?._id, user?.role, user?.landlordEnabled, user?.surveyorEnabled]);
-  const quickActions = useMemo(() => profileQuickActions(user), [user?._id, user?.role, user?.landlordEnabled, user?.surveyorEnabled]);
+  const accountFeatures = useMemo(() => accountFeatureNames(user), [user?._id, user?.role, user?.landlordEnabled, user?.landlordSubscriptionExpiresAt, user?.surveyorEnabled, user?.surveyorSubscriptionExpiresAt]);
+  const quickActions = useMemo(() => profileQuickActions(user), [user?._id, user?.role, user?.landlordEnabled, user?.landlordSubscriptionExpiresAt, user?.surveyorEnabled, user?.surveyorSubscriptionExpiresAt]);
   const locationLabel = [profile.city, profile.state, profile.country].map((value) => value.trim()).filter(Boolean).join(' · ') || 'Location not added';
   const kycRouteAvailable = ['tenant', 'admin', 'manager'].includes(String(user?.role || '').toLowerCase());
 

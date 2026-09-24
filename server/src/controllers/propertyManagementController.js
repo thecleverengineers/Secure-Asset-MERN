@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import {
   User, Property, PropertySpace, PropertyMedia, Application, TenantKyc, TenantProfile, Occupant, TenantInterview, DriveFile, Document,
-  PropertyVisit, Tenancy, RentalInvoice, RentalUnit, RentCycle, UtilityReading, PropertyPromotion, AuditLog,
+  PropertyVisit, Tenancy, RentalInvoice, RentalUnit, RentCycle, UtilityReading, PropertyPromotion, AuditLog, Notification,
 } from '../models/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
@@ -243,7 +243,7 @@ export const getLandlordOverview = asyncHandler(async (req, res) => {
   if (!capabilityRolesForUser(req.user).includes('landlord')) throw new ApiError(403, 'An active Landlord subscription is required');
   const owner = req.user._id; const now = new Date(); const month = now.toISOString().slice(0, 7);
   const usageData = await usageWithLimits(owner);
-  const [occupiedRooms, vacantRooms, reservedRooms, applications, interviews, visits, invoices, promotions] = await Promise.all([
+  const [occupiedRooms, vacantRooms, reservedRooms, applications, interviews, visits, invoices, promotions, activeTenancies, recentUpdates] = await Promise.all([
     RentalUnit.countDocuments({ landlord: owner, availabilityStatus: 'OCCUPIED' }),
     RentalUnit.countDocuments({ landlord: owner, availabilityStatus: { $in: ['AVAILABLE', 'APPLICATION_PENDING'] } }),
     RentalUnit.countDocuments({ landlord: owner, availabilityStatus: { $in: ['RESERVED', 'AGREEMENT_PENDING', 'PAYMENT_PENDING'] } }),
@@ -252,11 +252,13 @@ export const getLandlordOverview = asyncHandler(async (req, res) => {
     PropertyVisit.countDocuments({ landlord: owner, status: { $in: ['requested', 'pending_approval', 'approved', 'rescheduled', 'confirmed'] } }),
     RentalInvoice.find({ landlord: owner, billingMonth: month }).lean(),
     Property.countDocuments({ owner, 'promotion.endsAt': { $gt: now }, $or: [{ 'promotion.featured': true }, { 'promotion.topListing': true }, { 'promotion.urgentType': { $ne: 'none' } }] }),
+    Tenancy.countDocuments({ landlord: owner, status: 'active' }),
+    Notification.find({ user: owner }).select('title message category actionUrl readAt createdAt').sort({ createdAt: -1 }).limit(5).lean(),
   ]);
   const expected = invoices.reduce((sum, item) => sum + Number(item.totalAmount || 0), 0);
   const collected = invoices.reduce((sum, item) => sum + Number(item.paidAmount || 0), 0);
   const overdue = invoices.filter((item) => item.status === 'overdue').reduce((sum, item) => sum + Number(item.balanceAmount || 0), 0);
-  res.json({ success: true, data: { ...usageData, kpis: { occupiedRooms, vacantRooms, reservedRooms, pendingApplications: applications, scheduledInterviews: interviews, scheduledSiteVisits: visits, monthlyRentExpected: expected, rentCollected: collected, pendingRent: Math.max(expected - collected, 0), overdueRent: overdue, activePromotions: promotions } } });
+  res.json({ success: true, data: { ...usageData, recentUpdates, kpis: { occupiedRooms, vacantRooms, reservedRooms, pendingApplications: applications, activeTenancies, scheduledInterviews: interviews, scheduledSiteVisits: visits, monthlyRentExpected: expected, rentCollected: collected, pendingRent: Math.max(expected - collected, 0), overdueRent: overdue, activePromotions: promotions } } });
 });
 
 export const submitTenantKyc = asyncHandler(async (req, res) => {
