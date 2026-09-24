@@ -12,8 +12,7 @@ test('active landlord subscriber tenants get the focused landlord workspace navi
     ['Tenant Applications', '/app/applications'],
     ['Tenancies', '/app/tenancies'],
     ['Documents', '/app/documents'],
-    ['Notifications', '/app/notifications'],
-    ['Profile & Settings', '/app/profile'],
+    ['Tenancy History', '/app/tenancy-history'],
   ]) {
     assert.ok(source.includes(`label: '${label}'`), `${label} is in the subscriber menu`);
     assert.ok(source.includes(`path: '${path}'`), `${label} has its canonical route`);

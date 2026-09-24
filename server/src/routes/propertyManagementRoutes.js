@@ -1,3 +1,4 @@
+import { listTenancyHistoryProperties, getPropertyTenancyHistory } from '../controllers/propertyTenancyHistoryController.js';
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { requireCapabilityPermission, requireFeaturePermission } from '../middleware/rolePermission.js';
@@ -25,6 +26,8 @@ import {
 } from '../controllers/rentalUnitController.js';
 const router = Router();
 router.use(authenticate);
+router.get('/tenancy-history/properties', requireCapabilityPermission('landlord', 'module:tenancy-history'), listTenancyHistoryProperties);
+router.get('/properties/:propertyId/tenancy-history', requireCapabilityPermission('landlord', 'module:tenancy-history'), getPropertyTenancyHistory);
 router.get('/landlord-overview', requireCapabilityPermission('landlord', 'module:property-management'), getLandlordOverview);
 // This router serves both landlord operations and tenant journeys. A single
 // landlord-only middleware here used to block tenant KYC and property

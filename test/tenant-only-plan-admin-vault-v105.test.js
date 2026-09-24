@@ -34,7 +34,7 @@ test('landlord and surveyor plan activation is tenant-only across UI and APIs', 
   const configuration = read('server/src/services/platformConfiguration.js');
 
   assert.match(shell, /TENANT_ONLY_ACTIVATION_KEYS = new Set\(\['subscription', 'surveyor-subscription'\]\)/);
-  assert.match(shell, /landlord: \['dashboard', 'my-listings', 'applications', 'tenants', 'tenancies', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects', 'documents', 'profile'\]/);
+  assert.match(shell, /landlord: \['dashboard', 'my-listings', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects', 'documents'\]/);
   assert.doesNotMatch(shell, /landlord: \['dashboard', 'subscription'/);
   assert.match(shell, /userSurveyorFeatures && <MenuItem/);
   assert.doesNotMatch(shell, /userSurveyorFeatures \|\| user\?\.role === 'surveyor'/);

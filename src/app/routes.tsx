@@ -35,6 +35,7 @@ const ManageRentalUnitsPage = lazyWithRetry(() => import('./pages/app/ManageRent
 const ViewRoomPage = lazyWithRetry(() => import('./pages/app/ViewRoomPage'));
 const RentalManagementAdminPage = lazyWithRetry(() => import('./pages/app/RentalManagementAdminPage'));
 const SurveyorProfileAdminPage = lazyWithRetry(() => import('./pages/app/SurveyorProfileAdminPage'));
+const TenancyHistoryPage = lazyWithRetry(() => import('./pages/app/TenancyHistoryPage'));
 const TenancyDetailsPage = lazyWithRetry(() => import('./pages/app/TenancyDetailsPage'));
 const ApplicationDetailsPage = lazyWithRetry(() => import('./pages/app/ApplicationDetailsPage'));
 
@@ -97,6 +98,7 @@ export const router = createBrowserRouter([
         { path: 'view_room/:unitId', Component: ViewRoomPage },
         { path: 'rental-management', Component: RentalManagementAdminPage },
         { path: 'surveyor-profiles/:id', Component: SurveyorProfileAdminPage },
+        { path: 'property_tenancy_history/:propertyId', Component: TenancyHistoryPage },
         { path: 'tenancy_details/:tenancyId', Component: TenancyDetailsPage },
         { path: 'application_details/:applicationId', Component: ApplicationDetailsPage },
         { path: 'notification', element: <Navigate to="/app/notifications" replace /> },

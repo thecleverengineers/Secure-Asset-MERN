@@ -15,9 +15,9 @@ const RETIRED_SURVEYOR_MODULE_KEYS = Object.freeze([
 const SURVEYOR_WORKFLOW_MODULE_KEYS = new Set(['surveyor-dashboard', 'survey-job-marketplace', 'survey-quotations', 'survey-projects', 'surveyor-profile', 'surveyor-verification']);
 const TENANT_ONLY_ACTIVATION_MODULE_KEYS = new Set(['subscription', 'surveyor-subscription']);
 const LANDLORD_SIDEBAR_KEYS = new Set([
-  'dashboard', 'my-listings', 'applications', 'tenants', 'tenancies', 'property-visits', 'rental-invoices',
+  'dashboard', 'my-listings', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices',
   'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects',
-  'documents', 'profile',
+  'documents',
 ]);
 const LANDLORD_RETIRED_SURVEY_MODULE_KEYS = new Set(['survey-jobs', 'survey-quotations']);
 

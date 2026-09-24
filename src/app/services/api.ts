@@ -853,6 +853,14 @@ export async function changeRentalUnitStatus(unitId: string, body: Record<string
 export async function applyRentalUnitPricing(propertyId: string, body: Record<string, any>) { return request<ApiResponse<Record<string, any>>>(`/property-management/properties/${encodeURIComponent(propertyId)}/rental-units/apply-pricing`, { method: 'POST', body: JSON.stringify(body) }); }
 export async function getPropertyOccupancy(propertyId: string) { return request<ApiResponse<Record<string, any>>>(`/property-management/properties/${encodeURIComponent(propertyId)}/occupancy`); }
 export async function getRentalUnitTenancyDetail(unitId: string) { return request<ApiResponse<Record<string, any>>>(`/property-management/rental-units/${encodeURIComponent(unitId)}/tenancy`); }
+export async function getTenancyHistoryProperties(params: Record<string, string | number>) {
+  const query = new URLSearchParams(Object.entries(params).map(([key, value]) => [key, String(value)]));
+  return request<{ success: boolean; data: Record<string, any>[]; pagination: { page: number; pages: number; total: number } }>('/property-management/tenancy-history/properties?' + query);
+}
+export async function getPropertyTenancyHistory(propertyId: string, params: Record<string, string | number>) {
+  const query = new URLSearchParams(Object.entries(params).map(([key, value]) => [key, String(value)]));
+  return request<ApiResponse<Record<string, any>>>('/property-management/properties/' + encodeURIComponent(propertyId) + '/tenancy-history?' + query);
+}
 export async function getTenancyDetails(tenancyId: string) { return request<ApiResponse<Record<string, any>>>(`/property-management/tenancies/${encodeURIComponent(tenancyId)}/details`); }
 export async function sendTenancyRentReminder(tenancyId: string, invoiceId: string) { return request<ApiResponse<Record<string, any>>>(`/property-management/tenancies/${encodeURIComponent(tenancyId)}/reminders`, { method: 'POST', body: JSON.stringify({ invoiceId }) }); }
 export async function recordTenancyPayment(tenancyId: string, body: Record<string, any>) { return request<ApiResponse<Record<string, any>>>(`/property-management/tenancies/${encodeURIComponent(tenancyId)}/payments`, { method: 'POST', body: JSON.stringify(body) }); }

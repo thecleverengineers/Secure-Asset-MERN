@@ -43,11 +43,13 @@ const SiteAdministrationPage = lazyWithRetry(() => import('./SiteAdministrationP
 const RentalManagementAdminPage = lazyWithRetry(() => import('./RentalManagementAdminPage'));
 const WishlistPage = lazyWithRetry(() => import('../WishlistPage'));
 
+const TenancyHistoryPage = lazyWithRetry(() => import('./TenancyHistoryPage'));
+
 const LANDLORD_PROPERTY_MODULES = new Set([
   'properties', 'my-listings', 'property-management', 'add_property', 'add-property', 'add-my-property',
   'public-my-properties', 'private-my-properties', 'draft-my-properties', 'pending-my-properties',
 ]);
-const LANDLORD_FEATURE_MODULES = new Set([...LANDLORD_PROPERTY_MODULES, 'agreement-templates', 'tenants']);
+const LANDLORD_FEATURE_MODULES = new Set([...LANDLORD_PROPERTY_MODULES, 'agreement-templates', 'tenants', 'tenancy-history']);
 const PROPERTY_DETAIL_ONLY_MODULES = new Set(['property-spaces', 'property-media', 'property-promotions']);
 const RETIRED_SURVEYOR_MODULES = new Set([
   'surveys', 'assigned-properties', 'pending-surveys', 'in-progress-surveys', 'completed-surveys', 'correction-required',
@@ -152,6 +154,7 @@ export default function ModulePage() {
   if (module === 'platform-modules' && user?.role === 'admin') return renderLazy(<NavigationManagementPage />);
   if (module === 'add_property' || module === 'add-property') return renderLazy(<AddPropertyPage />);
   if (module === 'my-listings' && hasLandlordFeatures) return renderLazy(<ResourcePage resourceOverride="properties" />);
+  if (module === 'tenancy-history' && hasLandlordFeatures) return renderLazy(<TenancyHistoryPage />);
   if (module === 'tenants' && hasLandlordFeatures) return renderLazy(<LandlordTenantsPage />);
   if (module === 'my-applications' && user?.role === 'tenant') return renderLazy(<ResourcePage resourceOverride="applications" tenantApplicationView />);
   if (module === 'property-management' && (user?.role === 'admin' || user?.role === 'manager' || hasLandlordFeatures)) return renderLazy(<PropertyManagementPage />);

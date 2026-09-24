@@ -105,11 +105,11 @@ function mediaIdFromSource(source: string) {
   return source.match(/\/(?:api\/v\d+\/)?property-media\/([a-f\d]{24})(?:\/content)?(?:[/?#]|$)/i)?.[1] || '';
 }
 
-function PropertyCardCover({ row, title, onEdit, onMore }: {
+export function PropertyCardCover({ row, title, onEdit, onMore }: {
   row: Record<string, any>;
   title: string;
   onEdit?: (event?: MouseEvent<HTMLButtonElement>) => void;
-  onMore: (event: MouseEvent<HTMLButtonElement>) => void;
+  onMore?: (event: MouseEvent<HTMLButtonElement>) => void;
 }) {
   const candidates = useMemo(() => propertyImageCandidates(row), [row]);
   const candidatesKey = useMemo(() => JSON.stringify(candidates), [candidates]);
@@ -172,13 +172,13 @@ function PropertyCardCover({ row, title, onEdit, onMore }: {
         onKeyDown={(event) => event.stopPropagation()}
         sx={{ width: { xs: 25, sm: 29 }, height: { xs: 25, sm: 29 }, color: '#0B5270', bgcolor: 'rgba(255,255,255,.94)', border: '1px solid rgba(11,82,112,.16)', boxShadow: '0 2px 7px rgba(20,45,55,.18)', '&:hover': { bgcolor: '#FFFFFF' } }}
       ><EditRounded sx={{ fontSize: { xs: 14, sm: 17 } }} /></IconButton>}
-      <IconButton
+      {onMore && <IconButton
         size="small"
         aria-label={`More actions for ${title}`}
         onClick={(event) => { event.stopPropagation(); onMore(event); }}
         onKeyDown={(event) => event.stopPropagation()}
         sx={{ width: { xs: 25, sm: 29 }, height: { xs: 25, sm: 29 }, color: '#0B5270', bgcolor: 'rgba(255,255,255,.94)', border: '1px solid rgba(11,82,112,.16)', boxShadow: '0 2px 7px rgba(20,45,55,.18)', '&:hover': { bgcolor: '#FFFFFF' } }}
-      ><MoreVertRounded sx={{ fontSize: { xs: 17, sm: 20 } }} /></IconButton>
+      ><MoreVertRounded sx={{ fontSize: { xs: 17, sm: 20 } }} /></IconButton>}
     </Stack>
   </Box>;
 }

@@ -68,7 +68,7 @@ import { getAppConfiguration, getMySubscription, getMySurveyorSubscription, getU
 import type { UserRole } from '../../services/types';
 import { useSite } from '../../context/SiteContext';
 import { useRealtime } from '../../context/RealtimeContext';
-import { normaliseDesignSystem } from '../../designSystem';
+import { normaliseDesignSystem, OPEN_SANS_FONT_FAMILY } from '../../designSystem';
 import { resolveIconComponent } from '../../iconResolver';
 import { safeRecordArray } from '../../utils/runtimeData';
 
@@ -94,6 +94,7 @@ const items: Record<string, MenuDef> = {
   'my-listings': { key: 'my-listings', label: 'My Listings', icon: ApartmentRounded },
   subscription: { key: 'subscription', label: 'Landlord Subscription', icon: WorkspacePremiumRounded },
   units: { key: 'units', label: 'Units', icon: MeetingRoomRounded },
+  'tenancy-history': { key: 'tenancy-history', label: 'Tenancy History', icon: HistoryRounded },
   tenants: { key: 'tenants', label: 'Tenants', icon: PeopleRounded },
   leases: { key: 'leases', label: 'Lease Management', icon: DescriptionRounded },
   surveys: { key: 'surveys', label: 'Surveys', icon: AssignmentRounded },
@@ -186,7 +187,7 @@ function tenantCapabilityEnabled(user: any, capability: 'landlord' | 'surveyor')
 const roleMenus: Record<UserRole, string[]> = {
   admin: ['dashboard', 'design-studio', 'role-permissions', 'subscription-payment-approvals', 'site-admin', 'site-enquiries', 'users', 'properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'reminder-rules', 'leases', 'surveys', 'applications', 'payments', 'complaints', 'approvals', 'surveyor-plans', 'surveyor-verifications', 'surveyor-profiles', 'survey-services', 'survey-jobs', 'survey-quotations', 'survey-projects', 'survey-reports', 'survey-disputes', 'survey-promotions', 'facilities', 'facility-bookings', 'documents', 'drive-admin', 'notifications', 'messages', 'reports', 'audit-logs', 'settings'],
   manager: ['dashboard', 'properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'applications', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'leases', 'surveys', 'payments', 'complaints', 'approvals', 'attendance', 'facilities', 'facility-bookings', 'documents', 'messages', 'notifications', 'reports'],
-  landlord: ['dashboard', 'my-listings', 'applications', 'tenants', 'tenancies', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects', 'documents', 'profile'],
+  landlord: ['dashboard', 'my-listings', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects', 'documents'],
   tenant: ['dashboard', 'marketplace', 'rent-properties', 'lease-properties', 'sale-properties', 'saved-properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'my-applications', 'property-visits', 'tenancies', 'subscription', 'surveyor-subscription', 'my-property', 'leases', 'complaints', 'documents', 'facilities', 'facility-bookings', 'messages', 'notifications', 'profile'],
   user: ['dashboard', 'marketplace', 'rent-properties', 'lease-properties', 'sale-properties', 'saved-properties', 'applications', 'payments', 'complaints', 'facilities', 'facility-bookings', 'documents', 'messages', 'notifications', 'profile'],
   surveyor: ['surveyor-dashboard', 'survey-job-marketplace', 'survey-quotations', 'survey-projects', 'surveyor-profile', 'surveyor-verification'],
@@ -209,21 +210,21 @@ const regularTenantPropertyMenu: MenuDef[] = [
 
 const regularTenantMenu: MenuDef[] = [...regularTenantWorkspaceMenu, ...regularTenantPropertyMenu, ...regularTenantFinanceMenu];
 
-const LANDLORD_FEATURE_MENU_KEYS = ['my-listings', 'applications', 'tenants', 'tenancies', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects'] as const;
+const LANDLORD_FEATURE_MENU_KEYS = ['my-listings', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects'] as const;
 const LANDLORD_SUBSCRIBER_WORKSPACE: Array<Pick<MenuDef, 'key' | 'label' | 'path' | 'icon'>> = [
   { key: 'dashboard', label: 'Dashboard', path: '/app/dashboard', icon: DashboardRounded },
   { key: 'my-listings', label: 'My Listings', path: '/app/my-listings', icon: ApartmentRounded },
   { key: 'applications', label: 'Tenant Applications', path: '/app/applications', icon: FactCheckRounded },
   { key: 'tenants', label: 'Manage Tenants', path: '/app/tenants', icon: PeopleRounded },
   { key: 'tenancies', label: 'Tenancies', path: '/app/tenancies', icon: HomeWorkRounded },
+  { key: 'tenancy-history', label: 'Tenancy History', path: '/app/tenancy-history', icon: HistoryRounded },
   { key: 'documents', label: 'Documents', path: '/app/documents', icon: FolderRounded },
-  { key: 'notifications', label: 'Notifications', path: '/app/notifications', icon: NotificationsRounded },
-  { key: 'profile', label: 'Profile & Settings', path: '/app/profile', icon: PersonRounded },
 ];
 const LANDLORD_FEATURE_LABELS: Record<string, string> = {
   'my-listings': 'My Listings',
   applications: 'Tenant Applications',
   tenants: 'Manage Tenants',
+  'tenancy-history': 'Tenancy History',
   tenancies: 'Active Tenancy',
   'property-visits': 'Manage Site Visit',
   'rental-invoices': 'Rent Management',
@@ -235,7 +236,7 @@ const LANDLORD_FEATURE_LABELS: Record<string, string> = {
   'active-projects': 'Active Projects',
 };
 const landlordFeatureKeys = new Set<string>(LANDLORD_FEATURE_MENU_KEYS);
-const landlordMenu = ['dashboard', ...LANDLORD_FEATURE_MENU_KEYS, 'documents', 'profile'];
+const landlordMenu = ['dashboard', ...LANDLORD_FEATURE_MENU_KEYS, 'documents'];
 // The PDF-defined Surveyor workflow has four operational destinations. Profile
 // and verification are the only supporting screens; navigation, chat, evidence,
 // reporting, audit and payment live inside the selected project.
@@ -432,11 +433,12 @@ export default function AppShell() {
     const source = user?.role === 'tenant' && hasTenantSubscription
       ? placeDocumentVaultAfterDashboard(tenantCapabilityMenu)
       : isRegularTenant ? regularTenantMenu : placeDocumentVaultAfterDashboard(designedMenu);
-    return placeDocumentVaultAfterDashboard(enforceRoleNavigation(source, user));
-  }, [designedMenu, hasTenantSubscription, isRegularTenant, tenantCapabilityMenu, user]);
+    const scoped = hasLandlordSubscription || user?.role === 'landlord' ? source.filter((item) => !['notifications', 'profile'].includes(item.key)) : source;
+    return placeDocumentVaultAfterDashboard(enforceRoleNavigation(scoped, user));
+  }, [designedMenu, hasLandlordSubscription, hasTenantSubscription, isRegularTenant, tenantCapabilityMenu, user]);
   const showTenantUpgrade = user?.role === 'tenant' && tenantSubscription.checked && !hasTenantSubscription;
   const pathParts = location.pathname.split('/').filter(Boolean);
-  const currentKey = pathParts[1] === 'property-details' ? 'my-listings' : pathParts[1] === 'survey-projects' ? 'survey-projects' : pathParts[1] === 'tenancy_details' ? 'tenancies' : pathParts.at(-1) || 'dashboard';
+  const currentKey = pathParts[1] === 'property_tenancy_history' ? 'tenancy-history' : pathParts[1] === 'property-details' ? 'my-listings' : pathParts[1] === 'survey-projects' ? 'survey-projects' : pathParts[1] === 'tenancy_details' ? 'tenancies' : pathParts.at(-1) || 'dashboard';
   const menuGroups = useMemo(() => {
     const groups = new Map<string, MenuDef[]>();
     for (const item of menu) {
@@ -460,6 +462,7 @@ export default function AppShell() {
     const normalizedTarget = targetPath === '/app' ? '/app/dashboard' : targetPath;
     if (normalizedTarget !== currentPath
       && !(item.key === 'my-listings' && location.pathname.startsWith('/app/property-details/'))
+      && !(item.key === 'tenancy-history' && location.pathname.startsWith('/app/property_tenancy_history/'))
       && !(item.key === 'tenancies' && location.pathname.startsWith('/app/tenancy_details/'))
       && !(item.key === 'survey-projects' && location.pathname.startsWith('/app/survey-projects/'))) return false;
     if (!targetSearch) return true;
@@ -730,7 +733,7 @@ export default function AppShell() {
         </DialogContent>
       </ProfessionalDialog>
 
-      <Drawer variant={isMobile ? 'temporary' : 'permanent'} open={isMobile ? mobileOpen : true} onClose={() => setMobileOpen(false)} ModalProps={{ keepMounted: true }} sx={{ '& .MuiDrawer-paper': { width: isMobile ? drawerWidth : width, boxSizing: 'border-box', borderRight: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', transition: 'width .2s', overflowX: 'hidden', boxShadow: isMobile ? '16px 0 48px rgba(7,46,59,.18)' : '6px 0 24px rgba(7,46,59,.045)' } }}>{drawerContent}</Drawer>
+      <Drawer variant={isMobile ? 'temporary' : 'permanent'} open={isMobile ? mobileOpen : true} onClose={() => setMobileOpen(false)} ModalProps={{ keepMounted: true }} sx={{ '& .MuiDrawer-paper': { fontFamily: OPEN_SANS_FONT_FAMILY, '& .MuiTypography-root, & .MuiButtonBase-root, & .MuiChip-label, & .MuiListItemText-primary, & .MuiListItemText-secondary': { fontFamily: `${OPEN_SANS_FONT_FAMILY} !important` }, width: isMobile ? drawerWidth : width, boxSizing: 'border-box', borderRight: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', transition: 'width .2s', overflowX: 'hidden', boxShadow: isMobile ? '16px 0 48px rgba(7,46,59,.18)' : '6px 0 24px rgba(7,46,59,.045)' } }}>{drawerContent}</Drawer>
 
       <Box component="main" id="sa-main-content" className="sa-reference-content" tabIndex={-1} sx={{ ml: { md: `${width}px` }, pt: `${design.layout.appBarHeight}px`, pb: { xs: 13, md: 6 }, minHeight: '100vh', transition: 'margin .2s', outline: 'none' }}>
         <Box className="sa-app-content" sx={{ pt: { xs: 2, md: 3 } }}>
