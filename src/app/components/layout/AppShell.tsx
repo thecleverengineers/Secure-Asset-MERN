@@ -319,8 +319,9 @@ export default function AppShell() {
   const [sidebarScroll, setSidebarScroll] = useState({ canScrollUp: false, canScrollDown: false });
   const userLandlordFeatures = tenantCapabilityEnabled(user, 'landlord');
   const userSurveyorFeatures = tenantCapabilityEnabled(user, 'surveyor');
-  const hasLandlordSubscription = Boolean(user?.role === 'tenant' && (tenantSubscription.landlord || userLandlordFeatures));
-  const hasTenantSubscription = Boolean(user?.role === 'tenant' && (tenantSubscription.landlord || tenantSubscription.surveyor || userLandlordFeatures || userSurveyorFeatures));
+  const hasLandlordSubscription = Boolean(user?.role === 'tenant' && (tenantSubscription.checked ? tenantSubscription.landlord : userLandlordFeatures));
+  const hasSurveyorSubscription = Boolean(user?.role === 'tenant' && (tenantSubscription.checked ? tenantSubscription.surveyor : userSurveyorFeatures));
+  const hasTenantSubscription = Boolean(user?.role === 'tenant' && (hasLandlordSubscription || hasSurveyorSubscription));
   const isRegularTenant = user?.role === 'tenant' && !hasTenantSubscription;
   async function loadModules() {
     try {
@@ -373,17 +374,18 @@ export default function AppShell() {
     // list; using `items[key]` here previously displayed routes that the
     // server correctly rejected with "Access denied".
     const source = new Map(designedMenu.map((item) => [item.key, item.key === 'agreement-templates' ? { ...item, label: 'Manage Templates', path: '/app/agreement-templates' } : item]));
+    if (!hasLandlordSubscription) [...LANDLORD_FEATURE_MENU_KEYS].forEach((key) => source.delete(key));
     // Keep only the requested landlord features available during the short
     // interval in which an older PlatformModule cache has not yet refreshed.
     // The server remains authoritative for every API action and ownership check.
-    if (userLandlordFeatures || tenantSubscription.landlord) {
+    if (hasLandlordSubscription) {
       [...LANDLORD_FEATURE_MENU_KEYS].forEach((key) => {
         const fallback = fallbackMenu.find((item) => item.key === key) || items[key];
         const canonical = key === 'agreement-templates' ? items['agreement-templates'] : fallback;
         if (canonical && !source.has(key)) source.set(key, canonical);
       });
     }
-    if (tenantSubscription.landlord || userLandlordFeatures) {
+    if (hasLandlordSubscription) {
       ['notifications', 'profile'].forEach((key) => {
         if (!source.has(key) && items[key]) source.set(key, items[key]);
       });
@@ -400,7 +402,7 @@ export default function AppShell() {
         });
         return workspace;
       }, []);
-      if (tenantSubscription.surveyor || userSurveyorFeatures) {
+      if (hasSurveyorSubscription) {
         const seen = new Set(landlordWorkspace.map((item) => item.key));
         surveyorFeatureKeys.forEach((key) => {
           const item = source.get(key);
@@ -420,10 +422,10 @@ export default function AppShell() {
         seen.add(key);
       });
     };
-    if (tenantSubscription.landlord || userLandlordFeatures) addSection([...landlordFeatureKeys], 'landlord_features', 300);
-    if (tenantSubscription.surveyor || userSurveyorFeatures) addSection([...surveyorFeatureKeys], 'surveyor_features', 310);
+    if (hasLandlordSubscription) addSection([...landlordFeatureKeys], 'landlord_features', 300);
+    if (hasSurveyorSubscription) addSection([...surveyorFeatureKeys], 'surveyor_features', 310);
     return result;
-  }, [appModules.length, designedMenu, hasTenantSubscription, tenantSubscription.landlord, tenantSubscription.surveyor, userLandlordFeatures, userSurveyorFeatures, user?.role]);
+  }, [appModules.length, designedMenu, hasLandlordSubscription, hasSurveyorSubscription, hasTenantSubscription, tenantSubscription.landlord, tenantSubscription.surveyor, user?.role]);
   const menu = useMemo(() => {
     const source = user?.role === 'tenant' && hasTenantSubscription
       ? placeDocumentVaultAfterDashboard(tenantCapabilityMenu)
@@ -571,7 +573,7 @@ export default function AppShell() {
             <Avatar src={user?.avatar} sx={{ width: 34, height: 34, bgcolor: 'primary.main', fontSize: 13, fontWeight: 800 }}>{user?.name?.[0]}</Avatar>
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 850 }}>{user?.name || 'SecureAsset user'}</Typography>
-              <Typography noWrap sx={{ fontSize: 10.5, color: 'text.secondary' }}>{user?.role === 'tenant' ? `Tenant${userLandlordFeatures || tenantSubscription.landlord ? ' · Landlord features' : ''}${userSurveyorFeatures || tenantSubscription.surveyor ? ' · Surveyor features' : ''}` : `${user?.role || 'member'} workspace`}</Typography>
+              <Typography noWrap sx={{ fontSize: 10.5, color: 'text.secondary' }}>{user?.role === 'tenant' ? `Tenant${hasLandlordSubscription ? ' · Landlord features' : ''}${hasSurveyorSubscription ? ' · Surveyor features' : ''}` : `${user?.role || 'member'} workspace`}</Typography>
             </Box>
             <Box sx={{ width: 7, height: 7, borderRadius: 99, bgcolor: 'success.main', boxShadow: '0 0 0 3px rgba(35,128,98,.12)' }} />
           </Stack>
@@ -672,7 +674,7 @@ export default function AppShell() {
     : location.pathname.startsWith('/app/documents') ? 'mobile-vault' : location.pathname.startsWith('/app/property') || location.pathname.startsWith('/app/my-property') || location.pathname.startsWith('/marketplace') ? 'mobile-property' : location.pathname.startsWith('/app/profile') ? 'mobile-account' : 'mobile-home';
   const currentModule = menu.find((item) => isItemActive(item)) || menu.find((item) => item.key === currentKey);
   const pageTitle = currentModule?.label || moduleLabel(currentKey);
-  const canAddProperty = ['admin', 'manager', 'landlord'].includes(String(user?.role)) || userLandlordFeatures || tenantSubscription.landlord;
+  const canAddProperty = ['admin', 'manager', 'landlord'].includes(String(user?.role)) || hasLandlordSubscription;
   const showAddProperty = canAddProperty && ['dashboard', 'properties', 'my-listings', 'property-management'].includes(currentKey);
   const submitGlobalSearch = () => {
     const query = globalQuery.trim();

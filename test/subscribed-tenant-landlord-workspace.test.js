@@ -18,6 +18,7 @@ test('active landlord subscriber tenants get the focused landlord workspace navi
     assert.ok(source.includes(`label: '${label}'`), `${label} is in the subscriber menu`);
     assert.ok(source.includes(`path: '${path}'`), `${label} has its canonical route`);
   }
+  assert.match(source, /tenantSubscription\.checked \? tenantSubscription\.landlord : userLandlordFeatures/);
   assert.match(source, /hasLandlordSubscription[\s\S]*?Log out/);
 });
 
