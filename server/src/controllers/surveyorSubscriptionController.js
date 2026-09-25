@@ -454,21 +454,105 @@ export const submitVerification = asyncHandler(async (req, res) => {
   res.json({ success: true, data: safe, message: 'Verification submitted for review' });
 });
 
+async function publishApprovedSurveyorProfile(verification, reviewerId) {
+  const user = await User.findById(verification.user).select('name email phone status role').lean();
+  if (!user || user.status !== 'active') throw new ApiError(409, 'Surveyor account is not active');
+
+  let profile = await SurveyorProfile.findOne({ user: verification.user });
+  const name = String(verification.legalName || profile?.name || user.name || 'Verified Surveyor').trim();
+
+  if (!profile) {
+    profile = new SurveyorProfile({
+      user: verification.user,
+      name,
+      publicSlug: `${safeSlug(name)}-${String(verification.user).slice(-6)}`,
+      createdBy: reviewerId,
+    });
+  }
+
+  profile.name ||= name;
+  profile.profilePhoto ||= verification.profilePhoto || '';
+  profile.professionalTitle ||= verification.occupation || 'Verified Surveyor';
+  profile.description ||= verification.professionalDescription || 'Verified survey professional.';
+  if (profile.yearsExperience === undefined || profile.yearsExperience === null) {
+    profile.yearsExperience = verification.yearsExperience;
+  }
+
+  if (!Array.isArray(profile.serviceLocations) || !profile.serviceLocations.length) {
+    const city = String(verification.address?.city || verification.serviceArea || '').trim();
+    const state = String(verification.address?.state || '').trim();
+    if (city || state) profile.serviceLocations = [{ city, state, radiusKm: 50 }];
+  }
+
+  profile.officeAddress = {
+    ...(profile.officeAddress?.toObject?.() || profile.officeAddress || {}),
+    line1: profile.officeAddress?.line1 || verification.address?.line1 || '',
+    city: profile.officeAddress?.city || verification.address?.city || '',
+    state: profile.officeAddress?.state || verification.address?.state || '',
+    country: profile.officeAddress?.country || verification.address?.country || 'India',
+    postalCode: profile.officeAddress?.postalCode || verification.address?.postalCode || '',
+  };
+  profile.publicContact = {
+    ...(profile.publicContact?.toObject?.() || profile.publicContact || {}),
+    phone: profile.publicContact?.phone || verification.phone || user.phone || '',
+    email: profile.publicContact?.email || verification.email || user.email || '',
+  };
+
+  profile.visibility = 'public';
+  profile.publicationStatus = 'published';
+  profile.verificationStatus = 'verified';
+  profile.updatedBy = reviewerId;
+  await profile.save({ validateModifiedOnly: true });
+  return profile;
+}
+
 export const reviewVerification = asyncHandler(async (req, res) => {
   if (req.user.role !== 'admin') throw new ApiError(403, 'Admin access required');
   const status = String(req.body.status || '');
   if (!['under_review', 'changes_required', 'verified', 'rejected', 'suspended', 'expired'].includes(status)) throw new ApiError(422, 'Invalid verification status');
   const verification = await SurveyorVerification.findById(req.params.id);
   if (!verification) throw new ApiError(404, 'Verification not found');
+
+  // A Surveyor can be approved for the public directory only while their
+  // Surveyor subscription is active. Check this before changing verification
+  // state so "verified" can never be stored without a publishable entitlement.
+  if (status === 'verified') await getActiveSurveyorSubscription(verification.user);
+
   const previous = verification.toObject();
-  verification.status = status; verification.reviewer = req.user._id; verification.reviewerNotes = req.body.notes; verification.rejectionReason = req.body.rejectionReason; verification.suspensionReason = req.body.suspensionReason; verification.reviewedAt = new Date();
+  verification.status = status;
+  verification.reviewer = req.user._id;
+  verification.reviewerNotes = req.body.notes;
+  verification.rejectionReason = req.body.rejectionReason;
+  verification.suspensionReason = req.body.suspensionReason;
+  verification.reviewedAt = new Date();
   if (status === 'verified') verification.verifiedAt = new Date();
   await verification.save();
-  const profileStatus = status === 'verified' ? 'verified' : status === 'under_review' ? 'pending' : status;
-  await SurveyorProfile.updateOne({ user: verification.user }, { verificationStatus: profileStatus, ...(status !== 'verified' && { publicationStatus: 'paused' }) });
-  if (status === 'suspended') await SurveyService.updateMany({ surveyor: verification.user, visibility: 'public' }, { status: 'unpublished' });
+
+  if (status === 'verified') {
+    await publishApprovedSurveyorProfile(verification, req.user._id);
+  } else {
+    const profileStatus = ['under_review', 'changes_required'].includes(status) ? 'pending' : status;
+    await SurveyorProfile.updateOne(
+      { user: verification.user },
+      { $set: { verificationStatus: profileStatus, publicationStatus: 'paused', visibility: 'private', updatedBy: req.user._id } },
+    );
+  }
+
+  if (['rejected', 'suspended', 'expired'].includes(status)) {
+    await SurveyService.updateMany(
+      { surveyor: verification.user, visibility: 'public' },
+      { $set: { status: 'unpublished' } },
+    );
+  }
+
   await writeLog(req, `surveyor-verification:${status}`, 'surveyor-verifications', verification, previous);
-  res.json({ success: true, data: verification });
+  res.json({
+    success: true,
+    data: verification,
+    message: status === 'verified'
+      ? 'Surveyor approved and published in the public directory'
+      : 'Surveyor verification updated',
+  });
 });
 
 export const createOrUpdateProfile = asyncHandler(async (req, res) => {
