@@ -13,8 +13,16 @@ test('subscription payment workflow is server verified and admin approvable', ()
 
   assert.match(razorpay, /createRazorpayOrder/);
   assert.match(razorpay, /createHmac\('sha256'/);
+  assert.match(razorpay, /verifyRazorpayWebhookSignature/);
+  assert.match(razorpay, /fetchRazorpayPayment/);
+  assert.match(razorpay, /RAZORPAY_WEBHOOK_SECRET/);
   assert.match(razorpay, /authorizationEncrypted/);
   assert.match(controller, /applyPaidPayment/);
+  assert.match(controller, /razorpaySubscriptionWebhook/);
+  assert.match(controller, /payment\.captured/);
+  assert.match(controller, /order\.paid/);
+  assert.match(controller, /payment\.failed/);
+  assert.match(controller, /Razorpay payment amount does not match/);
   assert.match(controller, /approveManualSubscriptionPayment/);
   assert.match(controller, /approveManualSubscriptionOrder/);
   assert.match(controller, /gateway\.subscriptionId/);
@@ -28,6 +36,10 @@ test('subscription payment workflow is server verified and admin approvable', ()
   assert.match(routes, /router\.post\('\/admin\/:id\/approve'/);
   assert.match(routes, /router\.post\('\/admin\/subscription\/:id\/approve'/);
   assert.match(routes, /router\.post\('\/razorpay\/verify'/);
+  const app = read('server/src/app.js');
+  assert.match(app, /subscription-payments\/razorpay\/webhook/);
+  assert.match(app, /express\.raw/);
+  assert.ok(app.indexOf('subscription-payments/razorpay/webhook') < app.indexOf("express.json({ limit: '2mb' })"));
   assert.match(admin, /updateRazorpaySettings/);
 });
 

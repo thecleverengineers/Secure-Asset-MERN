@@ -2,7 +2,14 @@ import { AuditLog, DriveFile, Payment, Subscription, SurveyorSubscription } from
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
 import { applyPaidPayment } from '../services/paymentLifecycle.js';
-import { createRazorpayOrder, publicRazorpayConfig, verifyRazorpaySignature } from '../services/razorpay.js';
+import {
+  createRazorpayOrder,
+  fetchRazorpayPayment,
+  publicRazorpayConfig,
+  razorpayWebhookEventKey,
+  verifyRazorpaySignature,
+  verifyRazorpayWebhookSignature,
+} from '../services/razorpay.js';
 import { sendStoredFile } from '../utils/httpFile.js';
 import { syncTenantEntitlements } from '../services/tenantEntitlements.js';
 
@@ -36,6 +43,52 @@ async function resolveSubscriptionOrderPayment(subscription, type) {
   });
 }
 
+function assertCapturedSubscriptionPayment(localPayment, remotePayment, orderId, paymentId) {
+  const expectedAmount = Math.round(Number(localPayment.amount || 0) * 100);
+  const remoteAmount = Number(remotePayment?.amount);
+  if (!remotePayment || String(remotePayment.id || '') !== String(paymentId || '')) throw new ApiError(409, 'Razorpay payment identity mismatch');
+  if (String(remotePayment.order_id || '') !== String(orderId || '')) throw new ApiError(409, 'Razorpay order does not match the subscription payment');
+  if (remotePayment.status !== 'captured' && remotePayment.captured !== true) throw new ApiError(409, 'Razorpay payment is not captured yet');
+  if (!Number.isFinite(remoteAmount) || remoteAmount !== expectedAmount) throw new ApiError(409, 'Razorpay payment amount does not match the subscription order');
+  if (String(remotePayment.currency || 'INR').toUpperCase() !== 'INR') throw new ApiError(409, 'Unexpected Razorpay payment currency');
+}
+
+async function applyVerifiedRazorpayPayment(payment, { orderId, paymentId, source, eventKey, req }) {
+  const remotePayment = await fetchRazorpayPayment(paymentId);
+  assertCapturedSubscriptionPayment(payment, remotePayment, orderId, paymentId);
+  const now = new Date();
+  const previousEvents = Array.isArray(payment.gateway?.webhookEventIds) ? payment.gateway.webhookEventIds : [];
+  const webhookEventIds = eventKey ? [...new Set([...previousEvents, eventKey])].slice(-40) : previousEvents;
+  payment.status = 'paid';
+  payment.paidAmount = payment.amount;
+  payment.paidAt = payment.paidAt || now;
+  payment.method = 'gateway';
+  payment.transactionId = String(paymentId);
+  payment.gateway = {
+    ...(payment.gateway || {}),
+    provider: 'razorpay',
+    paymentId: String(paymentId),
+    orderId: String(orderId),
+    capturedAt: remotePayment.captured_at ? new Date(Number(remotePayment.captured_at) * 1000) : (payment.gateway?.capturedAt || now),
+    remoteVerifiedAt: now,
+    ...(source === 'checkout' ? { signatureVerifiedAt: now } : {}),
+    ...(source === 'webhook' ? {
+      webhookVerifiedAt: now,
+      webhookLastReceivedAt: now,
+      webhookLastEvent: req?.bodyEvent || 'payment.captured',
+      webhookEventIds,
+    } : {}),
+  };
+  await payment.save({ validateModifiedOnly: true });
+  await applyPaidPayment(payment, {
+    userId: source === 'checkout' ? req?.user?._id : payment.payer,
+    role: source === 'checkout' ? req?.user?.role : 'system',
+    ip: req?.ip,
+    device: source === 'checkout' ? req?.get?.('user-agent') : 'razorpay-webhook',
+  });
+  return payment;
+}
+
 export const paymentConfiguration = asyncHandler(async (_req, res) => res.json({ success: true, data: await publicRazorpayConfig() }));
 
 async function assertApprovedUpiProof(payment) {
@@ -51,16 +104,103 @@ async function assertApprovedUpiProof(payment) {
 export const verifyRazorpaySubscriptionPayment = asyncHandler(async (req, res) => {
   const { orderId, paymentId, signature } = req.body || {};
   if (!orderId || !paymentId || !signature) throw new ApiError(422, 'Razorpay payment details are incomplete');
-  const payment = await Payment.findOne({ payer: req.user._id, type: { $in: ['landlord_subscription', 'surveyor_subscription'] }, status: { $in: ['pending', 'paid'] }, 'gateway.orderId': String(orderId) });
+  const payment = await Payment.findOne({
+    payer: req.user._id,
+    type: { $in: ['landlord_subscription', 'surveyor_subscription'] },
+    status: { $in: ['pending', 'paid'] },
+    'gateway.orderId': String(orderId),
+  });
   if (!payment) throw new ApiError(404, 'Subscription payment order not found');
-  if (payment.status === 'paid') {
-    if (!payment.gateway?.lifecycleAppliedAt) await applyPaidPayment(payment, { userId: req.user._id, role: req.user.role, ip: req.ip, device: req.get('user-agent') });
+  if (payment.status === 'paid' && payment.gateway?.lifecycleAppliedAt) {
     return res.json({ success: true, data: payment, message: 'Payment already verified' });
   }
   if (!await verifyRazorpaySignature(orderId, paymentId, signature)) throw new ApiError(422, 'Razorpay signature verification failed');
-  payment.status = 'paid'; payment.paidAmount = payment.amount; payment.paidAt = new Date(); payment.method = 'gateway'; payment.transactionId = String(paymentId); payment.gateway = { ...(payment.gateway || {}), provider: 'razorpay', paymentId, signatureVerifiedAt: new Date() }; payment.updatedBy = req.user._id;
-  await payment.save(); await applyPaidPayment(payment, { userId: req.user._id, role: req.user.role, ip: req.ip, device: req.get('user-agent') });
-  res.json({ success: true, data: payment, message: 'Payment verified and subscription activated' });
+  await applyVerifiedRazorpayPayment(payment, { orderId, paymentId, source: 'checkout', req });
+  res.json({ success: true, data: payment, message: 'Payment verified, captured and subscription activated' });
+});
+
+export const razorpaySubscriptionWebhook = asyncHandler(async (req, res) => {
+  const rawBody = req.body;
+  if (!Buffer.isBuffer(rawBody)) throw new ApiError(400, 'Razorpay webhook requires the raw request body');
+  const signature = String(req.get('x-razorpay-signature') || '').trim();
+  if (!signature) throw new ApiError(401, 'Missing Razorpay webhook signature');
+  if (!await verifyRazorpayWebhookSignature(rawBody, signature)) throw new ApiError(401, 'Invalid Razorpay webhook signature');
+
+  let event;
+  try { event = JSON.parse(rawBody.toString('utf8')); } catch { throw new ApiError(400, 'Invalid Razorpay webhook payload'); }
+  const eventName = String(event?.event || '').trim();
+  const eventKey = razorpayWebhookEventKey(rawBody, signature, req.get('x-razorpay-event-id'));
+  const paymentEntity = event?.payload?.payment?.entity || null;
+  const orderEntity = event?.payload?.order?.entity || null;
+
+  if (!['payment.captured', 'order.paid', 'payment.failed'].includes(eventName)) {
+    return res.json({ success: true, ignored: true, event: eventName || 'unknown' });
+  }
+
+  const orderId = String(paymentEntity?.order_id || orderEntity?.id || '').trim();
+  const paymentId = String(paymentEntity?.id || '').trim();
+  if (!orderId) return res.json({ success: true, ignored: true, event: eventName, reason: 'No order id in event' });
+
+  const payment = await Payment.findOne({
+    type: { $in: ['landlord_subscription', 'surveyor_subscription'] },
+    'gateway.orderId': orderId,
+  });
+  if (!payment) return res.json({ success: true, ignored: true, event: eventName, reason: 'Order is not a SecureAsset subscription payment' });
+
+  const previousEvents = Array.isArray(payment.gateway?.webhookEventIds) ? payment.gateway.webhookEventIds : [];
+  if (previousEvents.includes(eventKey)) {
+    return res.json({ success: true, duplicate: true, event: eventName });
+  }
+
+  if (eventName === 'payment.failed') {
+    payment.gateway = {
+      ...(payment.gateway || {}),
+      webhookEventIds: [...new Set([...previousEvents, eventKey])].slice(-40),
+      webhookLastReceivedAt: new Date(),
+      webhookLastEvent: eventName,
+      lastFailure: {
+        paymentId: paymentId || undefined,
+        code: paymentEntity?.error_code,
+        description: paymentEntity?.error_description,
+        reason: paymentEntity?.error_reason,
+        at: new Date(),
+      },
+    };
+    await payment.save({ validateModifiedOnly: true });
+    return res.json({ success: true, recorded: true, event: eventName });
+  }
+
+  if (!paymentId) return res.json({ success: true, ignored: true, event: eventName, reason: 'No payment id in event' });
+
+  if (payment.status === 'paid' && payment.transactionId === paymentId && payment.gateway?.lifecycleAppliedAt) {
+    payment.gateway = {
+      ...(payment.gateway || {}),
+      webhookEventIds: [...new Set([...previousEvents, eventKey])].slice(-40),
+      webhookLastReceivedAt: new Date(),
+      webhookLastEvent: eventName,
+      webhookVerifiedAt: new Date(),
+    };
+    await payment.save({ validateModifiedOnly: true });
+    return res.json({ success: true, duplicate: true, event: eventName, message: 'Subscription payment was already applied' });
+  }
+
+  req.bodyEvent = eventName;
+  await applyVerifiedRazorpayPayment(payment, { orderId, paymentId, source: 'webhook', eventKey, req });
+  await AuditLog.findOneAndUpdate(
+    { action: 'subscription:razorpay-webhook-applied', module: 'subscriptions', recordId: payment._id, 'updatedValue.eventKey': eventKey },
+    { $setOnInsert: {
+      user: payment.payer,
+      role: 'system',
+      action: 'subscription:razorpay-webhook-applied',
+      module: 'subscriptions',
+      recordId: payment._id,
+      updatedValue: { event: eventName, eventKey, orderId, paymentId, amount: payment.amount },
+      ip: req.ip,
+      device: 'razorpay-webhook',
+    } },
+    { upsert: true, new: true },
+  );
+  res.json({ success: true, applied: true, event: eventName });
 });
 
 export const createRazorpaySubscriptionOrder = asyncHandler(async (req, res) => {

@@ -21,6 +21,7 @@ import subscriptionRoutes from './routes/subscriptionRoutes.js';
 import surveyorSubscriptionRoutes from './routes/surveyorSubscriptionRoutes.js';
 import surveyWorkflowRoutes from './routes/surveyWorkflowRoutes.js';
 import subscriptionPaymentRoutes from './routes/subscriptionPaymentRoutes.js';
+import { razorpaySubscriptionWebhook } from './controllers/subscriptionPaymentController.js';
 import driveRoutes from './routes/driveRoutes.js';
 import drivePublicRoutes from './routes/drivePublicRoutes.js';
 import siteRoutes from './routes/siteRoutes.js';
@@ -67,6 +68,14 @@ export function createApp() {
   }));
   app.use(cors({ origin(origin, cb) { const allowed = env.CLIENT_ORIGINS; if (!origin || allowed.includes(origin)) cb(null, true); else cb(new Error('Origin not allowed')); }, credentials: true }));
   app.use(compression());
+  // Razorpay signs the exact raw request body. Mount this endpoint before the
+  // JSON parser, authentication and CSRF middleware so signature verification
+  // remains valid for server-to-server webhook delivery.
+  app.post(
+    '/api/v1/subscription-payments/razorpay/webhook',
+    express.raw({ type: 'application/json', limit: '1mb' }),
+    razorpaySubscriptionWebhook,
+  );
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
   app.use(rejectUnsafeObjectKeys);

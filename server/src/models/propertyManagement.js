@@ -502,6 +502,7 @@ const IntegrationSettingSchema = new Schema({
   publicConfig: { type: Schema.Types.Mixed, default: {} },
   secureConfig: {
     authorizationEncrypted: { type: String, select: false },
+    webhookSecretEncrypted: { type: String, select: false },
   },
   envRequirements: [String],
   lastCheckedAt: Date,

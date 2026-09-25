@@ -109,6 +109,9 @@ export const env = Object.freeze({
   PAYMENT_AUTO_APPROVE: boolValue('PAYMENT_AUTO_APPROVE', process.env.NODE_ENV !== 'production'),
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID || '',
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET || '',
+  // Use a dedicated Razorpay webhook secret. It is intentionally separate
+  // from the API key secret and must match the secret configured in Razorpay.
+  RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET || '',
   UPI_ID: process.env.UPI_ID || '',
   UPI_NAME: process.env.UPI_NAME || 'SecureAsset',
   UPI_QR_URL: process.env.UPI_QR_URL || '',

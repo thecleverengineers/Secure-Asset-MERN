@@ -69,17 +69,48 @@ export const testFast2SmsSettings = asyncHandler(async (req, res) => {
   res.json({ success: true, message: `Test OTP sent to ******${mobile.slice(-4)}` });
 });
 
-const razorpaySettingsSchema = z.object({ keyId: z.string().max(120), secret: z.string().max(500).optional(), upiId: z.string().max(160), upiName: z.string().max(120), upiQrUrl: z.string().url().or(z.literal('')).optional() }).strict();
+const razorpaySettingsSchema = z.object({
+  keyId: z.string().max(120),
+  secret: z.string().max(500).optional(),
+  webhookSecret: z.string().max(500).optional(),
+  upiId: z.string().max(160),
+  upiName: z.string().max(120),
+  upiQrUrl: z.string().url().or(z.literal('')).optional(),
+}).strict();
 export const getRazorpaySettings = asyncHandler(async (_req, res) => res.json({ success: true, data: await publicRazorpayConfig() }));
 export const updateRazorpaySettings = asyncHandler(async (req, res) => {
   const parsed = razorpaySettingsSchema.safeParse(req.body);
   if (!parsed.success) throw new ApiError(422, 'Invalid Razorpay or UPI configuration', parsed.error.flatten());
-  const existing = await IntegrationSetting.findOne({ key: 'razorpay' }).select('+secureConfig.authorizationEncrypted').lean();
+  const existing = await IntegrationSetting.findOne({ key: 'razorpay' }).select('+secureConfig.authorizationEncrypted +secureConfig.webhookSecretEncrypted').lean();
   const secret = String(parsed.data.secret || '').trim();
+  const webhookSecret = String(parsed.data.webhookSecret || '').trim();
+  if (/\*{3,}/.test(secret) || /\*{3,}/.test(webhookSecret)) throw new ApiError(422, 'Enter complete Razorpay secrets, not masked values');
   if (!secret && !existing?.secureConfig?.authorizationEncrypted && !process.env.RAZORPAY_KEY_SECRET) throw new ApiError(422, 'Enter the Razorpay key secret before saving');
-  const update = buildRazorpaySettingsUpdate({ ...parsed.data, secret, hasExistingSecret: Boolean(existing?.secureConfig?.authorizationEncrypted), updatedBy: req.user._id });
+  const update = buildRazorpaySettingsUpdate({
+    ...parsed.data,
+    secret,
+    webhookSecret,
+    hasExistingSecret: Boolean(existing?.secureConfig?.authorizationEncrypted),
+    hasExistingWebhookSecret: Boolean(existing?.secureConfig?.webhookSecretEncrypted),
+    updatedBy: req.user._id,
+  });
   const record = await IntegrationSetting.findOneAndUpdate({ key: 'razorpay' }, update, { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true, context: 'query' });
-  await AuditLog.create({ user: req.user._id, role: req.user.role, action: 'integration:razorpay_updated', module: 'integrations', recordId: record._id, updatedValue: { keyId: parsed.data.keyId, upiId: parsed.data.upiId, secretChanged: Boolean(secret) }, ip: req.ip, device: req.get('user-agent') });
+  await AuditLog.create({
+    user: req.user._id,
+    role: req.user.role,
+    action: 'integration:razorpay_updated',
+    module: 'integrations',
+    recordId: record._id,
+    updatedValue: {
+      keyId: parsed.data.keyId,
+      upiId: parsed.data.upiId,
+      secretChanged: Boolean(secret),
+      webhookSecretChanged: Boolean(webhookSecret),
+      webhookConfigured: Boolean(webhookSecret || existing?.secureConfig?.webhookSecretEncrypted || process.env.RAZORPAY_WEBHOOK_SECRET),
+    },
+    ip: req.ip,
+    device: req.get('user-agent'),
+  });
   res.json({ success: true, data: await publicRazorpayConfig(), message: 'Razorpay and UPI configuration saved securely' });
 });
 
