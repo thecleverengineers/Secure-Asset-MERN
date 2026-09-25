@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import multer from 'multer';
+import rateLimit from 'express-rate-limit';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { requireFeaturePermission, requireTenantSubscriptionAccount } from '../middleware/rolePermission.js';
 import {
   listPlans, mySubscription, checkout, changePlan, renew, cancel, switchMode,
-  getVerification, saveVerification, submitVerification, reviewVerification,
+  getVerification, requestVerificationMobileOtp, verifyVerificationMobileOtp, saveVerification, submitVerification, reviewVerification,
   createOrUpdateProfile, setProfileVisibility, createPrivateShareLink, revokePrivateShareLink,
   dashboard, acceptQuotation, finalizeReport,
 } from '../controllers/surveyorSubscriptionController.js';
@@ -16,6 +17,8 @@ import { createSurveyInvoice, paySurveyInvoice } from '../controllers/surveyorFi
 
 const router = Router();
 const verificationImageUpload = multer({ storage: multer.memoryStorage(), limits: secureMultipartLimits({ fileSize: 8 * 1024 * 1024, fields: 4 }) });
+const verificationOtpRequestLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: true, legacyHeaders: false });
+const verificationOtpVerifyLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false });
 router.get('/plans', listPlans);
 router.use(authenticate, requireFeaturePermission('module:surveyor-subscription'));
 router.get('/me', requireTenantSubscriptionAccount, mySubscription);
@@ -25,6 +28,8 @@ router.post('/renew', requireTenantSubscriptionAccount, renew);
 router.post('/:id/cancel', requireTenantSubscriptionAccount, cancel);
 router.post('/mode', requireTenantSubscriptionAccount, switchMode);
 router.get('/verification', getVerification);
+router.post('/verification/mobile-otp/request', verificationOtpRequestLimiter, requestVerificationMobileOtp);
+router.post('/verification/mobile-otp/verify', verificationOtpVerifyLimiter, verifyVerificationMobileOtp);
 router.post('/verification/assets', verificationImageUpload.single('file'), uploadSurveyorVerificationAsset);
 router.put('/verification', saveVerification);
 router.post('/verification/submit', submitVerification);

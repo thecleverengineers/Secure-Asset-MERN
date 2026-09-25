@@ -125,20 +125,73 @@ SurveyorSubscriptionSchema.index({ user: 1, status: 1, expiresAt: -1 });
 const SurveyorVerificationSchema = new Schema({
   user: { ...ref('User', true), unique: true, index: true },
   status: { type: String, enum: ['not_submitted', 'draft', 'submitted', 'under_review', 'changes_required', 'verified', 'rejected', 'suspended', 'expired'], default: 'not_submitted', index: true },
-  legalName: String, profilePhoto: String, phone: String, email: String,
-  address: { line1: String, line2: String, city: String, state: String, country: { type: String, default: 'India' }, postalCode: String },
-  registrationNumber: String, licenceNumber: String, licenceAuthority: String, licenceIssueDate: Date, licenceExpiryDate: Date,
-  qualifications: [String], certifications: [String], yearsExperience: Number,
-  taxRegistration: String, businessRegistrationNumber: String, agencyRegistrationNumber: String,
-  insurance: { provider: String, policyNumber: String, expiresAt: Date, documentUrl: String },
-  bankVerification: {
-    accountName: String,
-    maskedAccount: String,
+
+  // Basic profile
+  legalName: { type: String, trim: true },
+  profilePhoto: String,
+  dateOfBirth: Date,
+  gender: { type: String, enum: ['male', 'female', 'other', 'prefer_not_to_say'] },
+  address: {
+    line1: String, line2: String, city: String, state: String,
+    country: { type: String, default: 'India' }, postalCode: String,
+  },
+
+  // Contact verification. OTP secrets are never returned by normal queries.
+  phone: { type: String, trim: true },
+  email: { type: String, trim: true, lowercase: true },
+  mobileVerification: {
+    phone: String,
+    verifiedAt: Date,
+    otpHash: { type: String, select: false },
+    otpSalt: { type: String, select: false },
+    otpExpiresAt: { type: Date, select: false },
+    otpAttempts: { type: Number, default: 0, select: false },
+    lastSentAt: { type: Date, select: false },
+  },
+
+  // One government identity document is required for submission.
+  identityVerification: {
+    idType: { type: String, enum: ['aadhaar', 'pan', 'voter_id', 'driving_licence'] },
+    idNumber: { type: String, trim: true },
+    frontFile: ref('DriveFile'),
+    frontUrl: String,
+    backFile: ref('DriveFile'),
+    backUrl: String,
+  },
+
+  // Professional information
+  occupation: { type: String, trim: true },
+  yearsExperience: { type: Number, min: 0, max: 80 },
+  serviceArea: { type: String, trim: true },
+  professionalDescription: { type: String, trim: true, maxlength: 2000 },
+
+  // Bank details are optional at profile-verification stage. Review status is
+  // server/Admin controlled and never writable by the Surveyor.
+  bankDetails: {
+    bankName: String,
     ifsc: String,
+    accountNumber: String,
+    passbookFile: ref('DriveFile'),
+    passbookUrl: String,
+  },
+  bankVerification: {
     status: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
   },
+
+  declaration: {
+    accepted: { type: Boolean, default: false },
+    acceptedAt: Date,
+  },
+
+  // Legacy professional fields are retained for backward compatibility with
+  // older verified records and Admin reporting.
+  registrationNumber: String, licenceNumber: String, licenceAuthority: String, licenceIssueDate: Date, licenceExpiryDate: Date,
+  qualifications: [String], certifications: [String],
+  taxRegistration: String, businessRegistrationNumber: String, agencyRegistrationNumber: String,
+  insurance: { provider: String, policyNumber: String, expiresAt: Date, documentUrl: String },
   serviceAreas: [{ name: String, radiusKm: Number }],
   documents: [VerificationDocumentSchema],
+
   reviewer: ref('User'), reviewerNotes: String, rejectionReason: String, suspensionReason: String,
   submittedAt: Date, reviewedAt: Date, verifiedAt: Date,
   createdBy: ref('User'), updatedBy: ref('User'),

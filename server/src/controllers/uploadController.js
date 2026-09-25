@@ -100,7 +100,20 @@ export const uploadDocument = asyncHandler(async (req, res) => {
         visibility: 'private',
         description: String(req.body?.description || 'Subscription payment proof').slice(0, 500),
       }
-      : (req.body || {});
+      : req.surveyorVerificationUpload
+        ? {
+          ...(req.body || {}),
+          type: req.surveyorVerificationUpload.kind === 'bank_passbook'
+            ? 'surveyor_verification_bank'
+            : 'surveyor_verification_identity',
+          category: 'image',
+          visibility: 'private',
+          name: req.surveyorVerificationUpload.kind === 'bank_passbook'
+            ? 'Surveyor bank passbook'
+            : `Surveyor identity ${req.surveyorVerificationUpload.kind === 'identity_front' ? 'front' : 'back'}`,
+          description: 'Protected Surveyor verification document',
+        }
+        : (req.body || {});
     await assertSurveyProjectUploadAccess(req, body);
     const tenantKycUpload = body.type === 'tenant_kyc';
     const mimeType = await scanUpload(req.file, { allowTenantKyc: tenantKycUpload });
@@ -114,9 +127,11 @@ export const uploadDocument = asyncHandler(async (req, res) => {
     const owner = req.user.role === 'admin' && body.owner ? body.owner : req.user._id;
     const storageKey = buildStorageKey(owner, req.file.originalname, 'legacy-documents');
     const stored = await saveFile(req.file.path, storageKey, mimeType);
-    const confidentiality = tenantKycUpload || isTenantKycCategory(category)
-      ? 'identity_document'
-      : category === 'legal' ? 'legal_record' : 'private';
+    const confidentiality = body.type === 'surveyor_verification_bank'
+      ? 'financial_document'
+      : body.type === 'surveyor_verification_identity' || tenantKycUpload || isTenantKycCategory(category)
+        ? 'identity_document'
+        : category === 'legal' ? 'legal_record' : 'private';
     const driveFile = await DriveFile.create({
       owner, folder: body.folder || null, name: safeName(body.name || req.file.originalname), originalName: req.file.originalname,
       description: body.description || '', extension, mimeType, category, storageDriver: stored.driver, storageKey: stored.key,

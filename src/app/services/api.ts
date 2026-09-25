@@ -413,6 +413,21 @@ export async function cancelSurveyorSubscription(id: string, immediate = false) 
 export async function switchAccountMode(mode: 'regular' | 'landlord' | 'surveyor') { return request<ApiResponse<User>>('/surveyor-subscriptions/mode', { method: 'POST', body: JSON.stringify({ mode }) }); }
 export async function getSurveyorVerification() { return request<ApiResponse<Record<string, any> | null>>('/surveyor-subscriptions/verification'); }
 export async function saveSurveyorVerification(body: Record<string, any>) { return request<ApiResponse<Record<string, any>>>('/surveyor-subscriptions/verification', { method: 'PUT', body: JSON.stringify(body) }); }
+export async function requestSurveyorVerificationOtp(mobile: string) {
+  return request<ApiResponse<{ mobile: string; expiresInSeconds: number }>>('/surveyor-subscriptions/verification/mobile-otp/request', { method: 'POST', body: JSON.stringify({ mobile }) });
+}
+export async function verifySurveyorVerificationOtp(mobile: string, otp: string) {
+  return request<ApiResponse<{ mobileVerified: boolean; verifiedAt: string }>>('/surveyor-subscriptions/verification/mobile-otp/verify', { method: 'POST', body: JSON.stringify({ mobile, otp }) });
+}
+export async function uploadSurveyorVerificationDocument(file: File, kind: 'identity_front' | 'identity_back' | 'bank_passbook') {
+  const form = new FormData();
+  form.append('file', file);
+  return request<ApiResponse<Record<string, any>>>('/uploads/surveyor-verification-document', {
+    method: 'POST',
+    headers: { 'X-SecureAsset-Verification-Document': kind },
+    body: form,
+  });
+}
 export async function uploadSurveyorVerificationAsset(file: File) {
   const form = new FormData();
   form.append('file', file);

@@ -90,3 +90,16 @@ export const requireSubscriptionPaymentProofUpload = asyncHandler(async (req, _r
   req.subscriptionPaymentProof = true;
   next();
 });
+
+
+export const requireSurveyorVerificationDocumentUpload = asyncHandler(async (req, _res, next) => {
+  if (!req.user) throw new ApiError(401, 'Authentication required');
+  const kind = String(req.get('x-secureasset-verification-document') || '').trim().toLowerCase();
+  if (!['identity_front', 'identity_back', 'bank_passbook'].includes(kind)) {
+    throw new ApiError(400, 'Invalid Surveyor verification document type');
+  }
+  const { getActiveSurveyorSubscription } = await import('../services/surveyorSubscription.js');
+  await getActiveSurveyorSubscription(req.user._id);
+  req.surveyorVerificationUpload = { kind };
+  next();
+});

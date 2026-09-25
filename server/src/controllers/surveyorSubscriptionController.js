@@ -10,6 +10,7 @@ import {
   ensureDefaultSurveyorPlans, getLatestSurveyorSubscription, getActiveSurveyorSubscription,
   calculateSurveyorUsage, refreshSurveyorSubscriptionState,
 } from '../services/surveyorSubscription.js';
+import { normalizeIndianMobile, sendFast2SmsOtp } from '../services/fast2sms.js';
 import { applyPaidPayment } from '../services/paymentLifecycle.js';
 import { publicRazorpayConfig } from '../services/razorpay.js';
 import { env } from '../config/env.js';
@@ -204,43 +205,253 @@ export const switchMode = asyncHandler(async (req, res) => {
   res.json({ success: true, data: user, message: `${mode[0].toUpperCase()}${mode.slice(1)} mode activated` });
 });
 
+const SURVEYOR_ID_TYPES = new Set(['aadhaar', 'pan', 'voter_id', 'driving_licence']);
+const SURVEYOR_VERIFICATION_EDITABLE_STATUSES = new Set(['not_submitted', 'draft', 'changes_required', 'rejected']);
+const SURVEYOR_VERIFICATION_OTP_TEMPLATE = Object.freeze({
+  endpoint: 'https://www.fast2sms.com/dev/bulkV2',
+  route: 'dlt',
+  senderId: 'SECAST',
+  messageId: '204250',
+  variablesTemplate: '{otp}',
+  scheduleTime: '',
+});
+
+function normalizeSurveyorIdentity(value = {}) {
+  const idType = String(value?.idType || '').trim().toLowerCase();
+  return {
+    idType: SURVEYOR_ID_TYPES.has(idType) ? idType : undefined,
+    idNumber: String(value?.idNumber || '').trim().slice(0, 40),
+    frontFile: value?.frontFile || undefined,
+    frontUrl: String(value?.frontUrl || '').trim() || undefined,
+    backFile: value?.backFile || undefined,
+    backUrl: String(value?.backUrl || '').trim() || undefined,
+  };
+}
+
+function normalizeSurveyorBankDetails(value = {}) {
+  return {
+    bankName: String(value?.bankName || '').trim().slice(0, 120),
+    ifsc: String(value?.ifsc || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11),
+    accountNumber: String(value?.accountNumber || '').replace(/\D/g, '').slice(0, 24),
+    passbookFile: value?.passbookFile || undefined,
+    passbookUrl: String(value?.passbookUrl || '').trim() || undefined,
+  };
+}
+
+function surveyorOtpDigest({ otp, salt, userId, phone }) {
+  return crypto.createHash('sha256').update(`${salt}:${otp}:${userId}:${phone}`).digest('hex');
+}
+
+async function assertOwnedVerificationDocument(userId, fileId, url, label) {
+  if (!fileId && !url) return;
+  if (!fileId || !url) throw new ApiError(422, `${label} upload is incomplete`);
+  const file = await DriveFile.findOne({ _id: fileId, owner: userId, status: 'active', visibility: 'private' }).select('_id mimeType confidentiality').lean();
+  if (!file) throw new ApiError(422, `${label} must be a private file uploaded by this account`);
+  if (!String(file.mimeType || '').startsWith('image/')) throw new ApiError(422, `${label} must be an image`);
+  const expectedUrl = `/api/v1/drive/files/${file._id}/content`;
+  if (String(url) !== expectedUrl) throw new ApiError(422, `${label} file reference is invalid`);
+}
+
+async function validateVerificationDocumentOwnership(userId, identity = {}, bank = {}) {
+  await Promise.all([
+    assertOwnedVerificationDocument(userId, identity.frontFile, identity.frontUrl, 'Government ID front image'),
+    assertOwnedVerificationDocument(userId, identity.backFile, identity.backUrl, 'Government ID back image'),
+    assertOwnedVerificationDocument(userId, bank.passbookFile, bank.passbookUrl, 'Passbook image'),
+  ]);
+}
+
+function editableSurveyorVerification(verification) {
+  return !verification || SURVEYOR_VERIFICATION_EDITABLE_STATUSES.has(String(verification.status || 'not_submitted'));
+}
+
 export const getVerification = asyncHandler(async (req, res) => {
   const verification = await SurveyorVerification.findOne({ user: req.user._id }).select('-bankVerification').lean();
-  res.json({ success: true, data: verification });
+  const mobileVerified = Boolean(
+    verification?.mobileVerification?.verifiedAt
+    && verification?.mobileVerification?.phone
+    && normalizeIndianMobile(verification.phone) === normalizeIndianMobile(verification.mobileVerification.phone)
+  );
+  res.json({ success: true, data: verification ? { ...verification, mobileVerified } : null });
+});
+
+export const requestVerificationMobileOtp = asyncHandler(async (req, res) => {
+  await getActiveSurveyorSubscription(req.user._id);
+  const phone = normalizeIndianMobile(req.body.mobile);
+  if (!phone) throw new ApiError(422, 'Enter a valid 10-digit Indian mobile number');
+
+  const verification = await SurveyorVerification.findOne({ user: req.user._id })
+    .select('+mobileVerification.otpHash +mobileVerification.otpSalt +mobileVerification.otpExpiresAt +mobileVerification.otpAttempts +mobileVerification.lastSentAt');
+  if (!editableSurveyorVerification(verification)) throw new ApiError(409, 'Submitted verification cannot be changed while it is under review');
+  const lastSentAt = verification?.mobileVerification?.lastSentAt ? new Date(verification.mobileVerification.lastSentAt).getTime() : 0;
+  if (lastSentAt && Date.now() - lastSentAt < 60_000) throw new ApiError(429, 'Please wait before requesting another OTP');
+
+  const otp = String(crypto.randomInt(100000, 1000000));
+  const salt = crypto.randomBytes(16).toString('hex');
+  await sendFast2SmsOtp({
+    mobile: phone,
+    otp,
+    name: req.user.name || '',
+    configOverride: SURVEYOR_VERIFICATION_OTP_TEMPLATE,
+  });
+
+  const now = new Date();
+  const updated = await SurveyorVerification.findOneAndUpdate(
+    { user: req.user._id },
+    {
+      $set: {
+        phone,
+        status: verification?.status && verification.status !== 'not_submitted' ? verification.status : 'draft',
+        'mobileVerification.phone': phone,
+        'mobileVerification.verifiedAt': null,
+        'mobileVerification.otpHash': surveyorOtpDigest({ otp, salt, userId: req.user._id, phone }),
+        'mobileVerification.otpSalt': salt,
+        'mobileVerification.otpExpiresAt': new Date(now.getTime() + 10 * 60_000),
+        'mobileVerification.otpAttempts': 0,
+        'mobileVerification.lastSentAt': now,
+        updatedBy: req.user._id,
+      },
+      $setOnInsert: {
+        user: req.user._id,
+        bankVerification: { status: 'pending' },
+        createdBy: req.user._id,
+      },
+    },
+    { upsert: true, new: true, runValidators: true },
+  );
+  await writeLog(req, 'surveyor-verification:mobile-otp-requested', 'surveyor-verifications', updated);
+  res.json({ success: true, data: { mobile: `******${phone.slice(-4)}`, expiresInSeconds: 600 }, message: 'Verification OTP sent' });
+});
+
+export const verifyVerificationMobileOtp = asyncHandler(async (req, res) => {
+  await getActiveSurveyorSubscription(req.user._id);
+  const phone = normalizeIndianMobile(req.body.mobile);
+  const otp = String(req.body.otp || '').replace(/\D/g, '').slice(0, 6);
+  if (!phone || !/^\d{6}$/.test(otp)) throw new ApiError(422, 'Enter the mobile number and six-digit OTP');
+
+  const verification = await SurveyorVerification.findOne({ user: req.user._id })
+    .select('+mobileVerification.otpHash +mobileVerification.otpSalt +mobileVerification.otpExpiresAt +mobileVerification.otpAttempts +mobileVerification.lastSentAt');
+  if (!verification?.mobileVerification?.otpHash || verification.mobileVerification.phone !== phone) throw new ApiError(401, 'Request a new OTP for this mobile number');
+  if (!verification.mobileVerification.otpExpiresAt || new Date(verification.mobileVerification.otpExpiresAt) <= new Date()) throw new ApiError(401, 'OTP has expired. Request a new OTP.');
+  if (Number(verification.mobileVerification.otpAttempts || 0) >= 5) throw new ApiError(429, 'Too many OTP attempts. Request a new OTP.');
+
+  const digest = surveyorOtpDigest({ otp, salt: verification.mobileVerification.otpSalt, userId: req.user._id, phone });
+  const expected = Buffer.from(String(verification.mobileVerification.otpHash), 'hex');
+  const received = Buffer.from(digest, 'hex');
+  if (expected.length !== received.length || !crypto.timingSafeEqual(expected, received)) {
+    verification.mobileVerification.otpAttempts = Number(verification.mobileVerification.otpAttempts || 0) + 1;
+    await verification.save({ validateModifiedOnly: true });
+    throw new ApiError(401, 'OTP is invalid');
+  }
+
+  verification.phone = phone;
+  verification.mobileVerification.phone = phone;
+  verification.mobileVerification.verifiedAt = new Date();
+  verification.mobileVerification.otpHash = undefined;
+  verification.mobileVerification.otpSalt = undefined;
+  verification.mobileVerification.otpExpiresAt = undefined;
+  verification.mobileVerification.otpAttempts = 0;
+  verification.updatedBy = req.user._id;
+  await verification.save({ validateModifiedOnly: true });
+  await writeLog(req, 'surveyor-verification:mobile-verified', 'surveyor-verifications', verification);
+  res.json({ success: true, data: { mobileVerified: true, verifiedAt: verification.mobileVerification.verifiedAt }, message: 'Mobile number verified' });
 });
 
 export const saveVerification = asyncHandler(async (req, res) => {
   await getActiveSurveyorSubscription(req.user._id);
-  const allowed = ['legalName', 'profilePhoto', 'phone', 'email', 'address', 'registrationNumber', 'licenceNumber', 'licenceAuthority', 'licenceIssueDate', 'licenceExpiryDate', 'qualifications', 'certifications', 'yearsExperience', 'taxRegistration', 'businessRegistrationNumber', 'agencyRegistrationNumber', 'insurance', 'serviceAreas', 'documents'];
+  const existing = await SurveyorVerification.findOne({ user: req.user._id });
+  if (!editableSurveyorVerification(existing)) throw new ApiError(409, 'Submitted verification cannot be changed while it is under review');
+
+  const allowed = [
+    'legalName', 'profilePhoto', 'dateOfBirth', 'gender', 'phone', 'email', 'address',
+    'occupation', 'yearsExperience', 'serviceArea', 'professionalDescription',
+    'identityVerification', 'bankDetails', 'declaration',
+  ];
   const patch = Object.fromEntries(allowed.filter((key) => req.body[key] !== undefined).map((key) => [key, req.body[key]]));
+  if (patch.phone !== undefined) {
+    const normalizedPhone = normalizeIndianMobile(patch.phone);
+    if (!normalizedPhone) throw new ApiError(422, 'Enter a valid 10-digit Indian mobile number');
+    patch.phone = normalizedPhone;
+    if (normalizeIndianMobile(existing?.mobileVerification?.phone) !== normalizedPhone) {
+      patch['mobileVerification.phone'] = normalizedPhone;
+      patch['mobileVerification.verifiedAt'] = null;
+    }
+  }
+  if (patch.email !== undefined) {
+    patch.email = String(patch.email || '').trim().toLowerCase();
+    if (patch.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patch.email)) throw new ApiError(422, 'Enter a valid email address');
+  }
+  if (patch.dateOfBirth) {
+    const dob = new Date(patch.dateOfBirth);
+    if (Number.isNaN(dob.getTime()) || dob > new Date()) throw new ApiError(422, 'Enter a valid date of birth');
+    patch.dateOfBirth = dob;
+  }
+  if (patch.gender !== undefined && !['male', 'female', 'other', 'prefer_not_to_say'].includes(String(patch.gender))) throw new ApiError(422, 'Choose a valid gender');
+  if (patch.identityVerification !== undefined) patch.identityVerification = normalizeSurveyorIdentity(patch.identityVerification);
+  if (patch.bankDetails !== undefined) patch.bankDetails = normalizeSurveyorBankDetails(patch.bankDetails);
+  await validateVerificationDocumentOwnership(
+    req.user._id,
+    patch.identityVerification ?? existing?.identityVerification ?? {},
+    patch.bankDetails ?? existing?.bankDetails ?? {},
+  );
+  if (patch.yearsExperience !== undefined) patch.yearsExperience = Math.min(80, Math.max(0, Number(patch.yearsExperience) || 0));
+  if (patch.professionalDescription !== undefined) patch.professionalDescription = String(patch.professionalDescription || '').trim().slice(0, 2000);
+  if (patch.declaration !== undefined) {
+    const accepted = Boolean(patch.declaration?.accepted);
+    patch.declaration = { accepted, acceptedAt: accepted ? (existing?.declaration?.acceptedAt || new Date()) : undefined };
+  }
   patch.updatedBy = req.user._id;
+
   const verification = await SurveyorVerification.findOneAndUpdate(
     { user: req.user._id },
     { $set: patch, $setOnInsert: { user: req.user._id, status: 'draft', bankVerification: { status: 'pending' }, createdBy: req.user._id } },
     { upsert: true, new: true, runValidators: true },
   );
   await writeLog(req, 'surveyor-verification:saved', 'surveyor-verifications', verification);
-  res.json({ success: true, data: verification });
+  const safe = verification.toObject();
+  delete safe.bankVerification;
+  res.json({ success: true, data: safe });
 });
 
 export const submitVerification = asyncHandler(async (req, res) => {
   await getActiveSurveyorSubscription(req.user._id);
   const verification = await SurveyorVerification.findOne({ user: req.user._id });
   if (!verification) throw new ApiError(422, 'Save verification information before submitting');
-  const required = ['legalName', 'phone', 'email', 'licenceNumber'];
-  const missing = required.filter((key) => !verification[key]);
+  if (!editableSurveyorVerification(verification)) throw new ApiError(409, 'This verification is already submitted or verified');
+
+  const missing = [];
+  if (!verification.legalName) missing.push('full name');
+  if (!verification.profilePhoto) missing.push('profile photo');
+  if (!verification.dateOfBirth) missing.push('date of birth');
+  if (!verification.gender) missing.push('gender');
+  if (!verification.address?.line1) missing.push('address');
+  if (!verification.address?.city) missing.push('city');
+  if (!verification.address?.state) missing.push('state');
+  if (!verification.address?.postalCode) missing.push('PIN code');
+  if (!verification.phone) missing.push('mobile number');
+  if (!verification.email) missing.push('email address');
+  const verifiedPhone = normalizeIndianMobile(verification.mobileVerification?.phone);
+  if (!verification.mobileVerification?.verifiedAt || verifiedPhone !== normalizeIndianMobile(verification.phone)) missing.push('mobile OTP verification');
+  if (!verification.identityVerification?.idType) missing.push('government ID type');
+  if (!verification.identityVerification?.idNumber) missing.push('government ID number');
+  if (!verification.identityVerification?.frontUrl || !verification.identityVerification?.frontFile) missing.push('government ID front image');
+  if (!verification.occupation) missing.push('occupation / profession');
+  if (verification.yearsExperience === undefined || verification.yearsExperience === null) missing.push('years of experience');
+  if (!verification.serviceArea) missing.push('service area / working location');
+  if (!verification.professionalDescription) missing.push('professional description');
+  if (!verification.declaration?.accepted) missing.push('declaration');
   if (missing.length) throw new ApiError(422, `Complete the required verification fields: ${missing.join(', ')}`);
+
   verification.status = 'submitted';
-  verification.bankVerification = {
-    ...(verification.bankVerification?.toObject?.() || verification.bankVerification || {}),
-    status: 'pending',
-  };
+  verification.bankVerification = { status: 'pending' };
+  verification.declaration.acceptedAt ||= new Date();
   verification.submittedAt = new Date();
   verification.updatedBy = req.user._id;
   await verification.save();
   await SurveyorProfile.updateOne({ user: req.user._id }, { verificationStatus: 'pending' });
   await writeLog(req, 'surveyor-verification:submitted', 'surveyor-verifications', verification);
-  res.json({ success: true, data: verification, message: 'Verification submitted for review' });
+  const safe = verification.toObject();
+  delete safe.bankVerification;
+  res.json({ success: true, data: safe, message: 'Verification submitted for review' });
 });
 
 export const reviewVerification = asyncHandler(async (req, res) => {

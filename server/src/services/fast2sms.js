@@ -196,12 +196,19 @@ async function updateProviderHealth({ ok, error = '' }) {
   }
 }
 
-export async function sendFast2SmsOtp({ mobile, otp, name = '' }) {
+export async function sendFast2SmsOtp({ mobile, otp, name = '', configOverride = {} }) {
   const normalized = normalizeIndianMobile(mobile);
   if (!normalized) throw new Error('A valid 10-digit Indian mobile number is required');
-  const config = await getFast2SmsConfiguration({ includeAuthorization: true });
-  if (!config.enabled) throw new Error('Fast2SMS OTP delivery is disabled in the admin panel');
-  if (!config.authorization || /\*{3,}/.test(config.authorization)) throw new Error('Fast2SMS authorization key is not configured');
+  const adminConfig = await getFast2SmsConfiguration({ includeAuthorization: true });
+  if (!adminConfig.enabled) throw new Error('Fast2SMS OTP delivery is disabled in the admin panel');
+  if (!adminConfig.authorization || /\*{3,}/.test(adminConfig.authorization)) throw new Error('Fast2SMS authorization key is not configured');
+  // Purpose-specific DLT templates may override public routing/template fields,
+  // but the encrypted administrator-managed authorization key is always used.
+  const config = {
+    ...adminConfig,
+    ...configOverride,
+    authorization: adminConfig.authorization,
+  };
   if (!config.senderId || !config.messageId) throw new Error('Fast2SMS sender ID and DLT message ID are required');
 
   const url = buildFast2SmsUrl(config, { mobile: normalized, otp, name });

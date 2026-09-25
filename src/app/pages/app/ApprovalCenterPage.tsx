@@ -193,11 +193,20 @@ export default function ApprovalCenterPage() {
                     <Chip size="small" color={status === 'verified' ? 'success' : status === 'rejected' ? 'error' : 'warning'} label={label(status)} />
                   </Stack>
                   <Grid container spacing={1} className="sa-approval-meta-grid">
-                    <Grid size={{ xs: 6 }}><Typography>Licence</Typography><strong>{record.licenceNumber || '—'}</strong></Grid>
-                    <Grid size={{ xs: 6 }}><Typography>Registration</Typography><strong>{record.registrationNumber || '—'}</strong></Grid>
-                    <Grid size={{ xs: 6 }}><Typography>Experience</Typography><strong>{record.yearsExperience ? `${record.yearsExperience} years` : '—'}</strong></Grid>
+                    <Grid size={{ xs: 6 }}><Typography>Profession</Typography><strong>{record.occupation || '—'}</strong></Grid>
+                    <Grid size={{ xs: 6 }}><Typography>Government ID</Typography><strong>{label(record.identityVerification?.idType || '—')}</strong></Grid>
+                    <Grid size={{ xs: 6 }}><Typography>Mobile</Typography><strong>{record.mobileVerification?.verifiedAt ? 'OTP verified' : 'Not verified'}</strong></Grid>
+                    <Grid size={{ xs: 6 }}><Typography>Experience</Typography><strong>{record.yearsExperience !== undefined ? `${record.yearsExperience} years` : '—'}</strong></Grid>
+                    <Grid size={{ xs: 6 }}><Typography>Service area</Typography><strong>{record.serviceArea || '—'}</strong></Grid>
+                    <Grid size={{ xs: 6 }}><Typography>Bank verification</Typography><strong>{label(record.bankVerification?.status || 'pending')}</strong></Grid>
+                    <Grid size={{ xs: 6 }}><Typography>Declaration</Typography><strong>{record.declaration?.accepted ? 'Accepted' : 'Missing'}</strong></Grid>
                     <Grid size={{ xs: 6 }}><Typography>Submitted</Typography><strong>{fmt(record.submittedAt)}</strong></Grid>
                   </Grid>
+                  <Stack direction="row" gap={.7} mt={1.2} flexWrap="wrap" useFlexGap>
+                    {record.identityVerification?.frontUrl && <Button size="small" variant="outlined" startIcon={<VisibilityRounded />} href={record.identityVerification.frontUrl} target="_blank" rel="noreferrer">ID front</Button>}
+                    {record.identityVerification?.backUrl && <Button size="small" variant="outlined" startIcon={<VisibilityRounded />} href={record.identityVerification.backUrl} target="_blank" rel="noreferrer">ID back</Button>}
+                    {record.bankDetails?.passbookUrl && <Button size="small" variant="outlined" startIcon={<VisibilityRounded />} href={record.bankDetails.passbookUrl} target="_blank" rel="noreferrer">Passbook</Button>}
+                  </Stack>
                   {(record.reviewerNotes || record.rejectionReason) && <Alert severity={status === 'rejected' ? 'error' : 'info'} sx={{ mt: 1.3 }}>{record.rejectionReason || record.reviewerNotes}</Alert>}
                   {reviewable && <Stack direction="row" justifyContent="flex-end" gap={1} mt={1.5}>
                     <Button size="small" color="error" variant="outlined" startIcon={<CloseRounded />} onClick={() => void decideSurveyor(record, 'rejected')} disabled={busy === String(record._id)}>Reject</Button>
