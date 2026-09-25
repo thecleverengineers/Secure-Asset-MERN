@@ -1,0 +1,368 @@
+/* SecureAsset premium authentication */
+.sa-login-premium-shell {
+  min-height: calc(100dvh - 72px);
+  width: 100%;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(0,159,144,.065), transparent 23rem),
+    linear-gradient(180deg,#f7fbff 0%,#f2f8fc 100%);
+  font-family: 'Open Sans', sans-serif;
+}
+.sa-login-premium-shell :is(.MuiTypography-root,.MuiButton-root,.MuiChip-root,.MuiInputBase-root,.MuiFormLabel-root) {
+  font-family: 'Open Sans', sans-serif;
+}
+.sa-login-premium-wrap {
+  width: min(1180px,100%);
+  min-height: calc(100dvh - 128px);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+}
+.sa-login-premium-surface {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid #dfebf5 !important;
+  border-radius: 20px !important;
+  background: #fff !important;
+  box-shadow: 0 18px 48px rgba(20,57,91,.11) !important;
+}
+.sa-login-premium-grid {
+  display: grid;
+  grid-template-columns: minmax(0,.92fr) minmax(420px,1.08fr);
+  min-height: 650px;
+}
+.sa-login-premium-brand {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 48px;
+  color: #fff;
+}
+.sa-login-orbit {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.14);
+  pointer-events: none;
+}
+.sa-login-orbit-one {
+  width: 310px;
+  height: 310px;
+  top: -155px;
+  right: -135px;
+}
+.sa-login-orbit-two {
+  width: 175px;
+  height: 175px;
+  right: -34px;
+  bottom: -80px;
+  background: rgba(255,255,255,.035);
+}
+.sa-login-brand-copy,
+.sa-login-feature-list,
+.sa-login-security-note {
+  position: relative;
+  z-index: 1;
+}
+.sa-login-eyebrow.MuiChip-root {
+  align-self: flex-start;
+  height: 28px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.10);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 500;
+  backdrop-filter: blur(8px);
+}
+.sa-login-brand-title.MuiTypography-root {
+  max-width: 470px;
+  color: #fff;
+  font-size: clamp(32px,3.4vw,46px);
+  font-weight: 500;
+  line-height: 1.08;
+  letter-spacing: -.05em;
+}
+.sa-login-brand-description.MuiTypography-root {
+  max-width: 450px;
+  margin-top: 16px;
+  color: rgba(255,255,255,.74);
+  font-size: 12.5px;
+  line-height: 1.75;
+}
+.sa-login-feature-list {
+  margin-top: auto;
+}
+.sa-login-feature-list .MuiTypography-root {
+  color: rgba(255,255,255,.86);
+  font-size: 11.5px;
+  font-weight: 400;
+}
+.sa-login-feature-icon {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(255,255,255,.10);
+  color: #7ee1c7;
+}
+.sa-login-feature-icon .MuiSvgIcon-root {
+  font-size: 15px;
+}
+.sa-login-security-note {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(255,255,255,.14);
+}
+.sa-login-security-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255,255,255,.10);
+  color: #7ee1c7;
+}
+.sa-login-security-icon .MuiSvgIcon-root {
+  font-size: 17px;
+}
+.sa-login-security-title.MuiTypography-root {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+.sa-login-security-copy.MuiTypography-root {
+  max-width: 390px;
+  margin-top: 3px;
+  color: rgba(255,255,255,.62);
+  font-size: 9.5px;
+  line-height: 1.55;
+}
+.sa-login-premium-form-column {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 44px 54px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(0,159,144,.045), transparent 17rem),
+    #fff;
+}
+.sa-login-premium-card {
+  width: min(470px,100%);
+}
+.sa-login-brand-row {
+  margin-bottom: 24px;
+}
+.sa-login-brand-row > div:first-child,
+.sa-login-brand-row > a:first-child {
+  max-width: 176px;
+}
+.sa-login-access-chip.MuiChip-root {
+  height: 26px;
+  border-color: #d9e6f0;
+  background: #f8fbfe;
+  color: #0b2057;
+  font-size: 9.5px;
+}
+.sa-login-title.MuiTypography-root {
+  color: #0b2057;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -.04em;
+}
+.sa-login-subtitle.MuiTypography-root {
+  margin: 7px 0 24px;
+  color: #6078a3;
+  font-size: 11.5px;
+  line-height: 1.65;
+}
+.sa-login-form .MuiAlert-root,
+.sa-login-panel > .MuiAlert-root {
+  border-radius: 10px;
+  font-size: 10.5px;
+}
+.sa-login-field .MuiOutlinedInput-root {
+  min-height: 49px;
+  border-radius: 11px;
+  background: #f7fbfe;
+}
+.sa-login-field .MuiOutlinedInput-notchedOutline {
+  border-color: #dfeaf4;
+}
+.sa-login-field .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #bed7e5;
+}
+.sa-login-field .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #008f83;
+  border-width: 1.5px;
+}
+.sa-login-field .MuiInputLabel-root {
+  color: #6d82a4;
+  font-size: 12px;
+}
+.sa-login-field .MuiInputAdornment-root .MuiSvgIcon-root {
+  color: #7187a7;
+  font-size: 19px;
+}
+.sa-login-field .MuiFormHelperText-root {
+  color: #7a8ca8;
+  font-size: 9px;
+}
+.sa-login-forgot {
+  color: #087f76 !important;
+  font-size: 10.5px !important;
+  font-weight: 500 !important;
+}
+.sa-login-panel .sa-submit-button.MuiButton-root {
+  min-height: 47px;
+  border-radius: 11px;
+  background: linear-gradient(120deg,#00aa96,#007987) !important;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600 !important;
+  text-transform: none;
+  box-shadow: 0 8px 18px rgba(0,131,132,.16);
+}
+.sa-login-panel .sa-submit-button.MuiButton-root:hover {
+  background: linear-gradient(120deg,#009b89,#006f7c) !important;
+  filter: none !important;
+}
+.sa-login-mode-nav {
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 1px solid #e4edf5;
+}
+.sa-login-mode-label.MuiTypography-root {
+  margin-bottom: 10px;
+  color: #7b8da8;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.sa-login-mode-link {
+  position: relative;
+  display: inline-flex;
+  min-height: 29px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid #e0eaf3;
+  border-radius: 9px;
+  background: #f8fbfe;
+  color: #5f7395 !important;
+  font-size: 10.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color .18s ease,border-color .18s ease,color .18s ease;
+}
+.sa-login-mode-link:hover {
+  border-color: #bfdbe3;
+  background: #f2f9f9;
+  color: #087f76 !important;
+}
+.sa-login-mode-link.is-active {
+  border-color: rgba(0,143,131,.28);
+  background: #ebf8f6;
+  color: #087f76 !important;
+}
+.sa-login-support-divider {
+  margin: 30px 0 18px !important;
+  border-color: #e4edf5 !important;
+}
+.sa-login-support .MuiSvgIcon-root {
+  color: #008f83;
+  font-size: 17px;
+}
+.sa-login-support .MuiTypography-root {
+  color: #7386a3;
+  font-size: 9.5px;
+  line-height: 1.5;
+}
+.sa-login-panel :is(button,a,input):focus-visible {
+  outline: 2px solid #008f83;
+  outline-offset: 3px;
+}
+@media (max-width: 959px) {
+  .sa-login-premium-shell {
+    min-height: auto;
+    padding: 18px;
+  }
+  .sa-login-premium-wrap {
+    min-height: auto;
+    align-items: flex-start;
+  }
+  .sa-login-premium-grid {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+  .sa-login-premium-brand {
+    min-height: 290px;
+    padding: 30px;
+  }
+  .sa-login-brand-title.MuiTypography-root {
+    max-width: 620px;
+    font-size: 34px;
+  }
+  .sa-login-brand-description.MuiTypography-root {
+    max-width: 620px;
+  }
+  .sa-login-feature-list {
+    margin-top: 32px;
+  }
+  .sa-login-security-note {
+    display: none;
+  }
+  .sa-login-premium-form-column {
+    padding: 36px 30px;
+  }
+}
+@media (max-width: 599px) {
+  .sa-login-premium-shell {
+    padding: 0;
+    background: #fff;
+  }
+  .sa-login-premium-surface {
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .sa-login-premium-brand {
+    min-height: 238px;
+    padding: 24px 20px;
+  }
+  .sa-login-brand-title.MuiTypography-root {
+    font-size: 29px;
+  }
+  .sa-login-brand-description.MuiTypography-root {
+    margin-top: 12px;
+    font-size: 11px;
+  }
+  .sa-login-feature-list {
+    display: none;
+  }
+  .sa-login-premium-form-column {
+    padding: 28px 20px 34px;
+  }
+  .sa-login-brand-row {
+    margin-bottom: 20px;
+  }
+  .sa-login-title.MuiTypography-root {
+    font-size: 25px;
+  }
+  .sa-login-subtitle.MuiTypography-root {
+    margin-bottom: 20px;
+  }
+  .sa-login-mode-nav {
+    margin-top: 22px;
+    padding-top: 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sa-login-premium-shell *,
+  .sa-login-premium-shell *::before,
+  .sa-login-premium-shell *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -15,6 +15,7 @@ import AuthExperience from '../components/auth/AuthExperience';
 import { useAuth } from '../context/AuthContext';
 import { useSite } from '../context/SiteContext';
 import { acceptTenantInvitation, lookupTenantInvitation, resendRegistrationOtp, sendOtp } from '../services/api';
+import '../../styles/login-premium.css';
 
 const demoAccounts = [
   ['Admin', 'admin@secureasset.in'], ['Manager', 'manager@secureasset.in'], ['Tenant / Landlord', 'tenant@secureasset.in'], ['Surveyor', 'surveyor@secureasset.in'],
@@ -142,8 +143,8 @@ export default function LoginPage() {
     finally { setLoading(false); }
   }
 
-  const identifierField = <TextField label="Email or mobile number" value={identifier} onChange={(event) => setIdentifier(event.target.value)} required InputProps={{ startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }} />;
-  const passwordField = (label = 'Password') => <TextField label={label} type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} required helperText={mode === 'register' ? 'At least 8 characters with uppercase, lowercase and a number.' : undefined} InputProps={{ startAdornment: <InputAdornment position="start"><LockRounded fontSize="small" /></InputAdornment>, endAdornment: <InputAdornment position="end"><IconButton type="button" aria-label="Toggle password visibility" onClick={() => setShowPassword((value) => !value)}>{showPassword ? <VisibilityOffRounded /> : <VisibilityRounded />}</IconButton></InputAdornment> }} />;
+  const identifierField = <TextField className="sa-login-field" label="Email or mobile number" value={identifier} onChange={(event) => setIdentifier(event.target.value)} required InputProps={{ startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }} />;
+  const passwordField = (label = 'Password') => <TextField className="sa-login-field" label={label} type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} required helperText={mode === 'register' ? 'At least 8 characters with uppercase, lowercase and a number.' : undefined} InputProps={{ startAdornment: <InputAdornment position="start"><LockRounded fontSize="small" /></InputAdornment>, endAdornment: <InputAdornment position="end"><IconButton type="button" aria-label="Toggle password visibility" onClick={() => setShowPassword((value) => !value)}>{showPassword ? <VisibilityOffRounded /> : <VisibilityRounded />}</IconButton></InputAdornment> }} />;
 
   let actionLabel = 'Continue';
   if (mode === 'login') actionLabel = 'Sign in';
@@ -156,25 +157,25 @@ export default function LoginPage() {
     title={content.headline || 'Every property workflow. One trusted space.'}
     description={content.description || settings.description || 'Bring properties, tenancy, payments, surveys and important records together in one professionally managed place.'}
   >
-      <Box>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2} sx={{ mb: 3 }}>
+      <Box className="sa-login-panel">
+        <Stack className="sa-login-brand-row" direction="row" justifyContent="space-between" alignItems="center" gap={2}>
           <LogoMark />
-          <Chip label={mode === 'register' ? 'New account' : 'Secure access'} size="small" variant="outlined" sx={{ borderColor: 'rgba(11,82,112,.25)', color: '#0B5270' }} />
+          <Chip className="sa-login-access-chip" label={mode === 'register' ? 'New account' : 'Secure access'} size="small" variant="outlined" />
         </Stack>
-        <Typography sx={{ fontSize: { xs: 25, sm: 29 }, fontWeight: 900, letterSpacing: '-.045em' }}>{titles[mode]}</Typography><Typography color="text.secondary" sx={{ mt: .8, mb: 3, fontSize: 13.5, lineHeight: 1.7 }}>{subtitles[mode]}</Typography>
+        <Typography className="sa-login-title">{titles[mode]}</Typography><Typography className="sa-login-subtitle">{subtitles[mode]}</Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}{message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
-        <Box component="form" onSubmit={submit}><Stack spacing={2}>
+        <Box component="form" className="sa-login-form" onSubmit={submit}><Stack spacing={1.7}>
           {mode === 'login' && identifierField}
           {mode === 'login' && passwordField()}
-          {mode === 'login' && <Stack direction="row" justifyContent="flex-end" sx={{ mt: -.85 }}><MuiLink data-secureasset-forgot-password-link="dedicated-reset-v160" href="/reset-password" underline="hover" sx={{ color: '#0B6E96', fontSize: 12.2, fontWeight: 750 }}>Forgot password?</MuiLink></Stack>}
+          {mode === 'login' && <Stack direction="row" justifyContent="flex-end" sx={{ mt: -.65 }}><MuiLink className="sa-login-forgot" data-secureasset-forgot-password-link="dedicated-reset-v160" href="/reset-password" underline="hover">Forgot password?</MuiLink></Stack>}
 
-          {mode === 'register' && !otpSent && <><TextField label="Full name" value={name} onChange={(event) => setName(event.target.value)} required InputProps={{ readOnly: Boolean(invitationToken) }} /><TextField label="Email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }} /><TextField label="Mobile number" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 12))} required helperText="Indian mobile number used for OTP verification." InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><PhoneAndroidRounded fontSize="small" /></InputAdornment> }} />{passwordField()}</>}
-          {mode === 'register' && otpSent && <><Alert severity="info">Enter the six-digit OTP sent to your mobile. Your account remains inactive until verification succeeds.</Alert><TextField label="6-digit mobile OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required inputProps={{ inputMode: 'numeric', maxLength: 6 }} /><Button type="button" onClick={resendRegistration} disabled={loading}>Resend OTP</Button></>}
+          {mode === 'register' && !otpSent && <><TextField className="sa-login-field" label="Full name" value={name} onChange={(event) => setName(event.target.value)} required InputProps={{ readOnly: Boolean(invitationToken) }} /><TextField className="sa-login-field" label="Email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }} /><TextField className="sa-login-field" label="Mobile number" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 12))} required helperText="Indian mobile number used for OTP verification." InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><PhoneAndroidRounded fontSize="small" /></InputAdornment> }} />{passwordField()}</>}
+          {mode === 'register' && otpSent && <><Alert severity="info">Enter the six-digit OTP sent to your mobile. Your account remains inactive until verification succeeds.</Alert><TextField className="sa-login-field" label="6-digit mobile OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required inputProps={{ inputMode: 'numeric', maxLength: 6 }} /><Button type="button" onClick={resendRegistration} disabled={loading}>Resend OTP</Button></>}
 
           {mode === 'otp' && identifierField}
-          {mode === 'otp' && otpSent && <TextField label="6-digit OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required inputProps={{ inputMode: 'numeric', maxLength: 6 }} />}
+          {mode === 'otp' && otpSent && <TextField className="sa-login-field" label="6-digit OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required inputProps={{ inputMode: 'numeric', maxLength: 6 }} />}
 
-          {mode === 'two-factor' && <TextField label="Authenticator or backup code" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\s/g, '').slice(0, 16))} InputProps={{ startAdornment: <InputAdornment position="start"><SecurityRounded /></InputAdornment> }} required />}
+          {mode === 'two-factor' && <TextField className="sa-login-field" label="Authenticator or backup code" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\s/g, '').slice(0, 16))} InputProps={{ startAdornment: <InputAdornment position="start"><SecurityRounded /></InputAdornment> }} required />}
           <Button
             type="submit"
             className="sa-submit-button"
@@ -201,8 +202,8 @@ export default function LoginPage() {
         {invitationToken && tenantInvite && <Alert severity="info" sx={{ mb: 2 }}>Your landlord has invited you to SecureAsset. Create your password, verify your mobile number, then complete tenant KYC.</Alert>}
         {invitationToken && !inviteLoading && !tenantInvite && <Alert severity="warning" sx={{ mb: 2 }}>This invitation is invalid or expired. Ask the landlord for a new link.</Alert>}
         {invitationToken && mode !== 'two-factor' && <Button type="button" size="small" onClick={() => { setMode(mode === 'register' ? 'login' : 'register'); setOtpSent(false); setOtp(''); setError(''); setMessage(''); }}>{mode === 'register' ? 'Already have an account? Sign in to accept' : 'Create a tenant account from this invitation'}</Button>}
-        {mode !== 'two-factor' && !invitationToken && <Box component="nav" aria-label="Authentication options" className="sa-auth-mode-nav" sx={{ mt: 3.25, pt: 2.5, borderTop: '1px solid', borderColor: 'divider' }}>
-          <Typography sx={{ mb: 1.1, color: 'text.secondary', fontSize: 11.5, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase' }}>Account access</Typography>
+        {mode !== 'two-factor' && !invitationToken && <Box component="nav" aria-label="Authentication options" className="sa-auth-mode-nav sa-login-mode-nav">
+          <Typography className="sa-login-mode-label">Account access</Typography>
           <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: .7 }}>
             {authNavigationModes.map((item) => {
               const selected = mode === item;
@@ -213,35 +214,7 @@ export default function LoginPage() {
                 underline="none"
                 aria-current={selected ? 'page' : undefined}
                 onClick={(event) => { event.preventDefault(); changeMode(item); }}
-                sx={{
-                  position: 'relative',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  minHeight: 30,
-                  px: .25,
-                  color: selected ? '#0B6E96' : '#18282D',
-                  fontSize: 13,
-                  fontWeight: selected ? 850 : 700,
-                  lineHeight: 1.2,
-                  whiteSpace: 'nowrap',
-                  cursor: 'pointer',
-                  transition: 'color .18s ease',
-                  '&:hover': { color: '#0B6E96' },
-                  '&:focus-visible': { outline: '2px solid rgba(11,110,150,.3)', outlineOffset: 4, borderRadius: 2 },
-                  '&::after': {
-                    content: '""',
-                    position: 'absolute',
-                    left: 2,
-                    right: 2,
-                    bottom: 1,
-                    height: 2,
-                    borderRadius: 2,
-                    bgcolor: '#0B6E96',
-                    transform: selected ? 'scaleX(1)' : 'scaleX(0)',
-                    transformOrigin: 'left center',
-                    transition: 'transform .18s ease',
-                  },
-                }}
+className={selected ? 'sa-login-mode-link is-active' : 'sa-login-mode-link'}
               >{modeLabels[item]}</MuiLink>;
             })}
           </Stack>
