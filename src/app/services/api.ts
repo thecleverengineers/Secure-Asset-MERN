@@ -413,6 +413,11 @@ export async function cancelSurveyorSubscription(id: string, immediate = false) 
 export async function switchAccountMode(mode: 'regular' | 'landlord' | 'surveyor') { return request<ApiResponse<User>>('/surveyor-subscriptions/mode', { method: 'POST', body: JSON.stringify({ mode }) }); }
 export async function getSurveyorVerification() { return request<ApiResponse<Record<string, any> | null>>('/surveyor-subscriptions/verification'); }
 export async function saveSurveyorVerification(body: Record<string, any>) { return request<ApiResponse<Record<string, any>>>('/surveyor-subscriptions/verification', { method: 'PUT', body: JSON.stringify(body) }); }
+export async function uploadSurveyorVerificationAsset(file: File) {
+  const form = new FormData();
+  form.append('file', file);
+  return request<ApiResponse<{ url: string; filename: string; mimeType: string; size: number }>>('/surveyor-subscriptions/verification/assets', { method: 'POST', body: form });
+}
 export async function submitSurveyorVerification() { return request<ApiResponse<Record<string, any>>>('/surveyor-subscriptions/verification/submit', { method: 'POST' }); }
 export async function saveSurveyorProfile(body: Record<string, any>) { return request<ApiResponse<Record<string, any>>>('/surveyor-subscriptions/profile', { method: 'PUT', body: JSON.stringify(body) }); }
 export async function setSurveyorProfileVisibility(visibility: 'private' | 'public') { return request<ApiResponse<Record<string, any>>>('/surveyor-subscriptions/profile/visibility', { method: 'POST', body: JSON.stringify({ visibility }) }); }

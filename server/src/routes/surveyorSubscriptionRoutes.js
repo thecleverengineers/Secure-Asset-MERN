@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { requireFeaturePermission, requireTenantSubscriptionAccount } from '../middleware/rolePermission.js';
 import {
@@ -9,9 +10,12 @@ import {
 } from '../controllers/surveyorSubscriptionController.js';
 import { syncFieldData, performCalculation, approveCalculation, exportGeoJson, exportKml } from '../controllers/surveyorFieldController.js';
 import { exportSurveyReport } from '../controllers/surveyReportExportController.js';
+import { uploadSurveyorVerificationAsset } from '../controllers/siteAssetController.js';
+import { secureMultipartLimits } from '../middleware/uploadSecurity.js';
 import { createSurveyInvoice, paySurveyInvoice } from '../controllers/surveyorFinanceController.js';
 
 const router = Router();
+const verificationImageUpload = multer({ storage: multer.memoryStorage(), limits: secureMultipartLimits({ fileSize: 8 * 1024 * 1024, fields: 4 }) });
 router.get('/plans', listPlans);
 router.use(authenticate, requireFeaturePermission('module:surveyor-subscription'));
 router.get('/me', requireTenantSubscriptionAccount, mySubscription);
@@ -21,6 +25,7 @@ router.post('/renew', requireTenantSubscriptionAccount, renew);
 router.post('/:id/cancel', requireTenantSubscriptionAccount, cancel);
 router.post('/mode', requireTenantSubscriptionAccount, switchMode);
 router.get('/verification', getVerification);
+router.post('/verification/assets', verificationImageUpload.single('file'), uploadSurveyorVerificationAsset);
 router.put('/verification', saveVerification);
 router.post('/verification/submit', submitVerification);
 router.post('/verification/:id/review', authorize('admin'), reviewVerification);

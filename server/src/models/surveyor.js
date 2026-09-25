@@ -131,7 +131,12 @@ const SurveyorVerificationSchema = new Schema({
   qualifications: [String], certifications: [String], yearsExperience: Number,
   taxRegistration: String, businessRegistrationNumber: String, agencyRegistrationNumber: String,
   insurance: { provider: String, policyNumber: String, expiresAt: Date, documentUrl: String },
-  bankVerification: { accountName: String, maskedAccount: String, ifsc: String, status: String },
+  bankVerification: {
+    accountName: String,
+    maskedAccount: String,
+    ifsc: String,
+    status: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
+  },
   serviceAreas: [{ name: String, radiusKm: Number }],
   documents: [VerificationDocumentSchema],
   reviewer: ref('User'), reviewerNotes: String, rejectionReason: String, suspensionReason: String,

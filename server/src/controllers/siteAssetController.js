@@ -29,6 +29,22 @@ async function persistImage(req, subdirectory = '') {
   return { url: `/site-assets/${relative}`, filename, mimeType: req.file.mimetype, size: req.file.size };
 }
 
+export const uploadSurveyorVerificationAsset = asyncHandler(async (req, res) => {
+  const { getActiveSurveyorSubscription } = await import('../services/surveyorSubscription.js');
+  await getActiveSurveyorSubscription(req.user._id);
+  const uploaded = await persistImage(req, 'surveyor-verification');
+  await AuditLog.create({
+    user: req.user._id,
+    role: req.user.role,
+    action: 'surveyor-verification:asset-uploaded',
+    module: 'surveyor-verifications',
+    updatedValue: uploaded,
+    ip: req.ip,
+    device: req.get('user-agent'),
+  });
+  res.status(201).json({ success: true, data: uploaded });
+});
+
 export const uploadSiteAsset = asyncHandler(async (req, res) => {
   if (req.user.role !== 'admin') throw new ApiError(403, 'Administrator access required');
   const uploaded = await persistImage(req);

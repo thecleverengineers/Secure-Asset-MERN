@@ -205,18 +205,18 @@ export const switchMode = asyncHandler(async (req, res) => {
 });
 
 export const getVerification = asyncHandler(async (req, res) => {
-  const verification = await SurveyorVerification.findOne({ user: req.user._id }).lean();
+  const verification = await SurveyorVerification.findOne({ user: req.user._id }).select('-bankVerification').lean();
   res.json({ success: true, data: verification });
 });
 
 export const saveVerification = asyncHandler(async (req, res) => {
   await getActiveSurveyorSubscription(req.user._id);
-  const allowed = ['legalName', 'profilePhoto', 'phone', 'email', 'address', 'registrationNumber', 'licenceNumber', 'licenceAuthority', 'licenceIssueDate', 'licenceExpiryDate', 'qualifications', 'certifications', 'yearsExperience', 'taxRegistration', 'businessRegistrationNumber', 'agencyRegistrationNumber', 'insurance', 'bankVerification', 'serviceAreas', 'documents'];
+  const allowed = ['legalName', 'profilePhoto', 'phone', 'email', 'address', 'registrationNumber', 'licenceNumber', 'licenceAuthority', 'licenceIssueDate', 'licenceExpiryDate', 'qualifications', 'certifications', 'yearsExperience', 'taxRegistration', 'businessRegistrationNumber', 'agencyRegistrationNumber', 'insurance', 'serviceAreas', 'documents'];
   const patch = Object.fromEntries(allowed.filter((key) => req.body[key] !== undefined).map((key) => [key, req.body[key]]));
   patch.updatedBy = req.user._id;
   const verification = await SurveyorVerification.findOneAndUpdate(
     { user: req.user._id },
-    { $set: patch, $setOnInsert: { user: req.user._id, status: 'draft', createdBy: req.user._id } },
+    { $set: patch, $setOnInsert: { user: req.user._id, status: 'draft', bankVerification: { status: 'pending' }, createdBy: req.user._id } },
     { upsert: true, new: true, runValidators: true },
   );
   await writeLog(req, 'surveyor-verification:saved', 'surveyor-verifications', verification);
@@ -230,7 +230,14 @@ export const submitVerification = asyncHandler(async (req, res) => {
   const required = ['legalName', 'phone', 'email', 'licenceNumber'];
   const missing = required.filter((key) => !verification[key]);
   if (missing.length) throw new ApiError(422, `Complete the required verification fields: ${missing.join(', ')}`);
-  verification.status = 'submitted'; verification.submittedAt = new Date(); verification.updatedBy = req.user._id; await verification.save();
+  verification.status = 'submitted';
+  verification.bankVerification = {
+    ...(verification.bankVerification?.toObject?.() || verification.bankVerification || {}),
+    status: 'pending',
+  };
+  verification.submittedAt = new Date();
+  verification.updatedBy = req.user._id;
+  await verification.save();
   await SurveyorProfile.updateOne({ user: req.user._id }, { verificationStatus: 'pending' });
   await writeLog(req, 'surveyor-verification:submitted', 'surveyor-verifications', verification);
   res.json({ success: true, data: verification, message: 'Verification submitted for review' });
