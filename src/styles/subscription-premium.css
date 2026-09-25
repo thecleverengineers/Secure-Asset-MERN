@@ -1,0 +1,421 @@
+/* Unified premium Landlord + Surveyor subscription workspace */
+.sa-subscription-premium {
+  --sub-ink: #0b2057;
+  --sub-muted: #6078a3;
+  --sub-paper: #ffffff;
+  --sub-bg: #f5faff;
+  --sub-soft: #eef5fd;
+  --sub-line: #e2edf8;
+  --sub-teal: #008f83;
+  min-height: calc(100dvh - 84px);
+  padding-top: 20px;
+  background:
+    radial-gradient(circle at 95% 4%, rgba(0,159,144,.06), transparent 24rem),
+    var(--sub-bg);
+  color: var(--sub-ink);
+  font-family: 'Open Sans', sans-serif;
+}
+.sa-subscription-premium :is(.MuiTypography-root,.MuiButton-root,.MuiChip-root,.MuiToggleButton-root) {
+  font-family: 'Open Sans', sans-serif;
+}
+.sa-subscription-loading {
+  display: grid;
+  min-height: 55vh;
+  place-items: center;
+}
+.sa-subscription-premium .sa-page-header {
+  margin: 0 4px 18px !important;
+  background: transparent !important;
+}
+.sa-subscription-premium .sa-page-header h1 {
+  color: var(--sub-ink) !important;
+  font-size: clamp(26px,2.2vw,34px) !important;
+  font-weight: 500 !important;
+  letter-spacing: -.04em !important;
+}
+.sa-subscription-cycle {
+  padding: 3px;
+  border: 1px solid var(--sub-line);
+  border-radius: 10px !important;
+  background: rgba(255,255,255,.88);
+}
+.sa-subscription-cycle .MuiToggleButton-root {
+  min-width: 76px;
+  padding: 6px 12px;
+  border: 0 !important;
+  border-radius: 8px !important;
+  color: var(--sub-muted);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: none;
+}
+.sa-subscription-cycle .MuiToggleButton-root.Mui-selected {
+  color: #ffffff;
+  background: linear-gradient(120deg,#00ad98,#007887);
+}
+.sa-subscription-workspace-switch {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.sa-subscription-workspace-card.MuiButton-root {
+  display: grid;
+  grid-template-columns: 44px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 82px;
+  padding: 14px 16px;
+  border: 1px solid var(--sub-line);
+  border-radius: 14px;
+  background: rgba(255,255,255,.9);
+  color: var(--sub-ink);
+  text-align: left;
+  text-transform: none;
+  box-shadow: 0 4px 15px rgba(18,57,96,.035);
+}
+.sa-subscription-workspace-card.MuiButton-root:hover {
+  border-color: #bedde5;
+  background: #ffffff;
+}
+.sa-subscription-workspace-card[aria-selected="true"] {
+  border-color: rgba(0,143,131,.38);
+  background: linear-gradient(145deg,#ffffff,#f3fbfb);
+  box-shadow: 0 8px 22px rgba(0,119,126,.08);
+}
+.sa-subscription-workspace-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 12px;
+  background: #eaf4fd;
+  color: #0b5d8a;
+}
+.sa-subscription-workspace-icon.surveyor {
+  background: #e9f8f5;
+  color: #008f83;
+}
+.sa-subscription-workspace-icon .MuiSvgIcon-root {
+  font-size: 22px;
+}
+.sa-subscription-workspace-copy {
+  min-width: 0;
+}
+.sa-subscription-workspace-title.MuiTypography-root {
+  color: var(--sub-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.sa-subscription-workspace-caption.MuiTypography-root {
+  margin-top: 3px;
+  color: var(--sub-muted);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+.sa-subscription-workspace-status.MuiChip-root {
+  height: 25px;
+  font-size: 9.5px;
+  font-weight: 500;
+}
+.sa-subscription-current-card,
+.sa-subscription-history-card,
+.sa-subscription-plan-card {
+  border: 1px solid var(--sub-line) !important;
+  border-radius: 14px !important;
+  background: rgba(255,255,255,.95) !important;
+  box-shadow: 0 4px 15px rgba(18,57,96,.035) !important;
+}
+.sa-subscription-current-card {
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.sa-subscription-current-card::before {
+  content: '';
+  display: block;
+  height: 3px;
+  background: linear-gradient(90deg,#0b5f88,#00aa96);
+}
+.sa-subscription-current-card.surveyor::before {
+  background: linear-gradient(90deg,#008f83,#4cbda5);
+}
+.sa-subscription-current-card .MuiCardContent-root,
+.sa-subscription-plan-card .MuiCardContent-root {
+  padding: 20px !important;
+}
+.sa-subscription-section-kicker.MuiTypography-root {
+  color: var(--sub-muted);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.sa-subscription-current-title.MuiTypography-root {
+  color: var(--sub-ink);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -.025em;
+}
+.sa-subscription-current-meta.MuiTypography-root,
+.sa-subscription-days.MuiTypography-root {
+  margin-top: 5px;
+  color: var(--sub-muted);
+  font-size: 10.5px;
+}
+.sa-subscription-premium .MuiButton-root {
+  border-radius: 9px;
+  text-transform: none;
+  box-shadow: none;
+}
+.sa-subscription-premium .MuiButton-contained {
+  color: #ffffff;
+  background: linear-gradient(120deg,#00aa96,#007987);
+}
+.sa-subscription-premium .MuiButton-contained:hover {
+  background: linear-gradient(120deg,#009b89,#006f7c);
+}
+.sa-subscription-usage {
+  min-height: 66px;
+  padding: 12px 13px;
+  border: 1px solid var(--sub-line);
+  border-radius: 10px;
+  background: var(--sub-soft);
+}
+.sa-subscription-usage .MuiTypography-root {
+  color: var(--sub-ink);
+  font-size: 10.5px;
+  font-weight: 500;
+}
+.sa-subscription-usage .MuiSvgIcon-root {
+  color: var(--sub-teal);
+  font-size: 18px;
+}
+.sa-subscription-usage .MuiLinearProgress-root {
+  height: 5px;
+  margin-top: 9px;
+  border-radius: 99px;
+  background: #dfeaf4;
+}
+.sa-subscription-usage .MuiLinearProgress-bar {
+  border-radius: 99px;
+  background: linear-gradient(90deg,#00ad98,#087a8a);
+}
+.sa-subscription-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 2px 2px 12px;
+}
+.sa-subscription-section-heading > div > .MuiTypography-root:first-child {
+  color: var(--sub-ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+.sa-subscription-section-heading > div > .MuiTypography-root:last-child {
+  margin-top: 3px;
+  color: var(--sub-muted);
+  font-size: 10.5px;
+}
+.sa-subscription-section-heading > .MuiChip-root {
+  height: 25px;
+  border-color: var(--sub-line);
+  color: var(--sub-muted);
+  font-size: 9.5px;
+}
+.sa-subscription-plan-grid {
+  margin-bottom: 20px;
+}
+.sa-subscription-plan-card {
+  height: 100%;
+  transition: transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.sa-subscription-plan-card:hover {
+  transform: translateY(-2px);
+  border-color: #c0dce6 !important;
+  box-shadow: 0 10px 24px rgba(12,76,107,.075) !important;
+}
+.sa-subscription-plan-card[data-current="true"] {
+  border-color: rgba(0,143,131,.55) !important;
+  box-shadow: 0 10px 25px rgba(0,143,131,.08) !important;
+}
+.sa-subscription-plan-card .MuiCardContent-root {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+.sa-subscription-plan-name.MuiTypography-root {
+  color: var(--sub-ink);
+  font-size: 16px;
+  font-weight: 600;
+}
+.sa-subscription-plan-description.MuiTypography-root {
+  min-height: 39px;
+  margin-top: 4px;
+  color: var(--sub-muted);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+.sa-subscription-price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin: 16px 0 14px;
+}
+.sa-subscription-price > .MuiTypography-root:first-child {
+  color: var(--sub-ink);
+  font-size: 27px;
+  font-weight: 600;
+  letter-spacing: -.04em;
+}
+.sa-subscription-price > .MuiTypography-root:last-child {
+  color: var(--sub-muted);
+  font-size: 10px;
+}
+.sa-subscription-feature-list {
+  gap: 7px;
+  margin: 14px 0;
+}
+.sa-subscription-feature-list .MuiTypography-root {
+  color: var(--sub-muted);
+  font-size: 10.5px;
+}
+.sa-subscription-feature-list .MuiStack-root .MuiTypography-root:last-child {
+  color: var(--sub-ink);
+  font-weight: 600;
+}
+.sa-subscription-feature-chips {
+  margin-bottom: 16px;
+}
+.sa-subscription-feature-chips .MuiChip-root {
+  height: 23px;
+  border-color: var(--sub-line);
+  background: #f8fbfe;
+  color: var(--sub-muted);
+  font-size: 9px;
+}
+.sa-subscription-plan-card .MuiButton-root {
+  margin-top: auto;
+}
+.sa-subscription-check-list {
+  gap: 8px;
+  margin: 15px 0 18px;
+}
+.sa-subscription-check-list .MuiSvgIcon-root {
+  color: var(--sub-teal);
+  font-size: 16px;
+}
+.sa-subscription-check-list .MuiTypography-root {
+  color: var(--sub-muted);
+  font-size: 10.5px;
+}
+.sa-subscription-history-card {
+  margin-top: 20px;
+}
+.sa-subscription-history-card .MuiCardContent-root {
+  padding: 18px !important;
+}
+.sa-subscription-history-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--sub-soft);
+  color: #0b5d8a;
+}
+.sa-subscription-history-title.MuiTypography-root {
+  color: var(--sub-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.sa-subscription-history-caption.MuiTypography-root {
+  color: var(--sub-muted);
+  font-size: 10px;
+}
+.sa-subscription-history-record {
+  padding: 12px 13px;
+  border: 1px solid var(--sub-line);
+  border-radius: 10px;
+  background: #f9fbfe;
+}
+.sa-subscription-history-record .MuiTypography-root {
+  color: var(--sub-muted);
+  font-size: 10px;
+}
+.sa-subscription-history-record > .MuiStack-root:first-child .MuiTypography-root:first-child {
+  color: var(--sub-ink);
+  font-size: 11px;
+  font-weight: 600;
+}
+.sa-subscription-payment-note {
+  margin-top: 18px;
+  border-radius: 10px !important;
+  font-size: 11px;
+}
+.sa-subscription-premium :is(button,a):focus-visible {
+  outline: 2px solid var(--sub-teal);
+  outline-offset: 3px;
+}
+@media (max-width: 899px) {
+  .sa-subscription-premium {
+    padding-top: 16px;
+  }
+  .sa-subscription-workspace-switch {
+    grid-template-columns: 1fr;
+  }
+  .sa-subscription-workspace-card.MuiButton-root {
+    min-height: 76px;
+  }
+}
+@media (max-width: 599px) {
+  .sa-subscription-premium .sa-page-header {
+    margin-bottom: 14px !important;
+  }
+  .sa-subscription-premium .sa-page-header h1 {
+    font-size: 27px !important;
+  }
+  .sa-subscription-cycle {
+    width: 100%;
+  }
+  .sa-subscription-cycle .MuiToggleButton-root {
+    flex: 1;
+  }
+  .sa-subscription-workspace-card.MuiButton-root {
+    grid-template-columns: 40px minmax(0,1fr) auto;
+    gap: 9px;
+    padding: 12px;
+    border-radius: 11px;
+  }
+  .sa-subscription-workspace-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+  .sa-subscription-workspace-caption.MuiTypography-root {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .sa-subscription-current-card,
+  .sa-subscription-history-card,
+  .sa-subscription-plan-card {
+    border-radius: 11px !important;
+  }
+  .sa-subscription-current-card .MuiCardContent-root,
+  .sa-subscription-plan-card .MuiCardContent-root {
+    padding: 16px !important;
+  }
+  .sa-subscription-section-heading {
+    align-items: flex-start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sa-subscription-premium *,
+  .sa-subscription-premium *::before,
+  .sa-subscription-premium *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
