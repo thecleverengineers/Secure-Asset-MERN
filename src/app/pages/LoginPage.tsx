@@ -214,7 +214,11 @@ export default function LoginPage() {
                 underline="none"
                 aria-current={selected ? 'page' : undefined}
                 onClick={(event) => { event.preventDefault(); changeMode(item); }}
-className={selected ? 'sa-login-mode-link is-active' : 'sa-login-mode-link'}
+                className={selected ? 'sa-login-mode-link is-active' : 'sa-login-mode-link'}
+                sx={{
+                  color: selected ? '#0B6E96' : '#18282D',
+                  '&:hover': { color: '#0B6E96' },
+                }}
               >{modeLabels[item]}</MuiLink>;
             })}
           </Stack>

@@ -6,22 +6,26 @@ import test from 'node:test';
 const root = path.resolve(import.meta.dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('authentication experience fills the available shell without container gutters', () => {
+test('authentication experience uses the premium contained SecureAsset frame', () => {
   const auth = read('src/app/components/auth/AuthExperience.tsx');
+  const styles = read('src/styles/login-premium.css');
 
   assert.doesNotMatch(auth, /Container/);
-  assert.match(auth, /width: '100%'/);
-  assert.match(auth, /minHeight: \{ xs: 'calc\(100dvh - 132px\)', md: 'calc\(100dvh - 72px\)' \}/);
-  assert.match(auth, /py: 0/);
-  assert.match(auth, /px: 0/);
+  assert.match(auth, /className="sa-auth-experience sa-login-premium-shell"/);
+  assert.match(auth, /className="sa-auth-surface sa-login-premium-surface"/);
+  assert.match(auth, /className="sa-login-premium-grid"/);
+  assert.match(styles, /\.sa-login-premium-wrap\s*\{[\s\S]*width: min\(1180px,100%\)/);
+  assert.match(styles, /\.sa-auth-surface\.sa-login-premium-surface\s*\{[\s\S]*border-radius: 20px !important;[\s\S]*box-shadow: 0 18px 48px/);
 });
 
-test('authentication surface is square, borderless and shadowless', () => {
+test('authentication experience keeps a responsive mobile-first layout', () => {
   const auth = read('src/app/components/auth/AuthExperience.tsx');
-  const styles = read('src/styles/globals.css');
+  const styles = read('src/styles/login-premium.css');
 
-  assert.match(auth, /className="sa-auth-surface"/);
-  assert.match(auth, /borderRadius: 0/);
-  assert.match(auth, /boxShadow: 'none'/);
-  assert.match(styles, /\.sa-auth-surface\s*\{[\s\S]*border: 0 !important;[\s\S]*border-radius: 0 !important;[\s\S]*box-shadow: none !important;/);
+  assert.match(auth, /className="sa-login-premium-brand"/);
+  assert.match(auth, /className="sa-login-premium-form-column"/);
+  assert.match(styles, /@media \(max-width: 959px\)/);
+  assert.match(styles, /grid-template-columns: 1fr/);
+  assert.match(styles, /@media \(max-width: 599px\)/);
+  assert.match(styles, /border-radius: 0 !important/);
 });

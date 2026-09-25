@@ -18,7 +18,7 @@
   display: flex;
   align-items: center;
 }
-.sa-login-premium-surface {
+.sa-auth-surface.sa-login-premium-surface {
   width: 100%;
   overflow: hidden;
   border: 1px solid #dfebf5 !important;
