@@ -42,3 +42,24 @@ test('public Surveyor directory requires a real verified verification record and
   assert.match(publicController, /publicationStatus: 'published'/);
   assert.match(publicController, /verificationStatus: 'verified'/);
 });
+
+
+test('public directory self-heals approvals created before automatic publication existed', () => {
+  const eligibility = read('server/src/services/publicSurveyorEligibility.js');
+  const publicController = read('server/src/controllers/publicController.js');
+  assert.match(eligibility, /export async function reconcileApprovedPublicSurveyors/);
+  assert.match(eligibility, /status: 'verified'/);
+  assert.match(eligibility, /SurveyorProfile\.findOneAndUpdate/);
+  assert.match(eligibility, /visibility: 'public'/);
+  assert.match(eligibility, /publicationStatus: 'published'/);
+  assert.match(eligibility, /verificationStatus: 'verified'/);
+  assert.match(eligibility, /upsert: true/);
+  assert.match(eligibility, /export async function activeVerifiedPublicSurveyorUserIds/);
+  assert.match(publicController, /activeVerifiedPublicSurveyorUserIds\(\)/);
+});
+
+
+test('public Surveyor eligibility supports subscribed tenant accounts and legacy Surveyor roles', () => {
+  const eligibility = read('server/src/services/publicSurveyorEligibility.js');
+  assert.match(eligibility, /role: \{ \$in: \['tenant', 'surveyor'\] \}/);
+});

@@ -4,7 +4,7 @@ import { ApiError } from '../utils/apiError.js';
 import { publicPropertySlug, serializePublicProperty, serializePublicSpace } from '../services/publicPropertySerialization.js';
 import { resolvePropertyMediaFile } from '../services/propertyMediaFile.js';
 import { sendStoredFile } from '../utils/httpFile.js';
-import { activePublicSurveyorUserIds } from '../services/publicSurveyorEligibility.js';
+import { activeVerifiedPublicSurveyorUserIds } from '../services/publicSurveyorEligibility.js';
 
 function escapeRegex(value) { return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 function searchExpression(value) { return new RegExp(escapeRegex(String(value || '').trim()), 'i'); }
@@ -397,7 +397,7 @@ export const getPublicProperty = asyncHandler(async (req, res) => {
 
 // Surveyor marketplace
 import crypto from 'crypto';
-import { SurveyorProfile, SurveyorVerification, SurveyService, SurveyJob } from '../models/index.js';
+import { SurveyorProfile, SurveyService, SurveyJob } from '../models/index.js';
 function publicProfileProjection() {
   return '-privateShare -createdBy -updatedBy';
 }
@@ -411,8 +411,7 @@ function sanitizeJob(job) {
 export const listPublicSurveyors = asyncHandler(async (req, res) => {
   setLiveDirectoryHeaders(res);
   const page = Math.max(Number(req.query.page || 1), 1); const limit = Math.min(Math.max(Number(req.query.limit || 12), 1), 50);
-  const subscribedIds = await activePublicSurveyorUserIds();
-  const ids = await SurveyorVerification.distinct('user', { status: 'verified', user: { $in: subscribedIds } });
+  const ids = await activeVerifiedPublicSurveyorUserIds();
   const filter = { user: { $in: ids }, visibility: 'public', publicationStatus: 'published', verificationStatus: 'verified' };
   if (req.query.type && req.query.type !== 'all') filter.profileType = req.query.type;
   if (req.query.available === 'true') filter.availability = 'available';
@@ -441,8 +440,7 @@ export const listPublicSurveyors = asyncHandler(async (req, res) => {
 
 export const getPublicSurveyor = asyncHandler(async (req, res) => {
   setLiveDirectoryHeaders(res);
-  const subscribedIds = await activePublicSurveyorUserIds();
-  const ids = await SurveyorVerification.distinct('user', { status: 'verified', user: { $in: subscribedIds } });
+  const ids = await activeVerifiedPublicSurveyorUserIds();
   const query = req.params.id.match(/^[a-f\d]{24}$/i) ? { _id: req.params.id } : { publicSlug: req.params.id };
   const profile = await SurveyorProfile.findOne({ ...query, user: { $in: ids }, visibility: 'public', publicationStatus: 'published', verificationStatus: 'verified' }).select(publicProfileProjection()).lean();
   if (!profile) throw new ApiError(404, 'Surveyor profile not found');
