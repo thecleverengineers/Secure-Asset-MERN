@@ -11,7 +11,7 @@ import {
 } from '../controllers/surveyorSubscriptionController.js';
 import { syncFieldData, performCalculation, approveCalculation, exportGeoJson, exportKml } from '../controllers/surveyorFieldController.js';
 import { exportSurveyReport } from '../controllers/surveyReportExportController.js';
-import { uploadSurveyorVerificationAsset } from '../controllers/siteAssetController.js';
+import { uploadSurveyorProfileAsset, uploadSurveyorVerificationAsset } from '../controllers/siteAssetController.js';
 import { secureMultipartLimits } from '../middleware/uploadSecurity.js';
 import { createSurveyInvoice, paySurveyInvoice } from '../controllers/surveyorFinanceController.js';
 
@@ -34,6 +34,7 @@ router.post('/verification/assets', verificationImageUpload.single('file'), uplo
 router.put('/verification', saveVerification);
 router.post('/verification/submit', submitVerification);
 router.post('/verification/:id/review', authorize('admin'), reviewVerification);
+router.post('/profile/assets', verificationImageUpload.single('file'), uploadSurveyorProfileAsset);
 router.put('/profile', createOrUpdateProfile);
 router.post('/profile/visibility', setProfileVisibility);
 router.post('/profile/share-link', createPrivateShareLink);

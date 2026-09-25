@@ -434,6 +434,15 @@ export async function uploadSurveyorVerificationAsset(file: File) {
   return request<ApiResponse<{ url: string; filename: string; mimeType: string; size: number }>>('/surveyor-subscriptions/verification/assets', { method: 'POST', body: form });
 }
 export async function submitSurveyorVerification() { return request<ApiResponse<Record<string, any>>>('/surveyor-subscriptions/verification/submit', { method: 'POST' }); }
+export async function uploadSurveyorProfileAsset(file: File, kind: 'profile_photo' | 'agency_logo') {
+  const form = new FormData();
+  form.append('file', file);
+  return request<ApiResponse<{ url: string; filename: string; mimeType: string; size: number; kind: string }>>('/surveyor-subscriptions/profile/assets', {
+    method: 'POST',
+    headers: { 'X-SecureAsset-Profile-Asset': kind },
+    body: form,
+  });
+}
 export async function saveSurveyorProfile(body: Record<string, any>) { return request<ApiResponse<Record<string, any>>>('/surveyor-subscriptions/profile', { method: 'PUT', body: JSON.stringify(body) }); }
 export async function setSurveyorProfileVisibility(visibility: 'private' | 'public') { return request<ApiResponse<Record<string, any>>>('/surveyor-subscriptions/profile/visibility', { method: 'POST', body: JSON.stringify({ visibility }) }); }
 export async function createSurveyorPrivateLink(accessCode?: string) { return request<ApiResponse<{ token: string; url: string }>>('/surveyor-subscriptions/profile/share-link', { method: 'POST', body: JSON.stringify({ accessCode }) }); }

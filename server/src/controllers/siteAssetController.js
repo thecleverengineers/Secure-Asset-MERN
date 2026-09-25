@@ -29,6 +29,31 @@ async function persistImage(req, subdirectory = '') {
   return { url: `/site-assets/${relative}`, filename, mimeType: req.file.mimetype, size: req.file.size };
 }
 
+export const uploadSurveyorProfileAsset = asyncHandler(async (req, res) => {
+  const { getActiveSurveyorSubscription } = await import('../services/surveyorSubscription.js');
+  await getActiveSurveyorSubscription(req.user._id);
+
+  const kind = String(req.get('x-secureasset-profile-asset') || '').trim().toLowerCase();
+  if (!['profile_photo', 'agency_logo'].includes(kind)) {
+    throw new ApiError(400, 'Invalid Surveyor profile asset type');
+  }
+
+  const uploaded = await persistImage(
+    req,
+    kind === 'agency_logo' ? 'surveyor-profiles/agency-logos' : 'surveyor-profiles/profile-photos',
+  );
+  await AuditLog.create({
+    user: req.user._id,
+    role: req.user.role,
+    action: `surveyor-profile:${kind}-uploaded`,
+    module: 'surveyor-profiles',
+    updatedValue: { ...uploaded, kind },
+    ip: req.ip,
+    device: req.get('user-agent'),
+  });
+  res.status(201).json({ success: true, data: { ...uploaded, kind } });
+});
+
 export const uploadSurveyorVerificationAsset = asyncHandler(async (req, res) => {
   const { getActiveSurveyorSubscription } = await import('../services/surveyorSubscription.js');
   await getActiveSurveyorSubscription(req.user._id);
