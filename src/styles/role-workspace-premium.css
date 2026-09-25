@@ -1,0 +1,304 @@
+/* SecureAsset role-wide premium workspace frame.
+   Applied from AppShell so all authenticated Admin, Tenant/Landlord-capability,
+   and Surveyor-capability pages inherit the same visual language. */
+.sa-premium-role-workspace {
+  --role-ink: #0b2057;
+  --role-muted: #6078a3;
+  --role-paper: #ffffff;
+  --role-bg: #f5faff;
+  --role-soft: #eef5fd;
+  --role-line: #e2edf8;
+  --role-line-strong: #cfdfeb;
+  --role-teal: #008f83;
+  --role-teal-dark: #08766f;
+  --role-navy: #0b2057;
+  --role-shadow: 0 7px 22px rgba(17,58,93,.055);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 96% 2%, rgba(0,159,144,.05), transparent 24rem),
+    linear-gradient(180deg,#f8fbfe 0%,var(--role-bg) 32%,#f6faff 100%);
+  color: var(--role-ink);
+  font-family: 'Open Sans', sans-serif;
+}
+
+.sa-premium-role-workspace :is(
+  .MuiTypography-root,
+  .MuiButton-root,
+  .MuiChip-root,
+  .MuiInputBase-root,
+  .MuiInputLabel-root,
+  .MuiTab-root,
+  .MuiTableCell-root,
+  .MuiMenuItem-root,
+  .MuiListItemText-root,
+  .MuiFormControlLabel-label
+) {
+  font-family: 'Open Sans', sans-serif;
+}
+
+.sa-premium-role-content {
+  width: 100%;
+  min-height: calc(100vh - 72px);
+}
+
+/* Shared page framing */
+.sa-premium-role-workspace :where(.sa-page-header,.sa-compact-page-toolbar) {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.sa-premium-role-workspace :where(.sa-page-header h1,.sa-page-header .MuiTypography-h4,.sa-compact-page-toolbar .MuiTypography-h4) {
+  color: var(--role-ink) !important;
+  font-weight: 500 !important;
+  letter-spacing: -.04em !important;
+}
+
+.sa-premium-role-workspace :where(.sa-page-header .MuiTypography-body1,.sa-page-header .MuiTypography-body2,.sa-compact-page-toolbar .MuiTypography-body2) {
+  color: var(--role-muted) !important;
+}
+
+/* Generic surfaces. Specific premium pages can override these with their own classes. */
+.sa-premium-role-workspace :where(.sa-surface-card,.MuiCard-root:not(.sa-security-hero):not(.sa-subscription-current-card)) {
+  border-color: var(--role-line);
+}
+
+.sa-premium-role-workspace :where(
+  .sa-surface-card,
+  .MuiCard-root:not(.sa-vault-mobile-category-tile):not(.sa-security-hero):not(.sa-subscription-current-card):not(.sa-login-premium-surface)
+) {
+  border-radius: 13px;
+}
+
+.sa-premium-role-workspace :where(.sa-surface-card) {
+  background: rgba(255,255,255,.96);
+  box-shadow: var(--role-shadow);
+}
+
+/* Legacy/general cards get a subtle upgrade without flattening page-specific art direction. */
+.sa-premium-role-workspace :where(.MuiCard-root:not([class*="sa-"])) {
+  border: 1px solid var(--role-line);
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 5px 17px rgba(17,58,93,.045);
+}
+
+/* Table and record workspaces */
+.sa-premium-role-workspace :where(.MuiTableContainer-root) {
+  overflow: hidden;
+  border: 1px solid var(--role-line);
+  border-radius: 13px;
+  background: var(--role-paper);
+  box-shadow: 0 5px 17px rgba(17,58,93,.04);
+}
+
+.sa-premium-role-workspace :where(.MuiTableHead-root .MuiTableCell-root) {
+  border-bottom-color: var(--role-line);
+  background: #f6fafe;
+  color: #6b7f9e;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.sa-premium-role-workspace :where(.MuiTableBody-root .MuiTableCell-root) {
+  border-bottom-color: #edf3f8;
+  color: #263d5a;
+  font-size: 10.5px;
+}
+
+.sa-premium-role-workspace :where(.MuiTableRow-root:hover .MuiTableCell-root) {
+  background: #f9fcfe;
+}
+
+/* Filters, forms and search controls */
+.sa-premium-role-workspace :where(.MuiOutlinedInput-root) {
+  border-radius: 10px;
+  background: rgba(248,251,254,.95);
+}
+
+.sa-premium-role-workspace :where(.MuiOutlinedInput-notchedOutline) {
+  border-color: var(--role-line);
+}
+
+.sa-premium-role-workspace :where(.MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline) {
+  border-color: #bdd6e4;
+}
+
+.sa-premium-role-workspace :where(.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline) {
+  border-color: var(--role-teal);
+  border-width: 1.5px;
+}
+
+.sa-premium-role-workspace :where(.MuiInputLabel-root) {
+  color: #7186a5;
+  font-size: 11.5px;
+}
+
+.sa-premium-role-workspace :where(.MuiFormHelperText-root) {
+  color: #8091aa;
+  font-size: 9px;
+}
+
+/* Buttons and compact actions */
+.sa-premium-role-workspace :where(.MuiButton-root) {
+  border-radius: 9px;
+  text-transform: none;
+  box-shadow: none;
+  font-weight: 500;
+}
+
+.sa-premium-role-workspace :where(.MuiButton-containedPrimary:not([class*="danger"])) {
+  background: linear-gradient(120deg,#00aa96,#007987);
+  color: #fff;
+}
+
+.sa-premium-role-workspace :where(.MuiButton-containedPrimary:not([class*="danger"]):hover) {
+  background: linear-gradient(120deg,#009b89,#006f7c);
+  box-shadow: none;
+}
+
+.sa-premium-role-workspace :where(.MuiButton-outlinedPrimary) {
+  border-color: #cfe1eb;
+  color: #0a6f78;
+}
+
+.sa-premium-role-workspace :where(.MuiIconButton-root:not(.MuiAutocomplete-popupIndicator):not(.MuiAutocomplete-clearIndicator)) {
+  border-radius: 9px;
+}
+
+/* Tabs and segmented workspaces */
+.sa-premium-role-workspace :where(.MuiTabs-root) {
+  min-height: 42px;
+}
+
+.sa-premium-role-workspace :where(.MuiTab-root) {
+  min-height: 42px;
+  color: var(--role-muted);
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: none;
+}
+
+.sa-premium-role-workspace :where(.MuiTab-root.Mui-selected) {
+  color: var(--role-teal);
+}
+
+.sa-premium-role-workspace :where(.MuiTabs-indicator) {
+  height: 3px;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(90deg,#00ad98,#007987);
+}
+
+/* Chips/status labels */
+.sa-premium-role-workspace :where(.MuiChip-root) {
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.sa-premium-role-workspace :where(.MuiChip-outlined) {
+  border-color: var(--role-line);
+  background: rgba(255,255,255,.72);
+}
+
+/* Lists and empty records */
+.sa-premium-role-workspace :where(.MuiListItemButton-root) {
+  border-radius: 9px;
+}
+
+.sa-premium-role-workspace :where(.MuiListItemButton-root.Mui-selected) {
+  background: #eef8f7;
+  color: var(--role-ink);
+}
+
+.sa-premium-role-workspace :where(.MuiListItemButton-root.Mui-selected:hover) {
+  background: #e8f6f5;
+}
+
+/* Dialogs opened from authenticated role pages */
+.sa-premium-role-workspace :where(.MuiAlert-root) {
+  border-radius: 10px;
+}
+
+.sa-premium-role-workspace :where(.MuiLinearProgress-root) {
+  border-radius: 999px;
+  background: #e3edf5;
+}
+
+.sa-premium-role-workspace :where(.MuiLinearProgress-bar) {
+  border-radius: 999px;
+}
+
+/* Role/capability accents stay subtle; all roles still share one product language. */
+.sa-premium-role-workspace.sa-role-admin {
+  --role-soft: #edf4fc;
+}
+
+.sa-premium-role-workspace.sa-role-tenant {
+  --role-soft: #eef8f7;
+}
+
+.sa-premium-role-workspace.sa-role-surveyor,
+.sa-premium-role-workspace.sa-capability-surveyor {
+  --role-soft: #edf8f6;
+}
+
+.sa-premium-role-workspace.sa-role-landlord,
+.sa-premium-role-workspace.sa-capability-landlord {
+  --role-soft: #f0f6fc;
+}
+
+/* Preserve purpose-built premium screens and strongly branded modules. */
+.sa-premium-role-workspace :where(
+  .sa-vault-mobile-shell,
+  .sa-messages-premium,
+  .sa-security-premium,
+  .sa-subscription-premium,
+  .sa-approval-center,
+  .sa-my-listings-premium,
+  .sa-applications-premium,
+  .sa-dashboard-premium
+) {
+  font-family: 'Open Sans', sans-serif;
+}
+
+@media (max-width: 899px) {
+  .sa-premium-role-workspace {
+    background: linear-gradient(180deg,#f9fcff 0%,#f4f9fd 100%);
+  }
+
+  .sa-premium-role-content {
+    min-height: calc(100vh - 64px);
+  }
+
+  .sa-premium-role-workspace :where(.MuiCard-root:not(.sa-vault-mobile-category-tile)) {
+    border-radius: 11px;
+  }
+
+  .sa-premium-role-workspace :where(.MuiTableContainer-root) {
+    border-radius: 11px;
+  }
+}
+
+@media (max-width: 599px) {
+  .sa-premium-role-workspace :where(.MuiTableCell-root) {
+    font-size: 9.5px;
+  }
+
+  .sa-premium-role-workspace :where(.MuiButton-root) {
+    font-size: 10.5px;
+  }
+
+  .sa-premium-role-workspace :where(.MuiTab-root) {
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sa-premium-role-workspace *,
+  .sa-premium-role-workspace *::before,
+  .sa-premium-role-workspace *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

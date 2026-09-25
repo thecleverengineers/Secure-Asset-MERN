@@ -70,6 +70,7 @@ import { normaliseDesignSystem, OPEN_SANS_FONT_FAMILY } from '../../designSystem
 import { resolveIconComponent } from '../../iconResolver';
 import { safeRecordArray } from '../../utils/runtimeData';
 import '../../../styles/bottom-appbar-premium.css';
+import '../../../styles/role-workspace-premium.css';
 
 type MenuDef = { key: string; label: string; icon: any; path?: string; mobilePrimary?: boolean; section?: string; sectionOrder?: number; sortOrder?: number; badge?: string; placement?: 'sidebar' | 'header' | 'bottom' | 'both' };
 const PROPERTY_DETAIL_ONLY_MENU_KEYS = new Set(['property-spaces', 'property-media', 'property-promotions']);
@@ -743,8 +744,23 @@ export default function AppShell() {
 
       <Drawer variant={isMobile ? 'temporary' : 'permanent'} open={isMobile ? mobileOpen : true} onClose={() => setMobileOpen(false)} ModalProps={{ keepMounted: true }} sx={{ '& .MuiDrawer-paper': { fontFamily: OPEN_SANS_FONT_FAMILY, '& .MuiTypography-root, & .MuiButtonBase-root, & .MuiChip-label, & .MuiListItemText-primary, & .MuiListItemText-secondary': { fontFamily: `${OPEN_SANS_FONT_FAMILY} !important` }, width: isMobile ? drawerWidth : width, boxSizing: 'border-box', borderRight: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', transition: 'width .2s', overflowX: 'hidden', boxShadow: isMobile ? '16px 0 48px rgba(7,46,59,.18)' : '6px 0 24px rgba(7,46,59,.045)' } }}>{drawerContent}</Drawer>
 
-      <Box component="main" id="sa-main-content" className="sa-reference-content" tabIndex={-1} sx={{ ml: { md: `${width}px` }, pt: `${design.layout.appBarHeight}px`, pb: { xs: 13, md: 6 }, minHeight: '100vh', transition: 'margin .2s', outline: 'none' }}>
-        <Box className="sa-app-content" sx={{ pt: { xs: 2, md: 3 } }}>
+      <Box
+        component="main"
+        id="sa-main-content"
+        className={[
+          'sa-reference-content',
+          'sa-premium-role-workspace',
+          `sa-role-${String(user?.role || 'user').toLowerCase()}`,
+          user?.role === 'tenant' && hasLandlordSubscription ? 'sa-capability-landlord' : '',
+          user?.role === 'tenant' && hasSurveyorSubscription ? 'sa-capability-surveyor' : '',
+        ].filter(Boolean).join(' ')}
+        data-workspace-role={String(user?.role || 'user').toLowerCase()}
+        data-landlord-capability={user?.role === 'tenant' && hasLandlordSubscription ? 'active' : 'inactive'}
+        data-surveyor-capability={user?.role === 'tenant' && hasSurveyorSubscription ? 'active' : 'inactive'}
+        tabIndex={-1}
+        sx={{ ml: { md: `${width}px` }, pt: `${design.layout.appBarHeight}px`, pb: { xs: 13, md: 6 }, minHeight: '100vh', transition: 'margin .2s', outline: 'none' }}
+      >
+        <Box className="sa-app-content sa-premium-role-content" sx={{ pt: { xs: 2, md: 3 } }}>
           <Suspense fallback={null}><Outlet /></Suspense>
         </Box>
       </Box>
