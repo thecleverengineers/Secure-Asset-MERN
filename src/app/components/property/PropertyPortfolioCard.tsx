@@ -8,6 +8,7 @@ import LocationOnRounded from '@mui/icons-material/LocationOnRounded';
 import MoreVertRounded from '@mui/icons-material/MoreVertRounded';
 import PublicRounded from '@mui/icons-material/PublicRounded';
 import LockRounded from '@mui/icons-material/LockRounded';
+import VerifiedRounded from '@mui/icons-material/VerifiedRounded';
 import ImageNotSupportedOutlined from '@mui/icons-material/ImageNotSupportedOutlined';
 import { fetchPropertyImageBlob, fetchPropertyMediaBlob } from '../../services/api';
 
@@ -196,6 +197,9 @@ export default function PropertyPortfolioCard({ row, onOpen, onEdit, onManageRoo
   const visibility = String(row?.visibility || 'private').toLowerCase() === 'public' ? 'Public' : 'Private';
   const city = [row?.address?.city, row?.address?.state].filter(Boolean).join(', ') || 'Location not added';
   const isRent = String(row?.purpose || row?.listingType || '').toLowerCase() === 'rent';
+  const surveyVerificationStatus = String(row?.surveyVerificationStatus || 'unverified').toLowerCase();
+  const surveyedOrVerified = Boolean(row?.isVerified) || ['surveyed', 'field_verified', 'document_verified', 'fully_verified'].includes(surveyVerificationStatus);
+  const verificationLabel = Boolean(row?.isVerified) || surveyVerificationStatus === 'fully_verified' ? 'Verified' : 'Surveyed';
   const handleKeyDown = (event: KeyboardEvent) => {
     if (!['Enter', ' '].includes(event.key)) return;
     event.preventDefault();
@@ -242,6 +246,7 @@ export default function PropertyPortfolioCard({ row, onOpen, onEdit, onManageRoo
         <Stack direction="row" flexWrap="wrap" useFlexGap gap={{ xs: .4, sm: .65 }} sx={{ '& .MuiChip-root': { height: { xs: 19, sm: 24 }, maxWidth: '100%' }, '& .MuiChip-label': { px: { xs: .65, sm: 1 }, fontSize: { xs: 8, sm: 12 } } }}>
           <Chip size="small" label={status} sx={{ bgcolor: '#E4F3F7', color: '#0B5270', fontWeight: 850 }} />
           <Chip size="small" icon={visibility === 'Public' ? <PublicRounded /> : <LockRounded />} label={visibility} variant="outlined" sx={{ borderColor: 'rgba(11,82,112,.22)', color: '#33535C', fontWeight: 800, '& .MuiChip-icon': { fontSize: { xs: 11, sm: 14 }, ml: { xs: .45, sm: .75 } } }} />
+          {surveyedOrVerified && <Chip size="small" icon={<VerifiedRounded />} label={verificationLabel} sx={{ bgcolor: '#E6F7F3', color: '#087A6D', border: '1px solid #BDE9DF', fontWeight: 800, '& .MuiChip-icon': { color: '#009F90', fontSize: { xs: 11, sm: 14 }, ml: { xs: .45, sm: .75 } } }} />}
           <Chip size="small" label={`${type} · ${purpose}`} variant="outlined" sx={{ borderColor: '#D9E5E8', color: '#587078', fontWeight: 750 }} />
         </Stack>
         <Stack direction="row" alignItems="baseline" justifyContent="space-between" gap={.6} sx={{ mt: { xs: .65, sm: .95 } }}>

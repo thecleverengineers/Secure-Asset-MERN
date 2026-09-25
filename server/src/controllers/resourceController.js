@@ -129,6 +129,22 @@ function applyResourceListFilters(req, filter, config) {
   for (const field of ['type', 'paymentStatus', 'listingType', 'purpose', 'visibility', 'publicationStatus', 'category']) {
     if (req.query[field]) filter[field] = { $in: String(req.query[field]).split(',') };
   }
+  const isPropertyResource = req.params.resource === 'properties' || config?.model?.modelName === 'Property';
+  if (isPropertyResource && req.query.listingPurpose) {
+    const purposes = String(req.query.listingPurpose).split(',').map((value) => value.trim().toLowerCase()).filter((value) => ['rent', 'lease', 'sale'].includes(value));
+    if (purposes.length) {
+      filter.$and = [...(filter.$and || []), { $or: [{ purpose: { $in: purposes } }, { listingType: { $in: purposes } }] }];
+    }
+  }
+  if (isPropertyResource && req.query.verification) {
+    const verification = String(req.query.verification).trim().toLowerCase();
+    const verifiedStatuses = ['surveyed', 'field_verified', 'document_verified', 'fully_verified'];
+    if (['verified', 'surveyed'].includes(verification)) {
+      filter.$and = [...(filter.$and || []), { $or: [{ isVerified: true }, { surveyVerificationStatus: { $in: verifiedStatuses } }] }];
+    } else if (verification === 'unverified') {
+      filter.$and = [...(filter.$and || []), { isVerified: { $ne: true }, surveyVerificationStatus: { $nin: verifiedStatuses } }];
+    }
+  }
   if (req.query.from || req.query.to) filter.createdAt = { ...(req.query.from && { $gte: new Date(String(req.query.from)) }), ...(req.query.to && { $lte: new Date(String(req.query.to)) }) };
   if (req.query.search && config.search.length) {
     const pattern = new RegExp(regexEscape(String(req.query.search)), 'i');

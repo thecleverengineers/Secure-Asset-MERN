@@ -46,6 +46,7 @@ import LocationFields from '../../components/shared/LocationFields';
 import { PropertyContextBanner, PropertyDataBlock, PropertySectionHeader } from '../../components/property/PropertyWorkspacePrimitives';
 import PropertyPortfolioCard from '../../components/property/PropertyPortfolioCard';
 import PropertyPortfolioMobileCard from '../../components/property/PropertyPortfolioMobileCard';
+import '../../../styles/my-listings-premium.css';
 
 type Field = { name: string; label: string; type?: 'text' | 'number' | 'date' | 'time' | 'datetime' | 'textarea' | 'select' | 'boolean' | 'radio' | 'array' | 'json' | 'reference' | 'password' | 'image'; options?: string[]; reference?: string; required?: boolean };
 
@@ -844,6 +845,9 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0, limit: 20 });
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [listingPurpose, setListingPurpose] = useState('');
+  const [listingVisibility, setListingVisibility] = useState('');
+  const [listingVerification, setListingVerification] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -882,14 +886,28 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
     return getResource(module, params);
   }
 
-  async function load(page = pagination.page, filters: { search?: string; status?: string; property?: string } = {}) {
+  async function load(page = pagination.page, filters: { search?: string; status?: string; property?: string; listingPurpose?: string; visibility?: string; verification?: string } = {}) {
     if (!config) return;
     setLoading(true); setError('');
     const requestSearch = filters.search ?? search;
     const requestStatus = filters.status ?? status;
     const requestProperty = filters.property ?? (searchParams.get('property') || '');
+    const requestListingPurpose = filters.listingPurpose ?? listingPurpose;
+    const requestVisibility = filters.visibility ?? listingVisibility;
+    const requestVerification = filters.verification ?? listingVerification;
     try {
-      const params = { page, limit: 20, search: requestSearch, status: requestStatus, property: requestProperty };
+      const params = {
+        page,
+        limit: 20,
+        search: requestSearch,
+        status: requestStatus,
+        property: requestProperty,
+        ...(isMyListings ? {
+          listingPurpose: requestListingPurpose,
+          visibility: requestVisibility,
+          verification: requestVerification,
+        } : {}),
+      };
       const result = await listRows(params);
       setRows(result.data); setPagination(result.pagination);
     }
@@ -900,8 +918,23 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
     const requestedSearch = searchParams.get('search') || '';
     const requestedStatus = searchParams.get('status') || '';
     const requestedProperty = searchParams.get('property') || '';
-    setSearch(requestedSearch); setStatus(requestedStatus); setPagination((p) => ({ ...p, page: 1 }));
-    if (config) void load(1, { search: requestedSearch, status: requestedStatus, property: requestedProperty });
+    const requestedPurpose = isMyListings ? (searchParams.get('purpose') || searchParams.get('listingType') || '') : '';
+    const requestedVisibility = isMyListings ? (searchParams.get('visibility') || '') : '';
+    const requestedVerification = isMyListings ? (searchParams.get('verification') || '') : '';
+    setSearch(requestedSearch);
+    setStatus(requestedStatus);
+    setListingPurpose(requestedPurpose);
+    setListingVisibility(requestedVisibility);
+    setListingVerification(requestedVerification);
+    setPagination((p) => ({ ...p, page: 1 }));
+    if (config) void load(1, {
+      search: requestedSearch,
+      status: requestedStatus,
+      property: requestedProperty,
+      listingPurpose: requestedPurpose,
+      visibility: requestedVisibility,
+      verification: requestedVerification,
+    });
   }, [module, searchParams, isMyListings, isTenantApplications]);
   useEffect(() => {
     if (!config || !module) return;
@@ -912,7 +945,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
       window.clearTimeout(timer); timer = window.setTimeout(() => void load(pagination.page), 180);
     });
     return () => { unsubscribeRoom(); unsubscribeEvent(); window.clearTimeout(timer); };
-  }, [module, config, pagination.page, search, status, realtime.status]);
+  }, [module, config, pagination.page, search, status, listingPurpose, listingVisibility, listingVerification, realtime.status]);
 
   useEffect(() => {
     const recordId = searchParams.get('record');
@@ -1236,6 +1269,11 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
     setExportMenuAnchor(null);
     void downloadReport(module, format).catch((error) => setError(error.message));
   }
+  const listingPageActions = <Stack direction="row" spacing={.8} flexWrap="wrap" useFlexGap>
+    <Button size="small" variant="outlined" startIcon={<FileDownloadRounded />} onClick={(event) => setExportMenuAnchor(event.currentTarget)}>Export</Button>
+    <Button size="small" variant="outlined" startIcon={<RefreshRounded />} onClick={() => load()}>Refresh</Button>
+    {canCreate && <Button size="small" variant="contained" startIcon={<AddRounded />} onClick={() => navigate('/app/add_property')}>Add property</Button>}
+  </Stack>;
   const pageActions = <Stack direction="row" spacing={.8} flexWrap="wrap" useFlexGap>
     {module !== 'tenancies' && <>
       <Button size="small" variant="outlined" startIcon={<FileDownloadRounded />} onClick={() => downloadReport(module, 'csv').catch((e) => setError(e.message))}>CSV</Button>
@@ -1256,8 +1294,15 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
     </Tooltip>}
   </Stack>;
 
-  return <Box data-secureasset-applications-filter="applications-filter-v66" data-secureasset-application-list={module === 'applications' ? 'record-frame-v1' : undefined} data-secureasset-tenancy-list={module === 'tenancies' ? 'record-frame-v1' : undefined} data-secureasset-clickable-records="clickable-records-v70" data-secureasset-property-visibility="property-visibility-v71" data-secureasset-application-actions="direct-decision-v76" data-secureasset-surveyor-profile-source={module === 'surveyor-profiles' ? 'live-resource-api-v208' : undefined} data-secureasset-surveyor-profile-navigation={module === 'surveyor-profiles' ? 'admin-detail-v210' : undefined} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
-    {compactTenantApplicationView ? <Stack data-secureasset-my-applications-toolbar="compact-v151" direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1.2} sx={{ mb: 2.2 }}>
+  return <Box className={isMyListings ? 'sa-my-listings-premium' : undefined} data-secureasset-applications-filter="applications-filter-v66" data-secureasset-application-list={module === 'applications' ? 'record-frame-v1' : undefined} data-secureasset-tenancy-list={module === 'tenancies' ? 'record-frame-v1' : undefined} data-secureasset-clickable-records="clickable-records-v70" data-secureasset-property-visibility="property-visibility-v71" data-secureasset-application-actions="direct-decision-v76" data-secureasset-surveyor-profile-source={module === 'surveyor-profiles' ? 'live-resource-api-v208' : undefined} data-secureasset-surveyor-profile-navigation={module === 'surveyor-profiles' ? 'admin-detail-v210' : undefined} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
+    {isMyListings ? <PageHeader
+      variant="plain"
+      eyebrow="Property portfolio"
+      title="My Listings"
+      description="Manage rent, lease and sale properties in one secure workspace. Filter listings by visibility and survey verification."
+      meta={<Stack direction="row" gap={.7} flexWrap="wrap" useFlexGap><Chip size="small" label={`${pagination.total} matching ${pagination.total === 1 ? 'property' : 'properties'}`} variant="outlined" /><Chip size="small" color="success" label="Owner-scoped workspace" /></Stack>}
+      actions={listingPageActions}
+    /> : compactTenantApplicationView ? <Stack data-secureasset-my-applications-toolbar="compact-v151" direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1.2} sx={{ mb: 2.2 }}>
       <Chip size="small" label={`${pagination.total} ${pagination.total === 1 ? 'application' : 'applications'}`} variant="outlined" sx={{ alignSelf: { xs: 'flex-start', sm: 'center' }, fontWeight: 750 }} />
       {pageActions}
     </Stack> : compactRequestedResourceView ? <CompactPageToolbar
@@ -1275,7 +1320,77 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
     />}
 
     {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>{error}</Alert>}
-    <Paper className={`sa-surface-card${module === 'applications' ? ' sa-applications-filter-frame' : ''}`} elevation={0} sx={{ p: { xs: 1.4, sm: 1.7 }, mb: 2, borderRadius: 4, ...(module === 'applications' ? { borderColor: 'rgba(11,82,112,.16)', background: 'linear-gradient(145deg, #FFFFFF 0%, #F6FBFC 100%)' } : {}) }}><Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} spacing={1.2}><TextField fullWidth size="small" placeholder={`Search ${(isMyListings ? 'my listings' : moduleLabel(module)).toLowerCase()}…`} value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load(1)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }} />{config.statuses && <FormControl size="small" sx={{ minWidth: { sm: 185 } }}><InputLabel>Status</InputLabel><Select label="Status" value={status} onChange={(e) => { const next = e.target.value; setStatus(next); void load(1, { status: next }); }}><MenuItem value="">All statuses</MenuItem>{config.statuses.map((item) => <MenuItem key={item} value={item}>{optionText(item)}</MenuItem>)}</Select></FormControl>}<Button variant="contained" onClick={() => load(1)} sx={{ whiteSpace: 'nowrap' }}>Search</Button></Stack></Paper>
+    {isMyListings ? <Paper className="sa-my-listings-filter-panel sa-surface-card" elevation={0}>
+      <Stack className="sa-my-listings-search-row" direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} spacing={1.1}>
+        <TextField
+          className="sa-my-listings-search"
+          fullWidth
+          size="small"
+          placeholder="Search property name, code, city or address…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && load(1)}
+          InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }}
+        />
+        {config.statuses && <FormControl size="small" className="sa-my-listings-status">
+          <InputLabel>Status</InputLabel>
+          <Select label="Status" value={status} onChange={(e) => { const next = e.target.value; setStatus(next); void load(1, { status: next }); }}>
+            <MenuItem value="">All statuses</MenuItem>
+            {config.statuses.map((item) => <MenuItem key={item} value={item}>{optionText(item)}</MenuItem>)}
+          </Select>
+        </FormControl>}
+        <Button variant="contained" onClick={() => load(1)}>Search</Button>
+      </Stack>
+
+      <Box className="sa-my-listings-filter-section">
+        <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} sx={{ mb: 1 }}>
+          <Box><Typography className="sa-my-listings-filter-label">Listing type</Typography><Typography className="sa-my-listings-filter-help">Separate your portfolio by transaction type.</Typography></Box>
+        </Stack>
+        <Box className="sa-my-listings-purpose-grid">
+          {[
+            { value: '', label: 'All properties', caption: 'Complete portfolio' },
+            { value: 'rent', label: 'Rent properties', caption: 'Rental listings' },
+            { value: 'lease', label: 'Lease properties', caption: 'Lease listings' },
+            { value: 'sale', label: 'Sale properties', caption: 'Properties for sale' },
+          ].map((option, index) => <Button
+            key={option.value || 'all'}
+            className="sa-my-listings-purpose-button"
+            aria-pressed={listingPurpose === option.value}
+            onClick={() => { setListingPurpose(option.value); void load(1, { listingPurpose: option.value }); }}
+          >
+            <Box className={`sa-my-listings-purpose-dot tone-${index}`} />
+            <Box sx={{ minWidth: 0, textAlign: 'left' }}><Typography className="sa-my-listings-purpose-title">{option.label}</Typography><Typography className="sa-my-listings-purpose-caption">{option.caption}</Typography></Box>
+          </Button>)}
+        </Box>
+      </Box>
+
+      <Box className="sa-my-listings-filter-section sa-my-listings-secondary-filters">
+        <Box>
+          <Typography className="sa-my-listings-filter-label">Visibility</Typography>
+          <Stack direction="row" gap={.65} flexWrap="wrap" useFlexGap sx={{ mt: .75 }}>
+            {[
+              { value: '', label: 'All visibility' },
+              { value: 'public', label: 'Public' },
+              { value: 'private', label: 'Private' },
+            ].map((option) => <Button key={option.value || 'all'} className="sa-my-listings-filter-pill" aria-pressed={listingVisibility === option.value} onClick={() => { setListingVisibility(option.value); void load(1, { visibility: option.value }); }}>{option.label}</Button>)}
+          </Stack>
+        </Box>
+        <Box>
+          <Typography className="sa-my-listings-filter-label">Survey verification</Typography>
+          <Stack direction="row" gap={.65} flexWrap="wrap" useFlexGap sx={{ mt: .75 }}>
+            {[
+              { value: '', label: 'All verification' },
+              { value: 'verified', label: 'Surveyed / Verified' },
+              { value: 'unverified', label: 'Unverified' },
+            ].map((option) => <Button key={option.value || 'all'} className="sa-my-listings-filter-pill" aria-pressed={listingVerification === option.value} onClick={() => { setListingVerification(option.value); void load(1, { verification: option.value }); }}>{option.label}</Button>)}
+          </Stack>
+        </Box>
+        {(listingPurpose || listingVisibility || listingVerification || status || search) && <Button className="sa-my-listings-clear" variant="text" onClick={() => {
+          setSearch(''); setStatus(''); setListingPurpose(''); setListingVisibility(''); setListingVerification('');
+          void load(1, { search: '', status: '', listingPurpose: '', visibility: '', verification: '' });
+        }}>Clear filters</Button>}
+      </Box>
+    </Paper> : <Paper className={`sa-surface-card${module === 'applications' ? ' sa-applications-filter-frame' : ''}`} elevation={0} sx={{ p: { xs: 1.4, sm: 1.7 }, mb: 2, borderRadius: 4, ...(module === 'applications' ? { borderColor: 'rgba(11,82,112,.16)', background: 'linear-gradient(145deg, #FFFFFF 0%, #F6FBFC 100%)' } : {}) }}><Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} spacing={1.2}><TextField fullWidth size="small" placeholder={`Search ${(isMyListings ? 'my listings' : moduleLabel(module)).toLowerCase()}…`} value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load(1)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }} />{config.statuses && <FormControl size="small" sx={{ minWidth: { sm: 185 } }}><InputLabel>Status</InputLabel><Select label="Status" value={status} onChange={(e) => { const next = e.target.value; setStatus(next); void load(1, { status: next }); }}><MenuItem value="">All statuses</MenuItem>{config.statuses.map((item) => <MenuItem key={item} value={item}>{optionText(item)}</MenuItem>)}</Select></FormControl>}<Button variant="contained" onClick={() => load(1)} sx={{ whiteSpace: 'nowrap' }}>Search</Button></Stack></Paper>}
 
     {loading ? (
       <Box sx={{ py: 12, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>

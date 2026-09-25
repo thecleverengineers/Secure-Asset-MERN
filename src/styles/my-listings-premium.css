@@ -1,0 +1,262 @@
+/* My Listings presentation aligned with the SecureAsset Vault and Dashboard workspace frame. */
+.sa-my-listings-premium {
+  --ml-ink: #0b2057;
+  --ml-muted: #6078a3;
+  --ml-paper: #ffffff;
+  --ml-bg: #f5faff;
+  --ml-soft: #eef5fd;
+  --ml-line: #e4edf9;
+  --ml-accent: #009f90;
+  min-height: calc(100dvh - 84px);
+  padding-top: 20px;
+  background: var(--ml-bg);
+  color: var(--ml-ink);
+  font-family: 'Open Sans', sans-serif;
+}
+.sa-my-listings-premium :is(.MuiTypography-root,.MuiButton-root,.MuiInputBase-root,.MuiChip-root,button) {
+  font-family: 'Open Sans', sans-serif;
+}
+.sa-my-listings-premium :is(button,a,input):focus-visible {
+  outline: 2px solid var(--ml-accent);
+  outline-offset: 3px;
+}
+.sa-my-listings-premium .sa-page-header {
+  margin: 0 4px 20px !important;
+  background: transparent !important;
+}
+.sa-my-listings-premium .sa-page-header h1 {
+  color: var(--ml-ink) !important;
+  font-size: clamp(26px,2.2vw,34px) !important;
+  font-weight: 500 !important;
+  letter-spacing: -.04em !important;
+  line-height: 1.25 !important;
+}
+.sa-my-listings-premium .sa-page-header > .MuiStack-root > .MuiBox-root > .MuiTypography-root:not(h1):not(.sa-page-kicker) {
+  color: var(--ml-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.sa-my-listings-premium .sa-page-kicker {
+  color: var(--ml-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .08em;
+}
+.sa-my-listings-premium .MuiButton-root {
+  text-transform: none;
+  box-shadow: none;
+}
+.sa-my-listings-premium .MuiButton-contained {
+  color: #fff !important;
+  background: linear-gradient(120deg,#00b391,#006286) !important;
+  border-radius: 9px;
+}
+.sa-my-listings-premium .MuiButton-contained:hover {
+  filter: brightness(.96);
+  box-shadow: 0 5px 14px #008c8c22 !important;
+}
+.sa-my-listings-premium .sa-surface-card {
+  border: 1px solid var(--ml-line) !important;
+  border-radius: 14px !important;
+  background: var(--ml-paper) !important;
+  box-shadow: 0 4px 14px #16457704 !important;
+}
+.sa-my-listings-filter-panel {
+  padding: 15px 16px 14px;
+  margin-bottom: 20px;
+}
+.sa-my-listings-search-row .sa-my-listings-search {
+  min-width: 180px;
+}
+.sa-my-listings-search-row .sa-my-listings-status {
+  min-width: 175px;
+}
+.sa-my-listings-premium .sa-my-listings-search .MuiOutlinedInput-root {
+  min-height: 43px;
+  border-radius: 9px;
+  background: var(--ml-soft);
+  font-size: 12px;
+}
+.sa-my-listings-premium .sa-my-listings-search .MuiOutlinedInput-notchedOutline {
+  border-color: transparent;
+}
+.sa-my-listings-premium .sa-my-listings-search input::placeholder {
+  color: var(--ml-muted);
+  opacity: 1;
+}
+.sa-my-listings-filter-section {
+  padding-top: 14px;
+  margin-top: 14px;
+  border-top: 1px solid var(--ml-line);
+}
+.sa-my-listings-filter-label {
+  color: var(--ml-ink);
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: .015em;
+}
+.sa-my-listings-filter-help {
+  color: var(--ml-muted);
+  margin-top: 2px !important;
+  font-size: 10px !important;
+}
+.sa-my-listings-purpose-grid {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 9px;
+}
+.sa-my-listings-purpose-button.MuiButton-root {
+  min-width: 0;
+  min-height: 64px;
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--ml-line);
+  border-radius: 11px;
+  color: var(--ml-ink);
+  background: var(--ml-paper);
+  text-align: left;
+}
+.sa-my-listings-purpose-button.MuiButton-root:hover {
+  background: var(--ml-soft);
+  border-color: #a8dcd5;
+}
+.sa-my-listings-purpose-button[aria-pressed="true"].MuiButton-root {
+  background: #edf9f7;
+  border-color: var(--ml-accent);
+  box-shadow: inset 0 0 0 1px #009f9020;
+}
+.sa-my-listings-purpose-dot {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  box-shadow: inset 0 1px 2px #ffffff88;
+}
+.sa-my-listings-purpose-dot.tone-0 { background: linear-gradient(145deg,#315c98,#0b2057); }
+.sa-my-listings-purpose-dot.tone-1 { background: linear-gradient(145deg,#19d29e,#008a87); }
+.sa-my-listings-purpose-dot.tone-2 { background: linear-gradient(145deg,#79a6ff,#545aff); }
+.sa-my-listings-purpose-dot.tone-3 { background: linear-gradient(145deg,#ffaa49,#ff6334); }
+.sa-my-listings-purpose-title {
+  color: var(--ml-ink);
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  line-height: 1.3 !important;
+}
+.sa-my-listings-purpose-caption {
+  color: var(--ml-muted);
+  margin-top: 2px !important;
+  font-size: 9.5px !important;
+  line-height: 1.35 !important;
+}
+.sa-my-listings-secondary-filters {
+  display: grid;
+  grid-template-columns: minmax(220px,.8fr) minmax(300px,1.2fr) auto;
+  gap: 18px;
+  align-items: end;
+}
+.sa-my-listings-filter-pill.MuiButton-root {
+  min-height: 33px;
+  min-width: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--ml-line);
+  border-radius: 20px;
+  color: var(--ml-muted);
+  background: var(--ml-paper);
+  font-size: 10.5px;
+  font-weight: 500;
+}
+.sa-my-listings-filter-pill[aria-pressed="true"].MuiButton-root {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(120deg,#00ae98,#007887);
+}
+.sa-my-listings-clear.MuiButton-root {
+  min-width: 88px;
+  color: var(--ml-muted);
+  font-size: 10.5px;
+}
+.sa-my-listings-premium [data-secureasset-my-listings-grid] {
+  margin-top: 2px;
+}
+.sa-my-listings-premium [data-secureasset-property-portfolio-card] {
+  border: 1px solid var(--ml-line) !important;
+  border-radius: 12px !important;
+  background: var(--ml-paper) !important;
+  box-shadow: 0 3px 9px #1b4c7906 !important;
+}
+.sa-my-listings-premium [data-secureasset-property-portfolio-card]:hover {
+  border-color: var(--ml-accent) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 22px #17477312 !important;
+}
+.sa-my-listings-premium [data-secureasset-property-portfolio-card] .MuiChip-root {
+  font-weight: 500 !important;
+}
+.sa-my-listings-premium .MuiPaginationItem-root.Mui-selected {
+  color: #fff;
+  background: linear-gradient(120deg,#00ae98,#007887);
+}
+@media (max-width: 899px) {
+  .sa-my-listings-secondary-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .sa-my-listings-clear.MuiButton-root {
+    justify-self: start;
+  }
+}
+@media (max-width: 599px) {
+  .sa-my-listings-premium {
+    padding-top: 16px;
+  }
+  .sa-my-listings-premium .sa-page-header {
+    margin: 0 2px 15px !important;
+  }
+  .sa-my-listings-premium .sa-page-header h1 {
+    font-size: 27px !important;
+  }
+  .sa-my-listings-premium .sa-page-header > .MuiStack-root > .MuiBox-root > .MuiTypography-root:not(h1):not(.sa-page-kicker) {
+    font-size: 11px;
+  }
+  .sa-my-listings-filter-panel {
+    padding: 12px 10px 11px;
+    border-radius: 12px !important;
+  }
+  .sa-my-listings-purpose-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 7px;
+  }
+  .sa-my-listings-purpose-button.MuiButton-root {
+    min-height: 58px;
+    padding: 8px;
+    gap: 7px;
+  }
+  .sa-my-listings-purpose-dot {
+    width: 28px;
+    height: 28px;
+  }
+  .sa-my-listings-purpose-title {
+    font-size: 10px !important;
+  }
+  .sa-my-listings-purpose-caption {
+    font-size: 8.5px !important;
+  }
+  .sa-my-listings-secondary-filters {
+    grid-template-columns: 1fr;
+    gap: 13px;
+  }
+  .sa-my-listings-filter-pill.MuiButton-root {
+    min-height: 31px;
+    padding: 5px 10px;
+    font-size: 9.5px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sa-my-listings-premium *,
+  .sa-my-listings-premium *::before,
+  .sa-my-listings-premium *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
