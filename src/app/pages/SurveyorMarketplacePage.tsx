@@ -73,7 +73,7 @@ export default function SurveyorMarketplacePage(){
           </Box>
           <Stack direction="row" className="sa-surveyor-card-actions">
             <Button className="sa-surveyor-profile-button" variant="text" fullWidth onClick={()=>navigate(profilePath)}>Profile</Button>
-            <Button className="sa-surveyor-quote-button" variant="contained" fullWidth startIcon={<RequestQuoteRounded/>} onClick={()=>navigate(`${profilePath}?quote=1`)}>Quote</Button>
+            <Button className="sa-surveyor-quote-button" variant="contained" fullWidth startIcon={<RequestQuoteRounded/>} onClick={()=>navigate(`/surveyor_quote/${p.publicSlug||p._id}`)}>Quote</Button>
           </Stack>
         </Card>
       </Grid>;
