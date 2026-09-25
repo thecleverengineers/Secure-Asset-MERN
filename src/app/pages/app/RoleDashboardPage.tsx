@@ -37,6 +37,7 @@ import PageHeader from '../../components/layout/PageHeader';
 import { safeRecord, safeRecordArray } from '../../utils/runtimeData';
 import { ChartSkeleton, DashboardSkeleton } from '../../components/shared/PremiumSkeleton';
 import { lazyWithRetry } from '../../utils/lazyWithRetry';
+import '../../../styles/dashboard-premium.css';
 
 const DashboardCharts = lazyWithRetry(() => import('../../components/dashboard/DashboardCharts'));
 const SurveyorDashboardPage = lazyWithRetry(() => import('./SurveyorDashboardPage'));
@@ -95,7 +96,7 @@ function MetricCard({ label, value, Icon, detail, tone = 'primary' }: { label: s
     warning: { surface: 'rgba(183,121,31,.12)', color: 'warning.main' },
   };
   const colors = toneMap[tone];
-  return <Card className="sa-surface-card sa-interactive-card" elevation={0} sx={{ height: '100%', position: 'relative', overflow: 'hidden', transition: 'border-color .18s ease' }}>
+  return <Card className="sa-dashboard-metric sa-surface-card sa-interactive-card" elevation={0} sx={{ height: '100%', position: 'relative', overflow: 'hidden', transition: 'border-color .18s ease' }}>
     <Box sx={{ position: 'absolute', width: 122, height: 122, right: -46, top: -50, borderRadius: '50%', bgcolor: colors.surface }} />
     <Box sx={{ position: 'absolute', left: 0, top: 18, bottom: 18, width: 3, borderRadius: '0 99px 99px 0', bgcolor: colors.color }} />
     <CardContent sx={{ p: { xs: 1.8, md: 2.15 }, pl: { xs: 2, md: 2.35 }, '&:last-child': { pb: { xs: 1.8, md: 2.15 } }, position: 'relative' }}>
@@ -118,7 +119,7 @@ function QuickLinkCard({ label, description, icon: Icon, onClick, tone = 0 }: { 
   ];
   const palette = palettes[tone % palettes.length];
   return <Button
-    className="sa-interactive-card"
+    className="sa-dashboard-quick-card sa-interactive-card"
     variant="outlined"
     fullWidth
     onClick={onClick}
@@ -138,8 +139,8 @@ function QuickLinkCard({ label, description, icon: Icon, onClick, tone = 0 }: { 
 }
 
 function DashboardQuickLinks({ links, navigate }: { links: readonly DashboardQuickLink[]; navigate: (path: string) => void }) {
-  return <Paper className="sa-surface-card" elevation={0} sx={{ mt: 2.3, p: { xs: 2, md: 2.5 } }}>
-    <Stack alignItems="center" textAlign="center" sx={{ mb: 1.8 }}>
+  return <Paper className="sa-dashboard-panel sa-dashboard-quick-links sa-surface-card" elevation={0} sx={{ mt: 2.3, p: { xs: 2, md: 2.5 } }}>
+    <Stack alignItems="flex-start" textAlign="left" sx={{ mb: 1.8 }}>
       <Typography className="sa-page-kicker">Quick links</Typography>
       <Typography variant="h6" sx={{ mt: .45 }}>Your workspace shortcuts</Typography>
       <Typography color="text.secondary" sx={{ mt: .3, fontSize: 12.2 }}>Open the task you need in one click.</Typography>
@@ -275,7 +276,7 @@ export default function RoleDashboardPage() {
     const collected = Number(landlord.kpis?.rentCollected || 0);
     const collectionPercent = expected ? Math.min(100, (collected / expected) * 100) : 0;
 
-    return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 6 }}>
+    return <Box className="sa-dashboard-premium" sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 6 }}>
       <PageHeader
         variant="plain"
         eyebrow={isSurveyor ? 'Tenant workspace · Landlord + Surveyor' : 'Landlord workspace'}
@@ -327,7 +328,7 @@ export default function RoleDashboardPage() {
   }
 
   if (user?.role === 'tenant' && isSurveyor && surveyor) {
-    return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 6 }}>
+    return <Box className="sa-dashboard-premium" sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 6 }}>
       <PageHeader
         variant="plain"
         eyebrow="Tenant workspace · Surveyor"
@@ -356,7 +357,7 @@ export default function RoleDashboardPage() {
         ? [['Browse properties', 'Explore verified public listings.', '/marketplace', ExploreRounded], ['My applications', 'Track submitted applications.', '/app/my-applications', FactCheckRounded], ['My subscription', 'Review subscription details.', '/app/subscription', BusinessRounded], ['Help centre', 'Open support and account guidance.', '/app/security', FactCheckRounded]]
       : [['Manage properties', 'Open your property operations.', '/app/properties', ApartmentRounded], ['Review applications', 'Review applicant activity.', '/app/applications', FactCheckRounded], ['View payments', 'Open payment operations.', '/app/payments', PaymentsRounded], ['Analytics', 'Review operational performance.', '/app/reports', TrendingUpRounded]];
 
-  return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5.5 }}>
+  return <Box className="sa-dashboard-premium" sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5.5 }}>
     <PageHeader
       variant="plain"
       eyebrow={isDirectSurveyor ? 'Field operations' : isRegularTenant ? 'Tenant workspace' : user?.role === 'tenant' ? 'Your home workspace' : 'Operations overview'}

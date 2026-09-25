@@ -1,0 +1,196 @@
+/* Premium dashboard frame aligned with the SecureAsset Document Vault visual language. */
+.sa-dashboard-premium {
+  --db-ink: #0b2057;
+  --db-muted: #6078a3;
+  --db-paper: #ffffff;
+  --db-bg: #f5faff;
+  --db-soft: #eef5fd;
+  --db-line: #e4edf9;
+  --db-accent: #009f90;
+  min-height: calc(100dvh - 84px);
+  padding-top: 20px;
+  background: var(--db-bg);
+  color: var(--db-ink);
+  font-family: 'Open Sans', sans-serif;
+}
+.sa-dashboard-premium :is(.MuiTypography-root,.MuiButton-root,.MuiChip-root,button) {
+  font-family: 'Open Sans', sans-serif;
+}
+.sa-dashboard-premium :is(button,a):focus-visible {
+  outline: 2px solid var(--db-accent);
+  outline-offset: 3px;
+}
+.sa-dashboard-premium .sa-page-header {
+  margin: 0 4px 20px !important;
+  background: transparent !important;
+}
+.sa-dashboard-premium .sa-page-header h1 {
+  color: var(--db-ink) !important;
+  font-size: clamp(26px,2.2vw,34px) !important;
+  font-weight: 500 !important;
+  letter-spacing: -.04em !important;
+  line-height: 1.25 !important;
+}
+.sa-dashboard-premium .sa-page-header > .MuiStack-root > .MuiBox-root > .MuiTypography-root:not(h1):not(.sa-page-kicker) {
+  color: var(--db-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.sa-dashboard-premium .sa-page-kicker {
+  color: var(--db-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .08em;
+}
+.sa-dashboard-premium .MuiButton-root {
+  text-transform: none;
+  box-shadow: none;
+}
+.sa-dashboard-premium .MuiButton-contained {
+  color: #fff !important;
+  background: linear-gradient(120deg,#00b391,#006286) !important;
+  border-radius: 9px;
+}
+.sa-dashboard-premium .MuiButton-contained:hover {
+  filter: brightness(.96);
+  box-shadow: 0 5px 14px #008c8c22 !important;
+}
+.sa-dashboard-premium .MuiButton-outlined {
+  border-color: var(--db-line);
+}
+.sa-dashboard-premium .MuiChip-root {
+  border-color: var(--db-line);
+  background: var(--db-soft);
+  color: var(--db-ink);
+}
+.sa-dashboard-premium .sa-surface-card {
+  border: 1px solid var(--db-line) !important;
+  border-radius: 14px !important;
+  background: var(--db-paper) !important;
+  color: var(--db-ink);
+  box-shadow: 0 4px 14px #16457704 !important;
+}
+.sa-dashboard-premium .sa-surface-card:hover {
+  border-color: #d5e5f5 !important;
+  box-shadow: 0 8px 24px #1747730d !important;
+}
+.sa-dashboard-premium .sa-surface-card h6 {
+  color: var(--db-ink);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -.025em;
+}
+.sa-dashboard-premium .sa-dashboard-metric {
+  min-height: 126px;
+  overflow: hidden;
+}
+.sa-dashboard-premium .sa-dashboard-metric .MuiCardContent-root {
+  min-height: 124px;
+}
+.sa-dashboard-premium .sa-dashboard-metric .MuiCardContent-root > .MuiStack-root > .MuiBox-root:last-child {
+  border-radius: 50%;
+  outline: 3px solid var(--db-paper);
+  box-shadow: 0 0 0 1px var(--db-line);
+}
+.sa-dashboard-premium .sa-dashboard-quick-links {
+  padding: 18px !important;
+}
+.sa-dashboard-premium .sa-dashboard-quick-links > .MuiStack-root:first-child {
+  margin: 0 4px 13px;
+}
+.sa-dashboard-premium .sa-dashboard-quick-links > .MuiStack-root:first-child h6 {
+  margin-top: 4px;
+  font-size: 18px;
+}
+.sa-dashboard-premium .sa-dashboard-quick-card.MuiButton-root {
+  min-height: 142px;
+  border: 1px solid var(--db-line);
+  border-radius: 12px;
+  background: var(--db-paper);
+  color: var(--db-ink);
+  box-shadow: 0 3px 9px #1b4c7904;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.sa-dashboard-premium .sa-dashboard-quick-card.MuiButton-root:hover {
+  background: var(--db-soft);
+  border-color: var(--db-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px #17477310;
+}
+.sa-dashboard-premium .sa-dashboard-quick-card > .MuiStack-root > .MuiBox-root {
+  border-radius: 50%;
+  outline: 3px solid var(--db-paper);
+  box-shadow: 0 0 0 1px #b9d9e2;
+}
+.sa-dashboard-premium .MuiLinearProgress-root {
+  height: 7px;
+  border-radius: 6px;
+  background: var(--db-line);
+}
+.sa-dashboard-premium .MuiLinearProgress-bar {
+  border-radius: 6px;
+  background: linear-gradient(90deg,#09bcaa,#008f94);
+}
+.sa-dashboard-premium .recharts-cartesian-grid line {
+  stroke: #cbd9e8;
+}
+.sa-dashboard-premium .recharts-text {
+  fill: var(--db-muted);
+  font-family: 'Open Sans', sans-serif;
+}
+.sa-dashboard-premium .recharts-default-tooltip {
+  border: 1px solid var(--db-line) !important;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px #17477310;
+}
+@media (max-width: 1199px) {
+  .sa-dashboard-premium {
+    padding-top: 18px;
+  }
+  .sa-dashboard-premium .sa-dashboard-quick-card.MuiButton-root {
+    min-height: 132px;
+  }
+}
+@media (max-width: 599px) {
+  .sa-dashboard-premium {
+    padding-top: 16px;
+  }
+  .sa-dashboard-premium .sa-page-header {
+    margin: 0 2px 15px !important;
+  }
+  .sa-dashboard-premium .sa-page-header h1 {
+    font-size: 27px !important;
+  }
+  .sa-dashboard-premium .sa-page-header > .MuiStack-root > .MuiBox-root > .MuiTypography-root:not(h1):not(.sa-page-kicker) {
+    font-size: 11px;
+  }
+  .sa-dashboard-premium .sa-surface-card {
+    border-radius: 11px !important;
+  }
+  .sa-dashboard-premium .sa-dashboard-metric {
+    min-height: 112px;
+  }
+  .sa-dashboard-premium .sa-dashboard-metric .MuiCardContent-root {
+    min-height: 110px;
+  }
+  .sa-dashboard-premium .sa-dashboard-quick-links {
+    padding: 14px !important;
+  }
+  .sa-dashboard-premium .sa-dashboard-quick-card.MuiButton-root {
+    min-height: 116px;
+    padding: 10px 6px;
+    border-radius: 11px;
+  }
+  .sa-dashboard-premium .sa-dashboard-quick-card > .MuiStack-root > .MuiBox-root {
+    width: 42px;
+    height: 42px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sa-dashboard-premium *,
+  .sa-dashboard-premium *::before,
+  .sa-dashboard-premium *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
