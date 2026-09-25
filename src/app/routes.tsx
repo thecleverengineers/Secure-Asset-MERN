@@ -11,6 +11,7 @@ const Home = lazyWithRetry(() => import('./pages/PublicPages').then((module) => 
 const Pricing = lazyWithRetry(() => import('./pages/PublicPages').then((module) => ({ default: module.Pricing })));
 const About = lazyWithRetry(() => import('./pages/PublicPages').then((module) => ({ default: module.About })));
 const Contact = lazyWithRetry(() => import('./pages/PublicPages').then((module) => ({ default: module.Contact })));
+const LegalPolicyPage = lazyWithRetry(() => import('./pages/LegalPolicyPage'));
 const DynamicContentPage = lazyWithRetry(() => import('./pages/PublicPages').then((module) => ({ default: module.DynamicContentPage })));
 const MarketplacePage = lazyWithRetry(() => import('./pages/MarketplacePage'));
 const PublicSearchPage = lazyWithRetry(() => import('./pages/PublicSearchPage'));
@@ -69,6 +70,11 @@ export const router = createBrowserRouter([
       { path: 'pricing', Component: Pricing },
       { path: 'about', Component: About },
       { path: 'contact', Component: Contact },
+      { path: 'terms-and-conditions', Component: LegalPolicyPage },
+      { path: 'terms-of-service', element: <Navigate to="/terms-and-conditions" replace /> },
+      { path: 'privacy-policy', Component: LegalPolicyPage },
+      { path: 'shipping-policy', Component: LegalPolicyPage },
+      { path: 'cancellation-and-refunds', Component: LegalPolicyPage },
       { path: 'login', Component: LoginPage },
       { path: 'reset-password', Component: ResetPasswordPage },
       { path: ':slug', Component: DynamicContentPage },

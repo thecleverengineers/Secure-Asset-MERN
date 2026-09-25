@@ -132,15 +132,20 @@ export default function FrontLayout() {
       path: page?.path,
     })).filter(Boolean) as FooterLink[]
     : [];
-  const legalLinks: FooterLink[] = Array.isArray((site as any).footerPages)
-    ? cmsFooterLinks
-    : configuredLegalLinks.length ? configuredLegalLinks : [
-      { label: 'Terms and Conditions', path: '/terms-and-conditions' },
-      { label: 'Privacy Policy', path: settings.legal?.privacyUrl || '/privacy-policy' },
-      { label: 'Shipping Policy', path: '/shipping-policy' },
-      { label: 'Contact Us', path: '/contact' },
-      { label: 'Cancellation and Refunds', path: '/cancellation-and-refunds' },
-    ];
+  const requiredLegalLinks: FooterLink[] = [
+    { label: 'Terms and Conditions', path: '/terms-and-conditions' },
+    { label: 'Privacy Policy', path: '/privacy-policy' },
+    { label: 'Shipping Policy', path: '/shipping-policy' },
+    { label: 'Cancellation and Refunds', path: '/cancellation-and-refunds' },
+    { label: 'Contact Us', path: '/contact' },
+  ];
+  const reservedLegalPaths = new Set([
+    '/terms-and-conditions', '/terms-of-service', '/privacy-policy', '/shipping-policy',
+    '/cancellation-and-refunds', '/contact',
+  ]);
+  const configuredLegalExtensions = (Array.isArray((site as any).footerPages) ? cmsFooterLinks : configuredLegalLinks)
+    .filter((item) => !reservedLegalPaths.has(item.path));
+  const legalLinks: FooterLink[] = [...requiredLegalLinks, ...configuredLegalExtensions];
   const callbackLink = footerLink(settings.footer?.callback) || legalLinks.find((item) => item.path === '/callback') || { label: 'Request a callback', path: '/callback' };
 
   useEffect(() => {
