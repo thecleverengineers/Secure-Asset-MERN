@@ -69,6 +69,7 @@ import { useRealtime } from '../../context/RealtimeContext';
 import { normaliseDesignSystem, OPEN_SANS_FONT_FAMILY } from '../../designSystem';
 import { resolveIconComponent } from '../../iconResolver';
 import { safeRecordArray } from '../../utils/runtimeData';
+import '../../../styles/bottom-appbar-premium.css';
 
 type MenuDef = { key: string; label: string; icon: any; path?: string; mobilePrimary?: boolean; section?: string; sectionOrder?: number; sortOrder?: number; badge?: string; placement?: 'sidebar' | 'header' | 'bottom' | 'both' };
 const PROPERTY_DETAIL_ONLY_MENU_KEYS = new Set(['property-spaces', 'property-media', 'property-promotions']);
@@ -727,8 +728,116 @@ export default function AppShell() {
         </Box>
       </Box>
 
-      <BottomNavigation component="nav" aria-label="Mobile app navigation" className="sa-app-bottom-navigation sa-global-mobile-bottom-navigation" value={mobileBottomValue} onChange={(_e, value) => { const item = mobileBottomItems.find((candidate) => candidate.key === value); if (item) { navigate(item.path); setMobileOpen(false); } }} showLabels sx={{ position: 'fixed', left: design.bottomAppBar.position === 'floating' ? 10 : 0, right: design.bottomAppBar.position === 'floating' ? 10 : 0, bottom: design.bottomAppBar.position === 'floating' ? 8 : 0, zIndex: theme.zIndex.appBar, border: `${design.borders.width}px ${design.borders.style}`, borderColor: 'divider', borderRadius: `${design.bottomAppBar.radius}px !important`, overflow: 'hidden', bgcolor: design.bottomAppBar.background, opacity: design.bottomAppBar.opacity, pb: design.bottomAppBar.position === 'floating' ? 0 : 'env(safe-area-inset-bottom)', backdropFilter: design.bottomAppBar.blur ? `blur(${design.bottomAppBar.blur}px)` : 'none', boxShadow: design.bottomAppBar.position === 'floating' ? '0 14px 38px rgba(7,46,59,.20)' : '0 -8px 28px rgba(7,46,59,.08)', height: design.bottomAppBar.position === 'floating' ? design.bottomAppBar.height : `calc(${design.bottomAppBar.height}px + env(safe-area-inset-bottom))`, '& .MuiBottomNavigationAction-root': { color: design.bottomAppBar.inactiveColor, minWidth: 0, px: 1, mx: .25, my: .65, borderRadius: '14px !important', position: 'relative', '&.Mui-selected': { color: design.bottomAppBar.activeColor, bgcolor: 'rgba(10,96,122,.08)' }, '&.Mui-selected::after': design.bottomAppBar.activeIndicator === 'line' ? { content: '""', position: 'absolute', left: '28%', right: '28%', bottom: 0, height: 3, borderRadius: 3, bgcolor: design.bottomAppBar.indicatorColor } : undefined, '& .MuiSvgIcon-root': { fontSize: design.bottomAppBar.iconSize }, '& .MuiBottomNavigationAction-label': { fontSize: design.bottomAppBar.labelSize, fontWeight: 760, mt: .25 } } }}>
-        {mobileBottomItems.map((item) => { const Icon = item.icon; return <BottomNavigationAction key={item.key} value={item.key} label={item.label} onClick={() => { navigate(item.path); setMobileOpen(false); }} icon={configuredBottomIcon(design, item.key, <Icon />)} />; })}
+      <BottomNavigation
+        component="nav"
+        aria-label="Mobile app navigation"
+        className="sa-app-bottom-navigation sa-global-mobile-bottom-navigation sa-premium-bottom-appbar"
+        value={mobileBottomValue}
+        onChange={(_e, value) => {
+          const item = mobileBottomItems.find((candidate) => candidate.key === value);
+          if (item) { navigate(item.path); setMobileOpen(false); }
+        }}
+        showLabels
+        sx={{
+          position: 'fixed',
+          left: { xs: 12, sm: 18 },
+          right: { xs: 12, sm: 18 },
+          bottom: { xs: 'max(10px, env(safe-area-inset-bottom))', sm: 12 },
+          zIndex: theme.zIndex.appBar,
+          height: { xs: 68, sm: 72 },
+          minHeight: 0,
+          border: '1px solid rgba(188, 211, 229, .78)',
+          borderRadius: '22px !important',
+          overflow: 'visible',
+          bgcolor: 'rgba(255,255,255,.94)',
+          opacity: 1,
+          p: { xs: '6px 5px', sm: '7px 8px' },
+          backdropFilter: 'blur(22px) saturate(165%)',
+          WebkitBackdropFilter: 'blur(22px) saturate(165%)',
+          boxShadow: '0 14px 36px rgba(16,49,83,.14), 0 2px 8px rgba(0,159,144,.06), inset 0 1px 0 rgba(255,255,255,.92)',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            inset: '0 12%',
+            top: -1,
+            height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(0,159,144,.48), transparent)',
+          },
+          '& .MuiBottomNavigationAction-root': {
+            color: '#7185A5 !important',
+            minWidth: 0,
+            maxWidth: 'none',
+            px: { xs: .35, sm: .75 },
+            py: .35,
+            mx: { xs: .1, sm: .25 },
+            my: 0,
+            borderRadius: '15px !important',
+            position: 'relative',
+            transition: 'color .18s ease, background-color .18s ease, transform .18s ease',
+          },
+          '& .MuiBottomNavigationAction-root:hover': {
+            color: '#0B2057 !important',
+            bgcolor: 'rgba(238,245,253,.84)',
+          },
+          '& .MuiBottomNavigationAction-root.Mui-selected': {
+            color: '#087F76 !important',
+            bgcolor: 'rgba(238,248,248,.94)',
+            transform: 'translateY(-1px)',
+          },
+          '& .MuiBottomNavigationAction-root.Mui-selected::before': {
+            content: '""',
+            position: 'absolute',
+            left: '24%',
+            right: '24%',
+            top: -7,
+            height: 3,
+            borderRadius: '0 0 999px 999px',
+            background: 'linear-gradient(90deg,#00B391,#007C8A)',
+            boxShadow: '0 2px 8px rgba(0,159,144,.25)',
+          },
+          '& .MuiBottomNavigationAction-root .MuiSvgIcon-root': {
+            fontSize: { xs: 21, sm: 22 },
+            transition: 'transform .18s ease, filter .18s ease',
+          },
+          '& .MuiBottomNavigationAction-root.Mui-selected .MuiSvgIcon-root': {
+            transform: 'scale(1.08)',
+            filter: 'drop-shadow(0 3px 6px rgba(0,159,144,.14))',
+          },
+          '& .MuiBottomNavigationAction-root > img': {
+            width: { xs: 21, sm: 22 },
+            height: { xs: 21, sm: 22 },
+            objectFit: 'contain',
+          },
+          '& .MuiBottomNavigationAction-label': {
+            display: 'block !important',
+            visibility: 'visible !important',
+            opacity: '1 !important',
+            transform: 'none !important',
+            color: 'inherit !important',
+            fontSize: { xs: '9.25px !important', sm: '9.75px !important' },
+            fontWeight: '500 !important',
+            lineHeight: 1.15,
+            mt: .35,
+            letterSpacing: '-.01em',
+            whiteSpace: 'nowrap',
+          },
+          '& .MuiBottomNavigationAction-root.Mui-selected .MuiBottomNavigationAction-label': {
+            color: '#0B2057 !important',
+            fontWeight: '600 !important',
+          },
+        }}
+      >
+        {mobileBottomItems.map((item) => {
+          const Icon = item.icon;
+          return <BottomNavigationAction
+            key={item.key}
+            value={item.key}
+            label={item.label}
+            aria-label={item.label}
+            onClick={() => { navigate(item.path); setMobileOpen(false); }}
+            icon={configuredBottomIcon(design, item.key, <Icon />)}
+          />;
+        })}
       </BottomNavigation>
 
       <Tooltip title={moduleError || 'Help & support'}><IconButton aria-label="Open help and support" onClick={() => navigate('/contact')} sx={{ position: 'fixed', right: { xs: 20, md: 26 }, bottom: { xs: 94, md: 26 }, bgcolor: 'primary.main', color: 'primary.contrastText', border: '1px solid rgba(255,255,255,.30)', boxShadow: '0 12px 28px rgba(7,46,59,.20)', '&:hover': { bgcolor: 'primary.dark' } }}><HelpOutlineRounded fontSize="small" /></IconButton></Tooltip>

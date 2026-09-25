@@ -1,0 +1,44 @@
+/* SecureAsset premium bottom app bar.
+   This deliberately overrides the older global mobile-navigation fallbacks. */
+.sa-premium-bottom-appbar {
+  font-family: 'Open Sans', sans-serif !important;
+  isolation: isolate;
+}
+.sa-premium-bottom-appbar .MuiBottomNavigationAction-root {
+  -webkit-tap-highlight-color: transparent;
+}
+.sa-premium-bottom-appbar .MuiBottomNavigationAction-root,
+.sa-premium-bottom-appbar .MuiBottomNavigationAction-label {
+  font-family: 'Open Sans', sans-serif !important;
+}
+.sa-global-mobile-bottom-navigation.sa-premium-bottom-appbar .MuiBottomNavigationAction-root {
+  color: #7185a5 !important;
+}
+.sa-global-mobile-bottom-navigation.sa-premium-bottom-appbar .MuiBottomNavigationAction-root:hover {
+  color: #0b2057 !important;
+}
+.sa-global-mobile-bottom-navigation.sa-premium-bottom-appbar .MuiBottomNavigationAction-root.Mui-selected {
+  color: #087f76 !important;
+}
+.sa-global-mobile-bottom-navigation.sa-premium-bottom-appbar .MuiBottomNavigationAction-label {
+  color: inherit !important;
+}
+.sa-global-mobile-bottom-navigation.sa-premium-bottom-appbar .MuiBottomNavigationAction-root.Mui-selected .MuiBottomNavigationAction-label {
+  color: #0b2057 !important;
+}
+@media (max-width: 380px) {
+  .sa-premium-bottom-appbar .MuiBottomNavigationAction-label {
+    font-size: 8.6px !important;
+  }
+  .sa-premium-bottom-appbar .MuiBottomNavigationAction-root {
+    padding-inline: 2px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sa-premium-bottom-appbar *,
+  .sa-premium-bottom-appbar *::before,
+  .sa-premium-bottom-appbar *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
