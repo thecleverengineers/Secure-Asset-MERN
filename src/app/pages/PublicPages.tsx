@@ -21,10 +21,13 @@ import SmartphoneRounded from '@mui/icons-material/SmartphoneRounded';
 import StorefrontRounded from '@mui/icons-material/StorefrontRounded';
 import VerifiedUserRounded from '@mui/icons-material/VerifiedUserRounded';
 import { useSite } from '../context/SiteContext';
+import { useAuth } from '../context/AuthContext';
 import { getProperties, getSurveyorPlans, submitSiteEnquiry } from '../services/api';
 import { safeRecordArray } from '../utils/runtimeData';
 import { propertyOverviewPath } from '../utils/propertyUrl';
 import OptimizedImage from '../components/shared/OptimizedImage';
+import '../../styles/about-premium.css';
+import '../../styles/pricing-premium.css';
 import { UniversalSearchField } from '../components/public/UniversalSearch';
 
 const iconMap: Record<string, any> = {
@@ -327,53 +330,48 @@ function planHighlights(plan: Record<string, any>) {
   return [...limits, ...features].slice(0, 8);
 }
 
-function PricingPlanCard({ plan, primary }: { plan: Record<string, any>; primary: string }) {
+function PricingPlanCard({
+  plan,
+  primary,
+  onChoose,
+}: {
+  plan: Record<string, any>;
+  primary: string;
+  onChoose: (plan: Record<string, any>) => void;
+}) {
   const featured = Boolean(plan.featured);
   const highlights = planHighlights(plan);
   const isCustom = plan.key === 'enterprise' || (!Number(plan.prices?.monthly) && !Number(plan.prices?.yearly));
-  return <Card
-    elevation={0}
-    sx={{
-      height: '100%',
-      minHeight: { xs: 0, md: 560 },
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
-      borderRadius: '20px',
-      border: '1px solid',
-      borderColor: featured ? primary : 'divider',
-      bgcolor: 'background.paper',
-      transition: 'transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease',
-      '&:hover': { transform: 'translateY(-4px)', borderColor: primary, boxShadow: '0 18px 42px rgba(15, 23, 42, .12)' },
-    }}
-  >
-    <CardContent sx={{ p: { xs: 2.6, md: 3.2 }, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box' }}>
-      {featured && <Chip label="Recommended" size="small" sx={{ mb: 2, bgcolor: primary, color: 'common.white', fontWeight: 800, '& .MuiChip-label': { px: 1.6 } }} />}
-      {!featured && <Box sx={{ height: 28, mb: 1 }} aria-hidden="true" />}
-      <Typography sx={{ fontWeight: 900, fontSize: { xs: '1.18rem', md: '1.28rem' }, lineHeight: 1.25, minHeight: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', maxWidth: '100%', overflowWrap: 'anywhere' }}>{plan.name}</Typography>
-      <Typography color="text.secondary" sx={{ mt: 1, minHeight: 66, maxWidth: 285, lineHeight: 1.55, fontSize: '.92rem', overflowWrap: 'anywhere' }}>{plan.description || 'A focused plan for secure property operations.'}</Typography>
-      <Box sx={{ mt: 2, minHeight: 64, display: 'flex', alignItems: 'center', justifyContent: 'center', maxWidth: '100%' }}>
-        <Typography component="div" sx={{ color: primary, fontWeight: 950, fontSize: { xs: '2rem', md: '2.2rem' }, lineHeight: 1.1, overflowWrap: 'anywhere' }}>
+  return <Card elevation={0} className={`sa-pricing-plan-card${featured ? ' is-featured' : ''}`}>
+    <CardContent className="sa-pricing-plan-card-content">
+      <Box className="sa-pricing-plan-topline">
+        <Typography className="sa-pricing-plan-name">{plan.name}</Typography>
+        {featured && <Chip className="sa-pricing-plan-badge" label="Recommended" size="small" />}
+      </Box>
+      <Typography className="sa-pricing-plan-description">
+        {plan.description || 'A focused plan for secure property operations.'}
+      </Typography>
+      <Box className="sa-pricing-plan-price">
+        <Typography component="div">
           {isCustom ? 'Custom' : `₹${Number(plan.prices?.monthly || 0).toLocaleString('en-IN')}`}
-          {!isCustom && <Typography component="span" color="text.secondary" sx={{ ml: .5, fontSize: '.82rem', fontWeight: 650 }}>/month</Typography>}
+          {!isCustom && <Typography component="span">/month</Typography>}
         </Typography>
       </Box>
-      <Divider sx={{ width: '100%', my: 2.4 }} />
-      <Accordion disableGutters elevation={0} sx={{ width: '100%', maxWidth: 280, mb: 2, border: '1px solid', borderColor: 'divider', borderRadius: '12px !important', overflow: 'hidden', '&:before': { display: 'none' } }}>
-        <AccordionSummary expandIcon={<ExpandMoreRounded />} aria-controls={`plan-includes-${plan.key}`} id={`plan-includes-heading-${plan.key}`} sx={{ minHeight: 48, px: 1.5, '& .MuiAccordionSummary-content': { my: 1 }, '& .MuiAccordionSummary-content.Mui-expanded': { my: 1 } }}>
-          <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 850, letterSpacing: '.12em' }}>Plan includes</Typography>
-        </AccordionSummary>
-        <AccordionDetails id={`plan-includes-${plan.key}`} sx={{ pt: 0, px: 1.5, pb: 1.5 }}>
-          <Stack spacing={1.05} sx={{ width: '100%', alignItems: 'stretch' }}>
-            {highlights.map((item) => <Box key={`${item.label}-${item.value}`} sx={{ display: 'grid', gridTemplateColumns: '20px minmax(0, 1fr)', columnGap: 1, alignItems: 'start', textAlign: 'left', minWidth: 0 }}>
-              <CheckRounded sx={{ color: primary, fontSize: 18, mt: .1 }} />
-              <Typography sx={{ minWidth: 0, fontSize: '.83rem', lineHeight: 1.35, overflowWrap: 'anywhere' }}>{item.label}: <Box component="span" sx={{ fontWeight: 800 }}>{item.value}</Box></Typography>
-            </Box>)}
-            {!highlights.length && <Typography color="text.secondary" sx={{ fontSize: '.84rem' }}>Configured for your operating needs.</Typography>}
-          </Stack>
-        </AccordionDetails>
-      </Accordion>
-      <Button href="/login?mode=register" fullWidth variant={featured ? 'contained' : 'outlined'} sx={{ mt: 'auto', pt: 1.2, pb: 1.2, minHeight: 46, fontWeight: 850, borderRadius: 2, borderColor: featured ? primary : 'divider', color: featured ? 'common.white' : primary, bgcolor: featured ? primary : 'transparent', '&:hover': { bgcolor: featured ? primary : `${primary}10`, borderColor: primary } }}>
+      <Divider className="sa-pricing-plan-divider" />
+      <Typography className="sa-pricing-plan-includes">Plan includes</Typography>
+      <Stack spacing={1} className="sa-pricing-plan-features">
+        {highlights.map((item) => <Stack direction="row" spacing={.8} alignItems="flex-start" key={`${item.label}-${item.value}`}>
+          <CheckRounded sx={{ color: primary }} />
+          <Typography>{item.label}: <Box component="span">{item.value}</Box></Typography>
+        </Stack>)}
+        {!highlights.length && <Typography>Configured for your operating needs.</Typography>}
+      </Stack>
+      <Button
+        fullWidth
+        className="sa-pricing-plan-action"
+        variant={featured ? 'contained' : 'outlined'}
+        onClick={() => onChoose(plan)}
+      >
         {isCustom ? 'Contact sales' : 'Choose plan'}
       </Button>
     </CardContent>
@@ -382,6 +380,8 @@ function PricingPlanCard({ plan, primary }: { plan: Record<string, any>; primary
 
 export function Pricing() {
   const { data } = useSite();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<'landlord' | 'surveyor'>('landlord');
   const primary = data.settings?.design?.colors?.primary || data.settings?.brand?.primaryColor || '#0B5270';
   const surveyorPlansQuery = useQuery({
@@ -392,32 +392,73 @@ export function Pricing() {
     retry: 1,
   });
   const plans = tab === 'landlord' ? (data.landlordPlans || []) : (surveyorPlansQuery.data || []);
-  const heading = tab === 'landlord' ? (data.page?.hero?.title || data.page?.title || 'Landlord subscription plans') : 'Surveyors subscription plans';
-  const subtitle = tab === 'landlord' ? (data.page?.hero?.subtitle || 'Flexible capacity for secure property operations.') : 'Professional tools for verified surveyors, field teams and growing practices.';
+  const heading = tab === 'landlord'
+    ? (data.page?.hero?.title || data.page?.title || 'Landlord subscription plans')
+    : 'Surveyor subscription plans';
+  const subtitle = tab === 'landlord'
+    ? (data.page?.hero?.subtitle || 'Flexible capacity for secure property operations.')
+    : 'Professional tools for verified surveyors, field teams and growing practices.';
   const loading = tab === 'surveyor' && surveyorPlansQuery.isPending;
-  return <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', fontFamily: '"Open Sans", Arial, sans-serif', fontOpticalSizing: 'auto', fontStyle: 'normal', fontVariationSettings: '"wdth" 100' }}>
-    <Box sx={{ bgcolor: primary, py: { xs: 5.5, md: 7.5 }, textAlign: 'center', color: 'common.white' }}>
-      <Container maxWidth="md">
-        <Typography sx={{ fontWeight: 950, fontSize: { xs: '2rem', md: '3rem' }, letterSpacing: '-.045em', lineHeight: 1.08 }}>{heading}</Typography>
-        <Typography sx={{ mt: 1.5, opacity: .8, lineHeight: 1.7 }}>{subtitle}</Typography>
+
+  function choosePlan(plan: Record<string, any>) {
+    const custom = plan.key === 'enterprise' || (!Number(plan.prices?.monthly) && !Number(plan.prices?.yearly));
+    if (custom) {
+      navigate('/contact');
+      return;
+    }
+    const params = new URLSearchParams({
+      type: tab,
+      plan: String(plan.key || ''),
+      cycle: 'monthly',
+      ...(tab === 'surveyor' ? { autoRenew: 'true' } : {}),
+    });
+    const paymentPath = `/app/subscription-payment?${params.toString()}`;
+    if (user?.role === 'tenant') {
+      navigate(paymentPath);
+      return;
+    }
+    navigate(`/login?mode=register&redirect=${encodeURIComponent(paymentPath)}`);
+  }
+
+  return <Box className="sa-pricing-premium" data-secureasset-pricing="premium-public-v210">
+    <Box className="sa-pricing-premium-hero">
+      <Container maxWidth="lg">
+        <Chip className="sa-pricing-premium-eyebrow" label="SecureAsset memberships" />
+        <Typography component="h1" className="sa-pricing-premium-title">{heading}</Typography>
+        <Typography className="sa-pricing-premium-subtitle">{subtitle}</Typography>
       </Container>
     </Box>
-    <Container maxWidth="xl" sx={{ py: { xs: 4, md: 7 } }}>
-      <Box sx={{ display: 'flex', justifyContent: 'center', mb: { xs: 4, md: 6 } }}>
+    <Container maxWidth="xl" className="sa-pricing-premium-container">
+      <Box className="sa-pricing-premium-tabs">
         <Tabs
           value={tab}
           onChange={(_event, value: 'landlord' | 'surveyor') => setTab(value)}
           variant="fullWidth"
           aria-label="Subscription plan categories"
-          sx={{ width: '100%', maxWidth: 760, minHeight: 56, p: .6, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'background.paper', '& .MuiTabs-indicator': { height: '100%', borderRadius: 2, bgcolor: primary, zIndex: 0 }, '& .MuiTab-root': { position: 'relative', zIndex: 1, minHeight: 46, px: { xs: 1, sm: 3 }, color: 'text.secondary', fontWeight: 850, fontSize: { xs: '.76rem', sm: '.9rem' }, textTransform: 'none' }, '& .MuiTab-root.Mui-selected': { color: '#fff' } }}
         >
-          <Tab value="landlord" label="Landlord Subscription plan" />
-          <Tab value="surveyor" label="Surveyors Subscription plan" />
+          <Tab value="landlord" label="Landlord plans" />
+          <Tab value="surveyor" label="Surveyor plans" />
         </Tabs>
       </Box>
-      {loading && <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 220 }}><LinearProgress sx={{ width: 'min(100%, 420px)', bgcolor: `${primary}18`, '& .MuiLinearProgress-bar': { bgcolor: primary } }} /></Box>}
-      {!loading && surveyorPlansQuery.error && tab === 'surveyor' && <Alert severity="warning" sx={{ mb: 4 }}>Surveyor plans are temporarily unavailable. Please try again shortly.</Alert>}
-      {!loading && !surveyorPlansQuery.error && <Grid container spacing={{ xs: 1.5, md: 2 }} alignItems="stretch">{plans.map((plan: Record<string, any>) => <Grid size={{ xs: 6, md: 3 }} key={plan.key}><PricingPlanCard plan={plan} primary={primary} /></Grid>)}{!plans.length && <Grid size={12}><Alert severity="info">{tab === 'landlord' ? 'Landlord plans are being configured.' : 'Surveyor plans are being configured.'}</Alert></Grid>}</Grid>}
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={1} className="sa-pricing-premium-caption">
+        <Box>
+          <Typography>{tab === 'landlord' ? 'Property operations' : 'Professional survey tools'}</Typography>
+          <Typography>
+            {user?.role === 'tenant'
+              ? 'Your account is ready. Choosing a plan opens the secure payment workflow directly.'
+              : 'Choose a plan to continue through secure account access and payment.'}
+          </Typography>
+        </Box>
+        {user?.role === 'tenant' && <Chip label="Tenant account detected" size="small" variant="outlined" />}
+      </Stack>
+      {loading && <Box className="sa-pricing-premium-loading"><LinearProgress /></Box>}
+      {!loading && surveyorPlansQuery.error && tab === 'surveyor' && <Alert severity="warning" className="sa-pricing-premium-alert">Surveyor plans are temporarily unavailable. Please try again shortly.</Alert>}
+      {!loading && !surveyorPlansQuery.error && <Grid container spacing={{ xs: 1.5, md: 2 }} alignItems="stretch">
+        {plans.map((plan: Record<string, any>) => <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={plan.key}>
+          <PricingPlanCard plan={plan} primary={primary} onChoose={choosePlan} />
+        </Grid>)}
+        {!plans.length && <Grid size={12}><Alert severity="info" className="sa-pricing-premium-alert">{tab === 'landlord' ? 'Landlord plans are being configured.' : 'Surveyor plans are being configured.'}</Alert></Grid>}
+      </Grid>}
     </Container>
   </Box>;
 }
@@ -428,7 +469,22 @@ export function DynamicContentPage() {
   if (!page) return <Container maxWidth="md" sx={{ py: 12 }}><Alert severity="warning">This page is not published.</Alert></Container>;
   return <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}><Box sx={{ bgcolor: primary, color: 'white', py: { xs: 7, md: 10 } }}><Container maxWidth="md"><Chip label={page.hero?.eyebrow || page.subtitle || page.title} sx={{ mb: 2, bgcolor: 'rgba(255,255,255,.15)', color: 'white' }} /><Typography sx={{ fontWeight: 950, fontSize: { xs: '2.2rem', md: '3.4rem' }, letterSpacing: '-.04em' }}>{page.hero?.title || page.title}</Typography>{(page.hero?.subtitle || page.subtitle) && <Typography sx={{ mt: 2, opacity: .78, fontSize: '1.05rem', lineHeight: 1.7 }}>{page.hero?.subtitle || page.subtitle}</Typography>}</Container></Box><DynamicSections sections={page.sections || []} /></Box>;
 }
-export const About = DynamicContentPage;
+export function About() {
+  const { data, loading } = useSite();
+  const page = data.page;
+  if (loading) return <LinearProgress />;
+  if (!page) return <Container maxWidth="md" sx={{ py: 12 }}><Alert severity="warning">This page is not published.</Alert></Container>;
+  return <Box className="sa-about-premium" data-secureasset-about="premium-public-v210">
+    <Box className="sa-about-premium-hero">
+      <Container maxWidth="lg">
+        <Chip className="sa-about-premium-eyebrow" label={page.hero?.eyebrow || page.subtitle || 'About SecureAsset'} />
+        <Typography component="h1" className="sa-about-premium-title">{page.hero?.title || page.title}</Typography>
+        {(page.hero?.subtitle || page.subtitle) && <Typography className="sa-about-premium-subtitle">{page.hero?.subtitle || page.subtitle}</Typography>}
+      </Container>
+    </Box>
+    <Box className="sa-about-premium-content"><DynamicSections sections={page.sections || []} /></Box>
+  </Box>;
+}
 
 export function Contact() {
   const { data } = useSite(); const settings = data.settings || {}; const page = data.page; const primary = settings.design?.colors?.primary || settings.brand?.primaryColor || '#0B5270'; const [form, setForm] = useState({ name: '', email: '', phone: '', message: '' }); const [sending, setSending] = useState(false); const [notice, setNotice] = useState('');
