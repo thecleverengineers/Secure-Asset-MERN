@@ -212,14 +212,14 @@ const regularTenantPropertyMenu: MenuDef[] = [
 const regularTenantMenu: MenuDef[] = [...regularTenantWorkspaceMenu, ...regularTenantPropertyMenu, ...regularTenantFinanceMenu];
 
 const LANDLORD_FEATURE_MENU_KEYS = ['my-listings', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects'] as const;
-const LANDLORD_SUBSCRIBER_WORKSPACE: Array<Pick<MenuDef, 'key' | 'label' | 'path' | 'icon'>> = [
-  { key: 'dashboard', label: 'Dashboard', path: '/app/dashboard', icon: DashboardRounded },
-  { key: 'my-listings', label: 'My Listings', path: '/app/my-listings', icon: ApartmentRounded },
-  { key: 'applications', label: 'Tenant Applications', path: '/app/applications', icon: FactCheckRounded },
-  { key: 'tenants', label: 'Manage Tenants', path: '/app/tenants', icon: PeopleRounded },
-  { key: 'tenancies', label: 'Tenancies', path: '/app/tenancies', icon: HomeWorkRounded },
-  { key: 'tenancy-history', label: 'Tenancy History', path: '/app/tenancy-history', icon: HistoryRounded },
-  { key: 'documents', label: 'Documents', path: '/app/documents', icon: FolderRounded },
+const LANDLORD_SUBSCRIBER_WORKSPACE: Array<Pick<MenuDef, 'key' | 'label' | 'path' | 'icon' | 'section' | 'sectionOrder' | 'sortOrder'>> = [
+  { key: 'dashboard', label: 'Dashboard', path: '/app/dashboard', icon: DashboardRounded, section: 'general', sectionOrder: 10, sortOrder: 10 },
+  { key: 'my-listings', label: 'My Listings', path: '/app/my-listings', icon: ApartmentRounded, section: 'general', sectionOrder: 10, sortOrder: 20 },
+  { key: 'documents', label: 'Documents', path: '/app/documents', icon: FolderRounded, section: 'general', sectionOrder: 10, sortOrder: 30 },
+  { key: 'applications', label: 'Tenant Applications', path: '/app/applications', icon: FactCheckRounded, section: 'tenancy', sectionOrder: 30, sortOrder: 10 },
+  { key: 'tenants', label: 'Manage Tenants', path: '/app/tenants', icon: PeopleRounded, section: 'tenancy', sectionOrder: 30, sortOrder: 20 },
+  { key: 'tenancies', label: 'Tenancies', path: '/app/tenancies', icon: HomeWorkRounded, section: 'tenancy', sectionOrder: 30, sortOrder: 30 },
+  { key: 'tenancy-history', label: 'Tenancy History', path: '/app/tenancy-history', icon: HistoryRounded, section: 'tenancy', sectionOrder: 30, sortOrder: 40 },
 ];
 const LANDLORD_FEATURE_LABELS: Record<string, string> = {
   'my-listings': 'My Listings',
@@ -417,9 +417,9 @@ export default function AppShell() {
         if (configured) workspace.push({
           ...configured,
           ...entry,
-          section: 'landlord_workspace',
-          sectionOrder: 1,
-          sortOrder: index * 10,
+          section: entry.section || 'general',
+          sectionOrder: entry.sectionOrder ?? 10,
+          sortOrder: entry.sortOrder ?? index * 10,
           mobilePrimary: index < 5,
           placement: 'sidebar' as const,
         });
@@ -427,9 +427,9 @@ export default function AppShell() {
       }, []);
       if (hasSurveyorSubscription) {
         const seen = new Set(landlordWorkspace.map((item) => item.key));
-        surveyorFeatureKeys.forEach((key) => {
+        surveyorFeatureKeys.forEach((key, index) => {
           const item = source.get(key);
-          if (item && !seen.has(key)) landlordWorkspace.push({ ...item, section: 'surveyor_features', sectionOrder: 2, sortOrder: landlordWorkspace.length * 10 });
+          if (item && !seen.has(key)) landlordWorkspace.push({ ...item, section: 'surveyor_features', sectionOrder: 20, sortOrder: index * 10 });
         });
       }
       return landlordWorkspace;
@@ -445,8 +445,8 @@ export default function AppShell() {
         seen.add(key);
       });
     };
-    if (hasLandlordSubscription) addSection([...landlordFeatureKeys], 'landlord_features', 300);
-    if (hasSurveyorSubscription) addSection([...surveyorFeatureKeys], 'surveyor_features', 310);
+    if (hasSurveyorSubscription) addSection([...surveyorFeatureKeys], 'surveyor_features', 20);
+    if (hasLandlordSubscription) addSection([...landlordFeatureKeys], 'landlord_features', 30);
     return result;
   }, [appModules.length, designedMenu, hasLandlordSubscription, hasSurveyorSubscription, hasTenantSubscription, tenantSubscription.landlord, tenantSubscription.surveyor, user?.role]);
   const menu = useMemo(() => {
@@ -465,11 +465,24 @@ export default function AppShell() {
       const section = item.section || 'workspace';
       groups.set(section, [...(groups.get(section) || []), item]);
     }
+    const sectionPriority: Record<string, number> = {
+      general: 10,
+      workspace: 10,
+      'tenant-workspace': 10,
+      landlord_workspace: 10,
+      surveyor_features: 20,
+      tenancy: 30,
+      landlord_features: 30,
+    };
     return [...groups.entries()]
       .map(([section, sectionItems]) => [section, [...sectionItems].sort((left, right) => Number(left.sortOrder ?? 0) - Number(right.sortOrder ?? 0))] as [string, MenuDef[]])
-      .sort(([, left], [, right]) => Number(left[0]?.sectionOrder ?? 999) - Number(right[0]?.sectionOrder ?? 999));
+      .sort(([leftSection, left], [rightSection, right]) => {
+        const leftOrder = sectionPriority[leftSection] ?? Number(left[0]?.sectionOrder ?? 999);
+        const rightOrder = sectionPriority[rightSection] ?? Number(right[0]?.sectionOrder ?? 999);
+        return leftOrder - rightOrder;
+      });
   }, [menu]);
-  const sectionLabel = (value: string) => value === 'discovery' ? 'Discovery' : value === 'tenant-finance' ? 'Your payments' : value === 'landlord_features' ? 'Landlord features' : value === 'surveyor_features' ? 'Surveyor features' : value.replaceAll('_', ' ').replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const sectionLabel = (value: string) => ['general', 'workspace', 'tenant-workspace', 'landlord_workspace'].includes(value) ? 'General' : value === 'tenancy' ? 'Tenancy' : value === 'discovery' ? 'Discovery' : value === 'tenant-finance' ? 'Your payments' : value === 'landlord_features' ? 'Tenancy' : value === 'surveyor_features' ? 'Surveyor features' : value.replaceAll('_', ' ').replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 
   function sectionIcon(section: string) {
     if (section === 'discovery') return ExploreRounded;
