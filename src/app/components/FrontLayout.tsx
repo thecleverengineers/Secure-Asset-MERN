@@ -144,9 +144,8 @@ export default function FrontLayout() {
     '/cancellation-and-refunds', '/contact',
   ]);
   const configuredLegalExtensions = (Array.isArray((site as any).footerPages) ? cmsFooterLinks : configuredLegalLinks)
-    .filter((item) => !reservedLegalPaths.has(item.path));
+    .filter((item) => !reservedLegalPaths.has(item.path) && item.path !== '/callback' && item.label.toLowerCase() !== 'request a callback');
   const legalLinks: FooterLink[] = [...requiredLegalLinks, ...configuredLegalExtensions];
-  const callbackLink = footerLink(settings.footer?.callback) || legalLinks.find((item) => item.path === '/callback') || { label: 'Request a callback', path: '/callback' };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -394,7 +393,6 @@ export default function FrontLayout() {
               <Typography sx={{ color: 'rgba(255,255,255,.68)', fontSize: 13, lineHeight: 1.8, fontWeight: 500 }}>
                 {settings.footer?.description || settings.description || settings.tagline || 'A premium property operating system for rentals, tenancy, surveys and secure records.'}
               </Typography>
-              {callbackLink?.path && <Button component="a" href={callbackLink.path} target={callbackLink.external ? '_blank' : undefined} rel={callbackLink.external ? 'noreferrer' : undefined} endIcon={<ArrowForwardRoundedIcon />} sx={{ mt: 3, p: 0, minWidth: 0, color: '#fff', fontWeight: 900, textTransform: 'none', '&:hover': { bgcolor: 'transparent', color: '#fff' } }}>{callbackLink.label}</Button>}
             </Box>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 5, sm: 9, md: 13 }}>
               {footerGroups.map((group) => (

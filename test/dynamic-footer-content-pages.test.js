@@ -41,3 +41,11 @@ test('public footer links are read dynamically from published content pages', ()
   assert.match(platform, /\/terms-of-service/);
   assert.match(platform, /active: false, 'footer\.enabled': false/);
 });
+
+test('request a callback is not rendered in the footer', () => {
+  const layout = read('src/app/components/FrontLayout.tsx');
+  const defaults = read('server/src/services/platformDefaults.js');
+  assert.doesNotMatch(layout, /callbackLink/);
+  assert.match(layout, /item\.path !== '\/callback'/);
+  assert.doesNotMatch(defaults, /callback: \{ label: 'Request a callback', path: '\/callback' \}/);
+});

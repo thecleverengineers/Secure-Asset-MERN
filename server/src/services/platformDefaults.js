@@ -290,7 +290,6 @@ export const DEFAULT_SITE_FOOTER = {
     { label: 'Contact Us', path: '/contact' },
     { label: 'Cancellation and Refunds', path: '/cancellation-and-refunds' },
   ],
-  callback: { label: 'Request a callback', path: '/callback' },
 };
 
 export const DEFAULT_CONTENT_PAGES = [
