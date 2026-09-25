@@ -231,7 +231,7 @@ export default function SurveyorVerificationPage() {
       await requestSurveyorVerificationOtp(mobile);
       setOtpSent(true);
       setMobileVerified(false);
-      setNotice('OTP sent to your WhatsApp number');
+      setNotice('OTP sent to your mobile number');
     } catch (cause) {
       setError((cause as Error).message);
     } finally {
@@ -354,7 +354,7 @@ export default function SurveyorVerificationPage() {
       </Paper>
 
       <Paper elevation={0} sx={sectionSx}>
-        <SectionTitle icon={ContactPhoneRounded} title="Contact Verification" subtitle="Verify your mobile number using the approved Fast2SMS WhatsApp authentication template." />
+        <SectionTitle icon={ContactPhoneRounded} title="Contact Verification" subtitle="Verify your mobile number using the administrator-configured Fast2SMS service." />
         <Divider sx={{ my: 2 }} />
         <Grid container spacing={1.5}>
           <Grid size={{ xs: 12, md: 7 }}>
@@ -368,7 +368,7 @@ export default function SurveyorVerificationPage() {
           </Grid>
           <Grid size={{ xs: 12, md: 5 }}>
             <Button fullWidth variant={mobileVerified ? 'outlined' : 'contained'} disabled={locked || otpBusy || mobileVerified} onClick={() => void requestOtp()} sx={{ minHeight: 40, textTransform: 'none', borderRadius: 2 }}>
-              {mobileVerified ? 'Mobile verified' : otpSent ? 'Resend WhatsApp OTP' : 'Send WhatsApp OTP'}
+              {mobileVerified ? 'Mobile verified' : otpSent ? 'Resend OTP' : 'Send OTP'}
             </Button>
           </Grid>
           {!mobileVerified && otpSent && <>
@@ -384,7 +384,7 @@ export default function SurveyorVerificationPage() {
           </Grid>
           <Grid size={12}>
             <Alert severity={mobileVerified ? 'success' : 'info'} sx={{ py: .2 }}>
-              {mobileVerified ? 'WhatsApp OTP verified.' : 'WhatsApp OTP verification is required before you can submit this profile for review.'}
+              {mobileVerified ? 'Mobile OTP verified.' : 'Mobile verification is required before you can submit this profile for review.'}
             </Alert>
           </Grid>
         </Grid>

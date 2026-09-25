@@ -20,24 +20,15 @@ test('surveyor verification page contains the requested profile verification sec
   assert.match(page, /I confirm that the information and documents submitted are correct and belong to me\./);
 });
 
-test('verification OTP uses Admin Fast2SMS credentials with the approved WhatsApp authentication template', () => {
+test('verification OTP uses Admin Fast2SMS credentials with the required Surveyor DLT template', () => {
   const controller = read('server/src/controllers/surveyorSubscriptionController.js');
   const fast2sms = read('server/src/services/fast2sms.js');
   const routes = read('server/src/routes/surveyorSubscriptionRoutes.js');
-  assert.match(controller, /SURVEYOR_VERIFICATION_WHATSAPP_TEMPLATE = 'otp_template'/);
-  assert.match(controller, /sendFast2SmsWhatsApp/);
-  assert.match(controller, /variables: \[otp\]/);
-  assert.match(fast2sms, /otp_template: Object\.freeze/);
-  assert.match(fast2sms, /endpoint: 'https:\/\/www\.fast2sms\.com\/dev\/whatsapp'/);
-  assert.match(fast2sms, /messageId: '12353'/);
-  assert.match(fast2sms, /phoneNumberId: '494331070422489'/);
-  assert.match(fast2sms, /category: 'authentication'/);
-  assert.match(fast2sms, /variables: \['otp'\]/);
-  assert.match(fast2sms, /authorization: String\(config\.authorization \|\| ''\)/);
-  assert.match(fast2sms, /template\.endpoint \|\| config\.whatsappEndpoint/);
-  assert.match(fast2sms, /template\.phoneNumberId \|\| config\.whatsappPhoneNumberId/);
-  assert.match(fast2sms, /authenticationEnabled = template\.category === 'authentication'/);
-  assert.doesNotMatch(fast2sms.slice(fast2sms.indexOf('export function buildFast2SmsWhatsAppUrl'), fast2sms.indexOf('export async function getFast2SmsConfiguration')), /media|document_filename/);
+  assert.match(controller, /messageId: '204250'/);
+  assert.match(controller, /senderId: 'SECAST'/);
+  assert.match(controller, /route: 'dlt'/);
+  assert.match(controller, /https:\/\/www\.fast2sms\.com\/dev\/bulkV2/);
+  assert.match(fast2sms, /authorization: adminConfig\.authorization/);
   assert.match(routes, /verification\/mobile-otp\/request/);
   assert.match(routes, /verification\/mobile-otp\/verify/);
   assert.match(controller, /crypto\.timingSafeEqual/);

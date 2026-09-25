@@ -10,7 +10,7 @@ import {
   ensureDefaultSurveyorPlans, getLatestSurveyorSubscription, getActiveSurveyorSubscription,
   calculateSurveyorUsage, refreshSurveyorSubscriptionState,
 } from '../services/surveyorSubscription.js';
-import { normalizeIndianMobile, sendFast2SmsWhatsApp } from '../services/fast2sms.js';
+import { normalizeIndianMobile, sendFast2SmsOtp } from '../services/fast2sms.js';
 import { applyPaidPayment } from '../services/paymentLifecycle.js';
 import { publicRazorpayConfig } from '../services/razorpay.js';
 import { env } from '../config/env.js';
@@ -207,7 +207,14 @@ export const switchMode = asyncHandler(async (req, res) => {
 
 const SURVEYOR_ID_TYPES = new Set(['aadhaar', 'pan', 'voter_id', 'driving_licence']);
 const SURVEYOR_VERIFICATION_EDITABLE_STATUSES = new Set(['not_submitted', 'draft', 'changes_required', 'rejected']);
-const SURVEYOR_VERIFICATION_WHATSAPP_TEMPLATE = 'otp_template';
+const SURVEYOR_VERIFICATION_OTP_TEMPLATE = Object.freeze({
+  endpoint: 'https://www.fast2sms.com/dev/bulkV2',
+  route: 'dlt',
+  senderId: 'SECAST',
+  messageId: '204250',
+  variablesTemplate: '{otp}',
+  scheduleTime: '',
+});
 
 function normalizeSurveyorIdentity(value = {}) {
   const idType = String(value?.idType || '').trim().toLowerCase();
@@ -280,10 +287,11 @@ export const requestVerificationMobileOtp = asyncHandler(async (req, res) => {
 
   const otp = String(crypto.randomInt(100000, 1000000));
   const salt = crypto.randomBytes(16).toString('hex');
-  await sendFast2SmsWhatsApp({
+  await sendFast2SmsOtp({
     mobile: phone,
-    templateKey: SURVEYOR_VERIFICATION_WHATSAPP_TEMPLATE,
-    variables: [otp],
+    otp,
+    name: req.user.name || '',
+    configOverride: SURVEYOR_VERIFICATION_OTP_TEMPLATE,
   });
 
   const now = new Date();
@@ -311,7 +319,7 @@ export const requestVerificationMobileOtp = asyncHandler(async (req, res) => {
     { upsert: true, new: true, runValidators: true },
   );
   await writeLog(req, 'surveyor-verification:mobile-otp-requested', 'surveyor-verifications', updated);
-  res.json({ success: true, data: { mobile: `******${phone.slice(-4)}`, expiresInSeconds: 600, channel: 'whatsapp' }, message: 'Verification OTP sent on WhatsApp' });
+  res.json({ success: true, data: { mobile: `******${phone.slice(-4)}`, expiresInSeconds: 600 }, message: 'Verification OTP sent' });
 });
 
 export const verifyVerificationMobileOtp = asyncHandler(async (req, res) => {

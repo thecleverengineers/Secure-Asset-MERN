@@ -414,7 +414,7 @@ export async function switchAccountMode(mode: 'regular' | 'landlord' | 'surveyor
 export async function getSurveyorVerification() { return request<ApiResponse<Record<string, any> | null>>('/surveyor-subscriptions/verification'); }
 export async function saveSurveyorVerification(body: Record<string, any>) { return request<ApiResponse<Record<string, any>>>('/surveyor-subscriptions/verification', { method: 'PUT', body: JSON.stringify(body) }); }
 export async function requestSurveyorVerificationOtp(mobile: string) {
-  return request<ApiResponse<{ mobile: string; expiresInSeconds: number; channel: 'whatsapp' }>>('/surveyor-subscriptions/verification/mobile-otp/request', { method: 'POST', body: JSON.stringify({ mobile }) });
+  return request<ApiResponse<{ mobile: string; expiresInSeconds: number }>>('/surveyor-subscriptions/verification/mobile-otp/request', { method: 'POST', body: JSON.stringify({ mobile }) });
 }
 export async function verifySurveyorVerificationOtp(mobile: string, otp: string) {
   return request<ApiResponse<{ mobileVerified: boolean; verifiedAt: string }>>('/surveyor-subscriptions/verification/mobile-otp/verify', { method: 'POST', body: JSON.stringify({ mobile, otp }) });

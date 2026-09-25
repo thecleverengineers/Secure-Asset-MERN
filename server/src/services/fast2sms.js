@@ -27,15 +27,6 @@ export const FAST2SMS_WHATSAPP_DEFAULTS = Object.freeze({
 // Message IDs and variable order are provider contracts; credentials remain
 // encrypted in IntegrationSetting and are never stored in this registry.
 export const FAST2SMS_WHATSAPP_TEMPLATES = Object.freeze({
-  otp_template: Object.freeze({
-    endpoint: 'https://www.fast2sms.com/dev/whatsapp',
-    messageId: '12353',
-    phoneNumberId: '494331070422489',
-    category: 'authentication',
-    variableCount: 1,
-    variables: ['otp'],
-    description: 'SecureAsset Surveyor verification OTP',
-  }),
   payment_completed: Object.freeze({
     messageId: '26887', category: 'payment', variableCount: 1, variables: ['amount'],
     description: 'Payment completed confirmation',
@@ -151,12 +142,12 @@ export function buildFast2SmsWhatsAppUrl(config, { mobile, templateKey, variable
   if (!normalized) throw new Error('A valid 10-digit Indian mobile number is required');
   const template = getFast2SmsWhatsAppTemplate(templateKey);
   const values = normalizeFast2SmsWhatsAppVariables(templateKey, variables);
-  const endpoint = String(template.endpoint || config.whatsappEndpoint || FAST2SMS_WHATSAPP_DEFAULTS.endpoint).trim();
+  const endpoint = String(config.whatsappEndpoint || FAST2SMS_WHATSAPP_DEFAULTS.endpoint).trim();
   const url = new URL(endpoint);
   url.search = new URLSearchParams({
     authorization: String(config.authorization || ''),
     message_id: String(template.messageId),
-    phone_number_id: String(template.phoneNumberId || config.whatsappPhoneNumberId || FAST2SMS_WHATSAPP_DEFAULTS.phoneNumberId),
+    phone_number_id: String(config.whatsappPhoneNumberId || FAST2SMS_WHATSAPP_DEFAULTS.phoneNumberId),
     numbers: normalized,
     variables_values: values.join('|'),
   }).toString();
@@ -246,12 +237,10 @@ export async function sendFast2SmsOtp({ mobile, otp, name = '', configOverride =
 export async function sendFast2SmsWhatsApp({ mobile, templateKey, variables = [] }) {
   const normalized = normalizeIndianMobile(mobile);
   if (!normalized) throw new Error('A valid 10-digit Indian mobile number is required');
-  const template = getFast2SmsWhatsAppTemplate(templateKey);
   const config = await getFast2SmsConfiguration({ includeAuthorization: true });
-  const authenticationEnabled = template.category === 'authentication' && (config.enabled || config.whatsappEnabled);
-  if (!config.whatsappEnabled && !authenticationEnabled) throw new Error('Fast2SMS WhatsApp delivery is disabled in the admin panel');
+  if (!config.whatsappEnabled) throw new Error('Fast2SMS WhatsApp delivery is disabled in the admin panel');
   if (!config.authorization || /\*{3,}/.test(config.authorization)) throw new Error('Fast2SMS authorization key is not configured');
-  if (!template.phoneNumberId && !config.whatsappPhoneNumberId) throw new Error('Fast2SMS WhatsApp phone number ID is required');
+  if (!config.whatsappPhoneNumberId) throw new Error('Fast2SMS WhatsApp phone number ID is required');
 
   const url = buildFast2SmsWhatsAppUrl(config, { mobile: normalized, templateKey, variables });
   let response;
