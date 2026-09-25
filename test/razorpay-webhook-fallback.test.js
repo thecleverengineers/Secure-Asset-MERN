@@ -35,3 +35,28 @@ test('Razorpay webhook secret is independently configurable from API key secret'
   assert.match(integration, /webhookSecretChanged/);
   assert.match(api, /webhookSecret\?: string/);
 });
+
+
+test('Razorpay subscription outcome mapping is explicit and activation-safe', () => {
+  const model = read('server/src/models/index.js');
+  const surveyorModel = read('server/src/models/surveyor.js');
+  const controller = read('server/src/controllers/subscriptionPaymentController.js');
+  const routes = read('server/src/routes/subscriptionPaymentRoutes.js');
+  const api = read('src/app/services/api.ts');
+  const checkout = read('src/app/pages/app/SubscriptionPaymentPage.tsx');
+
+  assert.match(model, /'failed', 'cancelled', 'refunded'/);
+  assert.match(surveyorModel, /'cancelled', 'failed', 'payment_pending'/);
+  assert.match(controller, /payment\.status = outcome/);
+  assert.match(controller, /subscriptionActivated: false/);
+  assert.match(controller, /subscriptionActivated: true/);
+  assert.match(controller, /applyPaidPayment\(payment/);
+  assert.match(controller, /payment\.status === 'paid' && payment\.gateway\?\.lifecycleAppliedAt/);
+  assert.match(controller, /markLinkedPendingSubscriptionOutcome/);
+  assert.match(controller, /razorpayFailureLooksCancelled/);
+  assert.match(controller, /eventName === 'payment\.cancelled'/);
+  assert.match(routes, /'\/razorpay\/cancel'/);
+  assert.match(api, /cancelSubscriptionRazorpayPayment/);
+  assert.match(checkout, /confirm_close: true/);
+  assert.match(checkout, /Subscription was not activated/);
+});

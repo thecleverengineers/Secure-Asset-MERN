@@ -9,7 +9,7 @@ import PaymentsRounded from '@mui/icons-material/PaymentsRounded';
 import QrCode2Rounded from '@mui/icons-material/QrCode2Rounded';
 import ReceiptLongRounded from '@mui/icons-material/ReceiptLongRounded';
 import SecurityRounded from '@mui/icons-material/SecurityRounded';
-import { buyLandlordSubscription, buySurveyorSubscription, createSubscriptionRazorpayOrder, getSubscriptionPaymentConfig, getSubscriptionPlans, getSurveyorPlans, renewLandlordSubscription, uploadSubscriptionPaymentProof, verifySubscriptionRazorpayPayment } from '../../services/api';
+import { buyLandlordSubscription, buySurveyorSubscription, cancelSubscriptionRazorpayPayment, createSubscriptionRazorpayOrder, getSubscriptionPaymentConfig, getSubscriptionPlans, getSurveyorPlans, renewLandlordSubscription, uploadSubscriptionPaymentProof, verifySubscriptionRazorpayPayment } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 type PaymentMethod = 'razorpay' | 'upi';
@@ -109,7 +109,21 @@ export default function SubscriptionPaymentPage() {
             finish(resolve);
           } catch (e) { finish(() => reject(e)); }
         },
-        modal: { ondismiss: () => finish(() => reject(new Error('Razorpay checkout was cancelled'))) },
+        modal: {
+          confirm_close: true,
+          ondismiss: async () => {
+            if (finished) return;
+            finished = true;
+            try {
+              await cancelSubscriptionRazorpayPayment({ paymentId, orderId: String(order.data.order || '') });
+            } catch {
+              // Webhook reconciliation remains authoritative for any payment
+              // attempt that already reached Razorpay. A dismissal before an
+              // attempt has no Razorpay webhook, so this endpoint is best-effort.
+            }
+            reject(new Error('Razorpay checkout was cancelled. Subscription was not activated.'));
+          },
+        },
       });
       checkout.open();
     });

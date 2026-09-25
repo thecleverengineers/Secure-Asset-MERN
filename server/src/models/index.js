@@ -381,7 +381,7 @@ const PaymentSchema = new Schema({
   property: { ...objectId('Property'), index: true }, unit: objectId('Unit'), rentalUnit: { ...objectId('RentalUnit'), index: true }, tenancy: { ...objectId('Tenancy'), index: true }, lease: objectId('Lease'), application: objectId('Application'),
   type: { type: String, enum: ['rent', 'lease', 'sale', 'deposit', 'application_fee', 'landlord_subscription', 'surveyor_subscription', 'survey_advance', 'survey_milestone', 'survey_final', 'surveyor_payout', 'platform_commission', 'facility_booking', 'maintenance', 'penalty', 'refund', 'other'], default: 'rent' },
   amount: { type: Number, required: true, min: 0 }, paidAmount: { type: Number, default: 0, min: 0 },
-  status: { type: String, enum: ['draft', 'pending', 'paid', 'partial', 'overdue', 'failed', 'refunded', 'waived'], default: 'pending', index: true },
+  status: { type: String, enum: ['draft', 'pending', 'paid', 'partial', 'overdue', 'failed', 'cancelled', 'refunded', 'waived'], default: 'pending', index: true },
   dueDate: { type: Date, index: true }, paidAt: Date,
   method: { type: String, enum: ['upi', 'card', 'bank_transfer', 'cash', 'cheque', 'gateway', 'offline'], default: 'offline' },
   transactionId: String, gateway: Schema.Types.Mixed, proofFile: objectId('DriveFile'), proofUrl: String, notes: String,

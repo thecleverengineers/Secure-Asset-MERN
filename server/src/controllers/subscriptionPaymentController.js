@@ -53,6 +53,167 @@ function assertCapturedSubscriptionPayment(localPayment, remotePayment, orderId,
   if (String(remotePayment.currency || 'INR').toUpperCase() !== 'INR') throw new ApiError(409, 'Unexpected Razorpay payment currency');
 }
 
+function razorpayFailureLooksCancelled(entity = {}) {
+  const detail = [
+    entity?.error_reason,
+    entity?.error_description,
+    entity?.error_code,
+    entity?.error_source,
+    entity?.error_step,
+  ].filter(Boolean).join(' ').toLowerCase();
+  return /cancel|cancelled|canceled|dismiss|closed by user|user closed|user abort/.test(detail);
+}
+
+function razorpayFailureReason(entity = {}) {
+  return String(
+    entity?.error_description
+    || entity?.error_reason
+    || entity?.error_code
+    || 'Razorpay reported an unsuccessful payment',
+  ).slice(0, 500);
+}
+
+async function markLinkedPendingSubscriptionOutcome(payment, outcome, reason = '') {
+  const subscriptionId = payment.gateway?.subscriptionId;
+  if (!subscriptionId || !['failed', 'cancelled'].includes(outcome)) return null;
+  const now = new Date();
+
+  if (payment.type === 'landlord_subscription') {
+    const linked = await Subscription.findOne({
+      _id: subscriptionId,
+      user: payment.payer,
+      status: 'pending',
+    });
+    if (!linked) return null;
+    linked.status = outcome;
+    if (outcome === 'cancelled') linked.cancelledAt = now;
+    linked.payment = {
+      ...(linked.payment || {}),
+      method: 'gateway',
+      gateway: 'razorpay',
+      metadata: {
+        ...(linked.payment?.metadata || {}),
+        paymentId: payment._id,
+        paymentOutcome: outcome,
+        paymentFailureReason: reason || undefined,
+      },
+    };
+    linked.paymentHistory ||= [];
+    const alreadyRecorded = linked.paymentHistory.some((entry) => String(entry.paymentId || '') === String(payment._id) && entry.status === outcome);
+    if (!alreadyRecorded) linked.paymentHistory.push({
+      status: outcome,
+      amount: payment.amount,
+      currency: linked.currency || 'INR',
+      gateway: 'razorpay',
+      paymentId: payment._id,
+    });
+    await linked.save({ validateModifiedOnly: true });
+    await syncTenantEntitlements(linked.user);
+    return linked;
+  }
+
+  if (payment.type === 'surveyor_subscription') {
+    const linked = await SurveyorSubscription.findOne({
+      _id: subscriptionId,
+      user: payment.payer,
+      status: 'payment_pending',
+    });
+    if (!linked) return null;
+    linked.status = outcome;
+    if (outcome === 'cancelled') linked.cancelledAt = now;
+    linked.paymentHistory ||= [];
+    const alreadyRecorded = linked.paymentHistory.some((entry) => String(entry.paymentId || '') === String(payment._id) && entry.status === outcome);
+    if (!alreadyRecorded) linked.paymentHistory.push({
+      status: outcome,
+      amount: payment.amount,
+      gateway: 'razorpay',
+      failureReason: reason || undefined,
+      paymentId: payment._id,
+    });
+    await linked.save({ validateModifiedOnly: true });
+    await syncTenantEntitlements(linked.user);
+    return linked;
+  }
+
+  return null;
+}
+
+async function applyRazorpayNonSuccessOutcome(payment, {
+  outcome,
+  eventName,
+  eventKey,
+  paymentId,
+  paymentEntity,
+  req,
+  source = 'webhook',
+}) {
+  if (!['failed', 'cancelled'].includes(outcome)) throw new Error('Invalid Razorpay non-success outcome');
+  // A verified paid payment is terminal for fulfilment. Out-of-order failed
+  // webhooks must never deactivate or downgrade an already active subscription.
+  if (payment.status === 'paid' && payment.gateway?.lifecycleAppliedAt) return { ignored: true, payment };
+
+  const now = new Date();
+  const reason = razorpayFailureReason(paymentEntity);
+  const previousEvents = Array.isArray(payment.gateway?.webhookEventIds) ? payment.gateway.webhookEventIds : [];
+  const webhookEventIds = eventKey ? [...new Set([...previousEvents, eventKey])].slice(-40) : previousEvents;
+
+  payment.status = outcome;
+  payment.paidAmount = 0;
+  payment.paidAt = undefined;
+  payment.method = 'gateway';
+  payment.gateway = {
+    ...(payment.gateway || {}),
+    provider: 'razorpay',
+    ...(paymentId ? { lastAttemptPaymentId: String(paymentId) } : {}),
+    ...(source === 'webhook' ? {
+      webhookVerifiedAt: now,
+      webhookLastReceivedAt: now,
+      webhookLastEvent: eventName,
+      webhookEventIds,
+    } : {}),
+    [outcome === 'cancelled' ? 'lastCancellation' : 'lastFailure']: {
+      paymentId: paymentId || undefined,
+      code: paymentEntity?.error_code,
+      description: paymentEntity?.error_description,
+      reason: paymentEntity?.error_reason || reason,
+      source: paymentEntity?.error_source,
+      step: paymentEntity?.error_step,
+      at: now,
+    },
+  };
+  await payment.save({ validateModifiedOnly: true });
+  await markLinkedPendingSubscriptionOutcome(payment, outcome, reason);
+
+  await AuditLog.findOneAndUpdate(
+    {
+      action: `subscription:razorpay-payment-${outcome}`,
+      module: 'subscriptions',
+      recordId: payment._id,
+      'updatedValue.eventKey': eventKey || `${source}:${payment._id}:${outcome}`,
+    },
+    { $setOnInsert: {
+      user: payment.payer,
+      role: source === 'webhook' ? 'system' : (req?.user?.role || 'tenant'),
+      action: `subscription:razorpay-payment-${outcome}`,
+      module: 'subscriptions',
+      recordId: payment._id,
+      updatedValue: {
+        outcome,
+        event: eventName,
+        eventKey: eventKey || `${source}:${payment._id}:${outcome}`,
+        orderId: payment.gateway?.orderId,
+        paymentId: paymentId || undefined,
+        amount: payment.amount,
+        reason,
+      },
+      ip: req?.ip,
+      device: source === 'webhook' ? 'razorpay-webhook' : req?.get?.('user-agent'),
+    } },
+    { upsert: true, new: true },
+  );
+  return { ignored: false, payment };
+}
+
 async function applyVerifiedRazorpayPayment(payment, { orderId, paymentId, source, eventKey, req }) {
   const remotePayment = await fetchRazorpayPayment(paymentId);
   assertCapturedSubscriptionPayment(payment, remotePayment, orderId, paymentId);
@@ -107,7 +268,7 @@ export const verifyRazorpaySubscriptionPayment = asyncHandler(async (req, res) =
   const payment = await Payment.findOne({
     payer: req.user._id,
     type: { $in: ['landlord_subscription', 'surveyor_subscription'] },
-    status: { $in: ['pending', 'paid'] },
+    status: { $in: ['pending', 'paid', 'failed', 'cancelled'] },
     'gateway.orderId': String(orderId),
   });
   if (!payment) throw new ApiError(404, 'Subscription payment order not found');
@@ -132,8 +293,9 @@ export const razorpaySubscriptionWebhook = asyncHandler(async (req, res) => {
   const eventKey = razorpayWebhookEventKey(rawBody, signature, req.get('x-razorpay-event-id'));
   const paymentEntity = event?.payload?.payment?.entity || null;
   const orderEntity = event?.payload?.order?.entity || null;
+  const supportedEvents = ['payment.captured', 'order.paid', 'payment.failed', 'payment.cancelled'];
 
-  if (!['payment.captured', 'order.paid', 'payment.failed'].includes(eventName)) {
+  if (!supportedEvents.includes(eventName)) {
     return res.json({ success: true, ignored: true, event: eventName || 'unknown' });
   }
 
@@ -152,27 +314,9 @@ export const razorpaySubscriptionWebhook = asyncHandler(async (req, res) => {
     return res.json({ success: true, duplicate: true, event: eventName });
   }
 
-  if (eventName === 'payment.failed') {
-    payment.gateway = {
-      ...(payment.gateway || {}),
-      webhookEventIds: [...new Set([...previousEvents, eventKey])].slice(-40),
-      webhookLastReceivedAt: new Date(),
-      webhookLastEvent: eventName,
-      lastFailure: {
-        paymentId: paymentId || undefined,
-        code: paymentEntity?.error_code,
-        description: paymentEntity?.error_description,
-        reason: paymentEntity?.error_reason,
-        at: new Date(),
-      },
-    };
-    await payment.save({ validateModifiedOnly: true });
-    return res.json({ success: true, recorded: true, event: eventName });
-  }
-
-  if (!paymentId) return res.json({ success: true, ignored: true, event: eventName, reason: 'No payment id in event' });
-
-  if (payment.status === 'paid' && payment.transactionId === paymentId && payment.gateway?.lifecycleAppliedAt) {
+  // Paid is terminal from SecureAsset's fulfilment perspective. A delayed
+  // failure notification must never downgrade an already activated plan.
+  if (payment.status === 'paid' && payment.gateway?.lifecycleAppliedAt) {
     payment.gateway = {
       ...(payment.gateway || {}),
       webhookEventIds: [...new Set([...previousEvents, eventKey])].slice(-40),
@@ -181,8 +325,52 @@ export const razorpaySubscriptionWebhook = asyncHandler(async (req, res) => {
       webhookVerifiedAt: new Date(),
     };
     await payment.save({ validateModifiedOnly: true });
-    return res.json({ success: true, duplicate: true, event: eventName, message: 'Subscription payment was already applied' });
+    return res.json({ success: true, ignored: true, event: eventName, message: 'Paid subscription is already active' });
   }
+
+  if (eventName === 'payment.failed' || eventName === 'payment.cancelled') {
+    let remotePayment = null;
+    if (paymentId) {
+      remotePayment = await fetchRazorpayPayment(paymentId);
+      const expectedAmount = Math.round(Number(payment.amount || 0) * 100);
+      if (String(remotePayment.order_id || '') !== orderId) throw new ApiError(409, 'Razorpay order does not match the subscription payment');
+      if (Number(remotePayment.amount) !== expectedAmount) throw new ApiError(409, 'Razorpay payment amount does not match the subscription order');
+      if (String(remotePayment.currency || 'INR').toUpperCase() !== 'INR') throw new ApiError(409, 'Unexpected Razorpay payment currency');
+
+      // Razorpay can late-authorise/capture a payment after an earlier failure
+      // snapshot. Current provider state wins; never record failure over money
+      // Razorpay now reports as captured.
+      if (remotePayment.status === 'captured' || remotePayment.captured === true) {
+        req.bodyEvent = eventName;
+        await applyVerifiedRazorpayPayment(payment, { orderId, paymentId, source: 'webhook', eventKey, req });
+        return res.json({ success: true, applied: true, event: eventName, outcome: 'paid', reconciledFromFailure: true });
+      }
+    }
+
+    const outcome = eventName === 'payment.cancelled'
+      || razorpayFailureLooksCancelled(remotePayment || paymentEntity)
+      ? 'cancelled'
+      : 'failed';
+    const result = await applyRazorpayNonSuccessOutcome(payment, {
+      outcome,
+      eventName,
+      eventKey,
+      paymentId,
+      paymentEntity: remotePayment || paymentEntity || {},
+      req,
+      source: 'webhook',
+    });
+    return res.json({
+      success: true,
+      recorded: !result.ignored,
+      ignored: result.ignored,
+      event: eventName,
+      outcome,
+      subscriptionActivated: false,
+    });
+  }
+
+  if (!paymentId) return res.json({ success: true, ignored: true, event: eventName, reason: 'No payment id in event' });
 
   req.bodyEvent = eventName;
   await applyVerifiedRazorpayPayment(payment, { orderId, paymentId, source: 'webhook', eventKey, req });
@@ -194,13 +382,46 @@ export const razorpaySubscriptionWebhook = asyncHandler(async (req, res) => {
       action: 'subscription:razorpay-webhook-applied',
       module: 'subscriptions',
       recordId: payment._id,
-      updatedValue: { event: eventName, eventKey, orderId, paymentId, amount: payment.amount },
+      updatedValue: { event: eventName, eventKey, orderId, paymentId, amount: payment.amount, outcome: 'paid' },
       ip: req.ip,
       device: 'razorpay-webhook',
     } },
     { upsert: true, new: true },
   );
-  res.json({ success: true, applied: true, event: eventName });
+  res.json({ success: true, applied: true, event: eventName, outcome: 'paid', subscriptionActivated: true });
+});
+
+export const cancelRazorpaySubscriptionPayment = asyncHandler(async (req, res) => {
+  const paymentId = String(req.body?.paymentId || '').trim();
+  const orderId = String(req.body?.orderId || '').trim();
+  if (!paymentId) throw new ApiError(422, 'Subscription payment id is required');
+
+  const payment = await Payment.findOne({
+    _id: paymentId,
+    payer: req.user._id,
+    type: { $in: ['landlord_subscription', 'surveyor_subscription'] },
+  });
+  if (!payment) throw new ApiError(404, 'Subscription payment not found');
+  if (orderId && String(payment.gateway?.orderId || '') !== orderId) throw new ApiError(409, 'Razorpay order does not match the subscription payment');
+
+  if (payment.status === 'paid' && payment.gateway?.lifecycleAppliedAt) {
+    return res.json({ success: true, data: payment, message: 'Payment is already paid and the subscription is active' });
+  }
+  if (['failed', 'cancelled'].includes(payment.status)) {
+    return res.json({ success: true, data: payment, message: `Payment is already ${payment.status}` });
+  }
+  if (payment.status !== 'pending') throw new ApiError(409, 'Only a pending Razorpay subscription payment can be cancelled');
+
+  await applyRazorpayNonSuccessOutcome(payment, {
+    outcome: 'cancelled',
+    eventName: 'checkout.dismissed',
+    eventKey: `checkout-dismissed:${payment._id}`,
+    paymentId: '',
+    paymentEntity: { error_reason: 'checkout_dismissed', error_description: 'Customer closed Razorpay Checkout before payment completion' },
+    req,
+    source: 'checkout',
+  });
+  res.json({ success: true, data: payment, message: 'Payment cancelled. Subscription was not activated.' });
 });
 
 export const createRazorpaySubscriptionOrder = asyncHandler(async (req, res) => {

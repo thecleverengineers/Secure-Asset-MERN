@@ -108,7 +108,7 @@ const SurveyorSubscriptionSchema = new Schema({
   currency: { type: String, default: 'INR' },
   status: {
     type: String,
-    enum: ['trial', 'active', 'expiring_soon', 'grace_period', 'expired', 'suspended', 'cancelled', 'payment_pending'],
+    enum: ['trial', 'active', 'expiring_soon', 'grace_period', 'expired', 'suspended', 'cancelled', 'failed', 'payment_pending'],
     default: 'payment_pending', index: true,
   },
   startsAt: Date, expiresAt: { type: Date, index: true }, nextRenewalAt: Date,

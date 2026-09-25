@@ -387,6 +387,7 @@ export async function renewLandlordSubscription(id: string, body: { plan?: strin
 export async function getSubscriptionPaymentConfig() { return request<ApiResponse<Record<string, any>>>('/subscription-payments/config'); }
 export async function createSubscriptionRazorpayOrder(paymentId: string) { return request<ApiResponse<Record<string, any>>>('/subscription-payments/razorpay/order', { method: 'POST', body: JSON.stringify({ paymentId }) }); }
 export async function verifySubscriptionRazorpayPayment(body: { orderId: string; paymentId: string; signature: string }) { return request<ApiResponse<Record<string, any>>>('/subscription-payments/razorpay/verify', { method: 'POST', body: JSON.stringify(body) }); }
+export async function cancelSubscriptionRazorpayPayment(body: { paymentId: string; orderId?: string }) { return request<ApiResponse<Record<string, any>>>('/subscription-payments/razorpay/cancel', { method: 'POST', body: JSON.stringify(body) }); }
 export async function getPendingSubscriptionPayments(status = 'pending') { return request<ApiResponse<Record<string, any>[]>>(`/subscription-payments/admin?status=${encodeURIComponent(status)}`); }
 export async function getRazorpaySettings() { return request<ApiResponse<Record<string, any>>>('/integrations/razorpay'); }
 export async function updateRazorpaySettings(body: { keyId: string; secret?: string; webhookSecret?: string; upiId: string; upiName: string; upiQrUrl?: string }) { return request<ApiResponse<Record<string, any>>>('/integrations/razorpay', { method: 'PATCH', body: JSON.stringify(body) }); }
