@@ -11,6 +11,8 @@ export const ROLE_KEYS = Object.freeze(['admin', 'landlord', 'tenant', 'surveyor
 export const LEGACY_ROLE_KEYS = Object.freeze(['manager', 'user']);
 
 const rolePermissionCache = new Map();
+const subscriptionContextCache = new Map();
+const SUBSCRIPTION_CONTEXT_CACHE_MS = 5_000;
 const ROLE_ALIASES = Object.freeze({ manager: 'admin', user: 'tenant' });
 
 // req.user is normally a hydrated Mongoose document. Spreading that document
@@ -239,6 +241,29 @@ function subscriptionRecordIsActive(subscription = {}) {
 }
 export async function subscriptionContextForUser(user = {}) {
   const effectiveRole = getEffectiveRole(user);
+  const cacheKey = [
+    String(user?._id || 'anonymous'),
+    effectiveRole,
+    String(user?.activeMode || 'regular'),
+    Boolean(user?.landlordEnabled),
+    String(user?.landlordSubscriptionExpiresAt || ''),
+    String(user?.landlordPlan || ''),
+    Boolean(user?.surveyorEnabled),
+    String(user?.surveyorSubscriptionExpiresAt || ''),
+    String(user?.surveyorPlan || ''),
+  ].join(':');
+  const cached = subscriptionContextCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+  const remember = (value) => {
+    subscriptionContextCache.set(cacheKey, { value, expiresAt: Date.now() + SUBSCRIPTION_CONTEXT_CACHE_MS });
+    if (subscriptionContextCache.size > 500) {
+      for (const [key, entry] of subscriptionContextCache.entries()) {
+        if (entry.expiresAt <= Date.now()) subscriptionContextCache.delete(key);
+      }
+    }
+    return value;
+  };
+
   if (effectiveRole === 'landlord') {
     let active = enabledFlagIsActive(user.landlordEnabled, user.landlordSubscriptionExpiresAt);
     let plan = user.landlordPlan || 'starter';
@@ -250,7 +275,7 @@ export async function subscriptionContextForUser(user = {}) {
         if (sub) { active = true; plan = sub.plan || plan; }
       }
     } catch { /* navigation still works without DB during static tests */ }
-    return { effectiveRole, subscriptionType: 'landlord', active, plan, tier: active ? tierForLandlordPlan(plan) : 'none' };
+    return remember({ effectiveRole, subscriptionType: 'landlord', active, plan, tier: active ? tierForLandlordPlan(plan) : 'none' });
   }
   if (effectiveRole === 'surveyor') {
     let active = user.role === 'surveyor' || enabledFlagIsActive(user.surveyorEnabled, user.surveyorSubscriptionExpiresAt);
@@ -263,9 +288,9 @@ export async function subscriptionContextForUser(user = {}) {
         if (sub) { active = true; plan = sub.planSnapshot?.key || sub.plan?.key || plan; }
       }
     } catch { /* ignore */ }
-    return { effectiveRole, subscriptionType: 'surveyor', active, plan, tier: active ? tierForSurveyorPlan(plan) : 'none' };
+    return remember({ effectiveRole, subscriptionType: 'surveyor', active, plan, tier: active ? tierForSurveyorPlan(plan) : 'none' });
   }
-  return { effectiveRole, subscriptionType: undefined, active: true, plan: 'regular', tier: 'premium' };
+  return remember({ effectiveRole, subscriptionType: undefined, active: true, plan: 'regular', tier: 'premium' });
 }
 
 export function moduleAllowedByTier(moduleDef = {}, context = {}) {
@@ -384,13 +409,20 @@ async function storedRolePermission(role) {
   const cached = rolePermissionCache.get(normalizedRole);
   if (cached && cached.expiresAt > Date.now()) return cached.value;
   try {
-    const { RolePermission } = await import('../models/index.js');
-    if (!RolePermission?.db?.readyState) return null;
-    const document = await RolePermission.findOne({ role: normalizedRole }).lean();
-    const value = document ? { entries: Array.isArray(document.entries) ? document.entries : [] } : null;
+    // Cache the in-flight lookup itself so concurrent module/resource checks
+    // share one MongoDB query instead of stampeding the same role document.
+    const pending = (async () => {
+      const { RolePermission } = await import('../models/index.js');
+      if (!RolePermission?.db?.readyState) return null;
+      const document = await RolePermission.findOne({ role: normalizedRole }).lean();
+      return document ? { entries: Array.isArray(document.entries) ? document.entries : [] } : null;
+    })();
+    rolePermissionCache.set(normalizedRole, { value: pending, expiresAt: Date.now() + 5000 });
+    const value = await pending;
     rolePermissionCache.set(normalizedRole, { value, expiresAt: Date.now() + 5000 });
     return value;
   } catch {
+    rolePermissionCache.delete(normalizedRole);
     return null;
   }
 }

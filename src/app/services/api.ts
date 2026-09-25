@@ -62,10 +62,13 @@ const sessionChannel: BroadcastChannel | null = typeof window !== 'undefined' &&
   : null;
 let lastSessionEventAt = 0;
 
-const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
-const AUTH_REQUEST_TIMEOUT_MS = 20_000;
-const MAP_REQUEST_TIMEOUT_MS = 12_000;
-const UPLOAD_REQUEST_TIMEOUT_MS = 120_000;
+// Normal application requests can legitimately include cold-start database
+// work. Keep a generous client ceiling; authorization and server/proxy
+// timeouts remain authoritative and prevent truly hung requests.
+const DEFAULT_REQUEST_TIMEOUT_MS = 90_000;
+const AUTH_REQUEST_TIMEOUT_MS = 45_000;
+const MAP_REQUEST_TIMEOUT_MS = 45_000;
+const UPLOAD_REQUEST_TIMEOUT_MS = 180_000;
 
 async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs: number): Promise<Response> {
   const controller = new AbortController();

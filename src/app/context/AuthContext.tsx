@@ -34,7 +34,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (refreshPromise.current) return refreshPromise.current;
     const pending = (async () => {
       try { const result = await getMe(); setUser(result.data); }
-      catch { clearSession(); setUser(null); }
+      catch {
+        // request() already clears the session on a definitive 401. Preserve
+        // the last authenticated user snapshot for transient network errors,
+        // timeouts and cold starts so capability UI does not collapse into a
+        // false logged-out/access-denied state.
+      }
     })();
     refreshPromise.current = pending;
     void pending.finally(() => {

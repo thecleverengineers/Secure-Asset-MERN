@@ -23,37 +23,90 @@ const LANDLORD_RETIRED_SURVEY_MODULE_KEYS = new Set(['survey-jobs', 'survey-quot
 
 export async function ensurePlatformConfiguration() {
   if (!bootstrapPromise) bootstrapPromise = (async () => {
-    for (const module of DEFAULT_PLATFORM_MODULES) {
-      await PlatformModule.updateOne(
-        { key: module.key, scope: module.scope },
-        { $setOnInsert: module },
-        { upsert: true },
-      );
-      if (module.scope === 'app' && (module.metadata?.adminWorkspaceManaged || module.metadata?.rbacManaged)) {
-        await PlatformModule.updateOne(
-          { key: module.key, scope: module.scope },
-          { $set: { label: module.label, description: module.description || '', path: module.path, icon: module.icon, kind: module.kind, section: module.section, sectionOrder: module.sectionOrder ?? 0, sortOrder: module.sortOrder ?? 0, mobilePrimary: Boolean(module.mobilePrimary), roles: module.roles || [], modes: module.modes || [], accessRules: module.accessRules || [], featureFlag: module.featureFlag, badge: module.badge, metadata: module.metadata } },
-        );
+    // Bootstrap the module catalogue in a handful of database round-trips.
+    // The previous per-module loop performed several awaited queries for every
+    // module and could make the first /site/app-config request exceed 30s on a
+    // cold database connection.
+    const moduleSeedOperations = DEFAULT_PLATFORM_MODULES.map((module) => ({
+      updateOne: {
+        filter: { key: module.key, scope: module.scope },
+        update: { $setOnInsert: module },
+        upsert: true,
+      },
+    }));
+    if (moduleSeedOperations.length) await PlatformModule.bulkWrite(moduleSeedOperations, { ordered: true });
+
+    const managedModuleOperations = DEFAULT_PLATFORM_MODULES
+      .filter((module) => module.scope === 'app' && (module.metadata?.adminWorkspaceManaged || module.metadata?.rbacManaged))
+      .map((module) => ({
+        updateOne: {
+          filter: { key: module.key, scope: module.scope },
+          update: { $set: {
+            label: module.label,
+            description: module.description || '',
+            path: module.path,
+            icon: module.icon,
+            kind: module.kind,
+            section: module.section,
+            sectionOrder: module.sectionOrder ?? 0,
+            sortOrder: module.sortOrder ?? 0,
+            mobilePrimary: Boolean(module.mobilePrimary),
+            roles: module.roles || [],
+            modes: module.modes || [],
+            accessRules: module.accessRules || [],
+            featureFlag: module.featureFlag,
+            badge: module.badge,
+            metadata: module.metadata,
+          } },
+        },
+      }));
+    if (managedModuleOperations.length) await PlatformModule.bulkWrite(managedModuleOperations, { ordered: true });
+
+    const appModuleDefaults = DEFAULT_PLATFORM_MODULES.filter((module) => module.scope === 'app');
+    const appModuleKeys = [...new Set(appModuleDefaults.map((module) => module.key))];
+    const persistedAppModules = await PlatformModule.find({ scope: 'app', key: { $in: appModuleKeys } })
+      .select('key accessRules sectionOrder')
+      .lean();
+    const persistedByKey = new Map(persistedAppModules.map((module) => [module.key, module]));
+    const desiredByKey = new Map();
+
+    // Preserve administrator customisation while appending only newly shipped
+    // access rules. Duplicate default keys intentionally merge into one
+    // persisted module, matching the legacy bootstrap behaviour.
+    for (const module of appModuleDefaults) {
+      const persisted = persistedByKey.get(module.key) || {};
+      const state = desiredByKey.get(module.key) || {
+        rules: Array.isArray(persisted.accessRules) ? [...persisted.accessRules] : [],
+        sectionOrder: persisted.sectionOrder,
+        changedRules: !Array.isArray(persisted.accessRules),
+        changedSectionOrder: persisted.sectionOrder === undefined || persisted.sectionOrder === null,
+      };
+      const seen = new Set(state.rules.map((rule) => JSON.stringify(rule)));
+      for (const rule of module.accessRules || []) {
+        const signature = JSON.stringify(rule);
+        if (!seen.has(signature)) {
+          state.rules.push(rule);
+          seen.add(signature);
+          state.changedRules = true;
+        }
       }
-      if (module.scope === 'app') {
-        await PlatformModule.updateOne(
-          { key: module.key, scope: module.scope, accessRules: { $exists: false } },
-          { $set: { accessRules: module.accessRules } },
-        );
-        // Existing installations may already have a PlatformModule document
-        // created before a new capability access rule was introduced. Append
-        // only missing default rules so landlord/surveyor additions become
-        // available without overwriting administrator customisation.
-        const currentModule = await PlatformModule.findOne({ key: module.key, scope: module.scope }).select('accessRules').lean();
-        const existingRules = Array.isArray(currentModule?.accessRules) ? currentModule.accessRules : [];
-        const missingRules = (module.accessRules || []).filter((rule) => !existingRules.some((candidate) => JSON.stringify(candidate) === JSON.stringify(rule)));
-        if (missingRules.length) await PlatformModule.updateOne({ key: module.key, scope: module.scope }, { $push: { accessRules: { $each: missingRules } } });
+      if (state.changedSectionOrder && (state.sectionOrder === undefined || state.sectionOrder === null)) {
+        state.sectionOrder = module.sectionOrder ?? 0;
       }
-      await PlatformModule.updateOne(
-        { key: module.key, scope: module.scope, sectionOrder: { $exists: false } },
-        { $set: { sectionOrder: module.sectionOrder ?? 0 } },
-      );
+      desiredByKey.set(module.key, state);
     }
+
+    const compatibilityOperations = [];
+    for (const [key, state] of desiredByKey.entries()) {
+      const $set = {};
+      if (state.changedRules) $set.accessRules = state.rules;
+      if (state.changedSectionOrder) $set.sectionOrder = state.sectionOrder ?? 0;
+      if (Object.keys($set).length) compatibilityOperations.push({
+        updateOne: { filter: { key, scope: 'app' }, update: { $set } },
+      });
+    }
+    if (compatibilityOperations.length) await PlatformModule.bulkWrite(compatibilityOperations, { ordered: true });
+
     await Promise.all(DEFAULT_CONTENT_PAGES.map((page) => ContentPage.updateOne(
       { path: page.path },
       { $setOnInsert: page },
@@ -213,7 +266,7 @@ export async function getApplicationNavigation(user) {
     if (PROPERTY_DETAIL_ONLY_MODULE_KEYS.includes(module.key)) continue;
     // The self-service plan pages belong only to tenant accounts. Admins keep
     // their separate plan/catalog/approval tools, while legacy landlord and
-    // surveyor roles must not receive a checkout route from the app catalog.
+    // surveyor roles must not receive the tenant checkout/renewal destinations.
     if (TENANT_ONLY_ACTIVATION_MODULE_KEYS.has(module.key) && String(user?.role || '').toLowerCase() !== 'tenant') continue;
     if (module.metadata?.sidebarVisible === false) continue;
     const normalizedLabel = String(module.label || '').trim().toLowerCase();

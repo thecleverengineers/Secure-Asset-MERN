@@ -97,7 +97,7 @@ export default function ModulePage() {
     if (adminOnly.includes(module)) return user?.role === 'admin';
     // Keep the workspace usable while the catalog is refreshed. Every
     // resource endpoint still enforces the current user's permissions.
-    if (configurationQuery.isPending) return Boolean(user);
+    if (configurationQuery.isPending || configurationQuery.isError) return Boolean(user);
     // KYC is a shared compliance workspace: tenants submit their own record,
     // while administrators and managers review the records in their scope.
     // Keep this route reachable even when a stale cached module catalog has not
@@ -108,14 +108,17 @@ export default function ModulePage() {
     // switch or a role mutation. The API still enforces ownership and plan
     // limits for every read/write action.
     if (landlordPropertyRouteAllowed) return true;
-    if (!allowedModules.length) return false;
+    // An empty/unavailable catalogue is not proof of denial. Actual API
+    // endpoints remain the security boundary and will return 403 when access
+    // is genuinely forbidden.
+    if (!allowedModules.length) return Boolean(user);
     const aliases: Record<string, string[]> = { add_property: ['add-property', 'add-my-property'], 'add-property': ['add-property', 'add-my-property'] };
     return allowedModules.some((item) => {
       const path = String(item.path || `/app/${item.key}`);
       const base = path.split('?')[0].replace(/^\/app\//, '');
       return item.key === module || base === module || (aliases[module] || []).includes(item.key);
     });
-  }, [allowedModules, configurationQuery.isPending, hasSurveyorFeatures, landlordPropertyRouteAllowed, module, user?.role]);
+  }, [allowedModules, configurationQuery.isPending, configurationQuery.isError, hasSurveyorFeatures, landlordPropertyRouteAllowed, module, user?.role]);
   const configuredModule = allowedModules.some((item) => {
     const path = String(item.path || `/app/${item.key}`);
     const base = path.split('?')[0].replace(/^\/app\//, '');
@@ -170,6 +173,6 @@ export default function ModulePage() {
   if (module === 'security') return renderLazy(<SecurityPage />);
   if (module === 'wishlist' || module === 'saved-properties') return renderLazy(<WishlistPage />);
   if (configuredModule) return renderLazy(<ResourcePage />);
-  if (configurationQuery.isPending) return renderLazy(<ResourcePage />);
+  if (configurationQuery.isPending || configurationQuery.isError || !allowedModules.length) return renderLazy(<ResourcePage />);
   return renderLazy(<UtilityPage />);
 }
