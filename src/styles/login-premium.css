@@ -366,3 +366,48 @@
     animation: none !important;
   }
 }
+
+/* Password recovery shares the same premium authentication language. */
+.sa-reset-panel .MuiAlert-root {
+  border-radius: 10px;
+  font-size: 10.5px;
+}
+.sa-reset-form .sa-reset-otp input {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .28em;
+}
+.sa-reset-secondary-action.MuiButton-root,
+.sa-reset-back-action.MuiButton-root {
+  align-self: flex-start;
+  min-height: 34px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  color: #6078a3;
+  font-size: 10.5px;
+  font-weight: 500;
+  text-transform: none;
+}
+.sa-reset-secondary-action.MuiButton-root:hover,
+.sa-reset-back-action.MuiButton-root:hover {
+  background: #f1f7fb;
+  color: #087f76;
+}
+.sa-reset-back-action .MuiSvgIcon-root {
+  font-size: 17px;
+}
+.sa-reset-panel .MuiAlert-standardSuccess {
+  border: 1px solid #d5ece5;
+  background: #f2fbf7;
+}
+.sa-reset-panel .MuiAlert-standardError {
+  border: 1px solid #f0d9dc;
+  background: #fff7f8;
+}
+@media (max-width: 599px) {
+  .sa-reset-secondary-action.MuiButton-root,
+  .sa-reset-back-action.MuiButton-root {
+    font-size: 10px;
+  }
+}

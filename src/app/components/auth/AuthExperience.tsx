@@ -4,6 +4,7 @@ import LockRounded from '@mui/icons-material/LockRounded';
 import SupportAgentRounded from '@mui/icons-material/SupportAgentRounded';
 import { Box, Chip, Divider, Paper, Stack, Typography } from '@mui/material';
 import { useSite } from '../../context/SiteContext';
+import '../../../styles/login-premium.css';
 
 type AuthExperienceProps = {
   eyebrow: string;

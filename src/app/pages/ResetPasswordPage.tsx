@@ -40,6 +40,7 @@ export default function ResetPasswordPage() {
 
   const passwordField = (label: string, value: string, onChange: (value: string) => void) => (
     <TextField
+      className="sa-login-field"
       label={label}
       type={showPassword ? 'text' : 'password'}
       value={value}
@@ -59,13 +60,13 @@ export default function ResetPasswordPage() {
       title={content.forgotTitle || 'Regain access with confidence.'}
       description={content.forgotSubtitle || 'Use the verified mobile number on your account to reset your password. Your property information, documents and payment records remain protected.'}
     >
-      <Box>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2} sx={{ mb: 3 }}>
+      <Box className="sa-login-panel sa-reset-panel">
+        <Stack className="sa-login-brand-row" direction="row" justifyContent="space-between" alignItems="center" gap={2}>
           <LogoMark />
-          <Chip label="Secure reset" size="small" variant="outlined" sx={{ borderColor: 'rgba(11,82,112,.25)', color: '#0B5270' }} />
+          <Chip className="sa-login-access-chip" label="Secure reset" size="small" variant="outlined" />
         </Stack>
-        <Typography data-secureasset-reset-password-page="verified-otp-redirect-v160" sx={{ fontSize: { xs: 25, sm: 29 }, fontWeight: 900, letterSpacing: '-.045em' }}>Reset your password</Typography>
-        <Typography color="text.secondary" sx={{ mt: .8, mb: 3, fontSize: 13.5, lineHeight: 1.7 }}>
+        <Typography className="sa-login-title" data-secureasset-reset-password-page="verified-otp-redirect-v160">Reset your password</Typography>
+        <Typography className="sa-login-subtitle">
           Enter your email or mobile number. We will send the OTP only to the verified mobile number attached to that account.
         </Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -74,12 +75,13 @@ export default function ResetPasswordPage() {
         {done ? (
           <Stack spacing={2}>
             <Alert severity="success">Password reset successfully. Redirecting you to secure sign in…</Alert>
-            <Button component={Link} to="/login?reset=success" variant="contained" size="large">Continue to sign in</Button>
+            <Button className="sa-submit-button" component={Link} to="/login?reset=success" variant="contained" size="large">Continue to sign in</Button>
           </Stack>
         ) : (
-          <Box component="form" onSubmit={submit}>
-            <Stack spacing={2}>
+          <Box component="form" className="sa-login-form sa-reset-form" onSubmit={submit}>
+            <Stack spacing={1.7}>
               <TextField
+                className="sa-login-field"
                 label="Registered email or mobile"
                 value={identifier}
                 onChange={(event) => setIdentifier(event.target.value)}
@@ -88,15 +90,15 @@ export default function ResetPasswordPage() {
                 InputProps={{ startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }}
               />
               {sent && <>
-                <TextField label="6-digit reset OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required inputProps={{ inputMode: 'numeric', maxLength: 6 }} />
+                <TextField className="sa-login-field sa-reset-otp" label="6-digit reset OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required inputProps={{ inputMode: 'numeric', maxLength: 6 }} />
                 {passwordField('New password', password, setPassword)}
                 {passwordField('Confirm new password', confirm, setConfirm)}
               </>}
               <Button type="submit" className="sa-submit-button" variant="contained" size="large" disabled={loading} sx={{ py: 1.35 }}>
                 {loading ? <CircularProgress size={22} color="inherit" /> : sent ? 'Reset password' : 'Send reset OTP'}
               </Button>
-              {sent && <Button type="button" onClick={() => { setSent(false); setOtp(''); setMessage(''); }} sx={{ alignSelf: 'flex-start' }}>Use another account</Button>}
-              <Button type="button" component={Link} to="/login" startIcon={<ArrowBackRounded />} sx={{ alignSelf: 'flex-start', color: '#0B5270' }}>Return to sign in</Button>
+              {sent && <Button className="sa-reset-secondary-action" type="button" onClick={() => { setSent(false); setOtp(''); setMessage(''); }}>Use another account</Button>}
+              <Button className="sa-reset-back-action" type="button" component={Link} to="/login" startIcon={<ArrowBackRounded />}>Return to sign in</Button>
             </Stack>
           </Box>
         )}
