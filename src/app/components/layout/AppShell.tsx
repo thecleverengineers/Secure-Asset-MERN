@@ -73,12 +73,13 @@ import '../../../styles/bottom-appbar-premium.css';
 
 type MenuDef = { key: string; label: string; icon: any; path?: string; mobilePrimary?: boolean; section?: string; sectionOrder?: number; sortOrder?: number; badge?: string; placement?: 'sidebar' | 'header' | 'bottom' | 'both' };
 const PROPERTY_DETAIL_ONLY_MENU_KEYS = new Set(['property-spaces', 'property-media', 'property-promotions']);
-const HIDDEN_MENU_KEYS = new Set(['audit-logs']);
+const HIDDEN_MENU_KEYS = new Set(['audit-logs', 'subscription-payment-approvals']);
 // Plan activation is a tenant-owned capability workflow. Legacy landlord and
 // surveyor roles may still use their existing operational workspaces, but they
 // must never receive the tenant checkout/renewal destinations.
 const TENANT_ONLY_ACTIVATION_KEYS = new Set(['subscription', 'surveyor-subscription']);
 const ADMIN_DOCUMENT_VAULT: MenuDef = { key: 'documents', label: 'Document Vault', icon: FolderRounded, path: '/app/documents', section: 'workspace', sectionOrder: 1, sortOrder: 20, mobilePrimary: true };
+const ADMIN_APPROVAL_CENTER: MenuDef = { key: 'approvals', label: 'Approval Center', icon: ApprovalRounded, path: '/app/approvals', section: 'workspace', sectionOrder: 1, sortOrder: 10.0005 };
 const SURVEYOR_WORKFLOW_LABELS: Record<string, string> = {
   'surveyor-dashboard': 'Surveyor Workspace',
   'survey-job-marketplace': 'Find Survey Jobs',
@@ -101,7 +102,7 @@ const items: Record<string, MenuDef> = {
   'my-applications': { key: 'my-applications', label: 'My Applications', icon: FactCheckRounded },
   payments: { key: 'payments', label: 'Payments & Invoices', icon: PaymentsRounded },
   complaints: { key: 'complaints', label: 'Complaints & Maintenance', icon: BuildRounded },
-  approvals: { key: 'approvals', label: 'Approvals', icon: ApprovalRounded },
+  approvals: { key: 'approvals', label: 'Approval Center', icon: ApprovalRounded },
   notifications: { key: 'notifications', label: 'Notifications', icon: NotificationsRounded },
   messages: { key: 'messages', label: 'Messages', icon: MessageRounded },
   documents: { key: 'documents', label: 'Document Vault', icon: FolderRounded },
@@ -184,8 +185,8 @@ function tenantCapabilityEnabled(user: any, capability: 'landlord' | 'surveyor')
 }
 
 const roleMenus: Record<UserRole, string[]> = {
-  admin: ['dashboard', 'design-studio', 'role-permissions', 'subscription-payment-approvals', 'site-admin', 'site-enquiries', 'users', 'properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'reminder-rules', 'leases', 'surveys', 'applications', 'payments', 'complaints', 'approvals', 'surveyor-plans', 'surveyor-verifications', 'surveyor-profiles', 'survey-services', 'survey-jobs', 'survey-quotations', 'survey-projects', 'survey-reports', 'survey-disputes', 'survey-promotions', 'facilities', 'facility-bookings', 'documents', 'drive-admin', 'notifications', 'messages', 'reports', 'audit-logs', 'settings'],
-  manager: ['dashboard', 'properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'applications', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'leases', 'surveys', 'payments', 'complaints', 'approvals', 'attendance', 'facilities', 'facility-bookings', 'documents', 'messages', 'notifications', 'reports'],
+  admin: ['dashboard', 'approvals', 'design-studio', 'role-permissions', 'site-admin', 'site-enquiries', 'users', 'properties', 'tenant-profiles', 'occupants', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'reminder-rules', 'leases', 'surveys', 'applications', 'payments', 'complaints', 'surveyor-plans', 'surveyor-profiles', 'survey-services', 'survey-jobs', 'survey-quotations', 'survey-projects', 'survey-reports', 'survey-disputes', 'survey-promotions', 'facilities', 'facility-bookings', 'documents', 'drive-admin', 'notifications', 'messages', 'reports', 'audit-logs', 'settings'],
+  manager: ['dashboard', 'properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'applications', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'leases', 'surveys', 'payments', 'complaints', 'attendance', 'facilities', 'facility-bookings', 'documents', 'messages', 'notifications', 'reports'],
   landlord: ['dashboard', 'my-listings', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects', 'documents'],
   tenant: ['dashboard', 'marketplace', 'rent-properties', 'lease-properties', 'sale-properties', 'saved-properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'my-applications', 'property-visits', 'tenancies', 'subscription', 'surveyor-subscription', 'my-property', 'leases', 'complaints', 'documents', 'facilities', 'facility-bookings', 'messages', 'notifications', 'profile'],
   user: ['dashboard', 'marketplace', 'rent-properties', 'lease-properties', 'sale-properties', 'saved-properties', 'applications', 'payments', 'complaints', 'facilities', 'facility-bookings', 'documents', 'messages', 'notifications', 'profile'],
@@ -263,13 +264,32 @@ function placeDocumentVaultAfterDashboard(menu: MenuDef[]) {
   return reordered;
 }
 
+function placeAdminApprovalCenterAfterDashboard(menu: MenuDef[], user: any) {
+  if (String(user?.role || '').toLowerCase() !== 'admin') return menu;
+  const dashboard = menu.find((item) => item.key === 'dashboard');
+  const approval = menu.find((item) => item.key === 'approvals') || ADMIN_APPROVAL_CENTER;
+  if (!dashboard) return menu;
+  const reordered = menu.filter((item) => item.key !== 'approvals');
+  const dashboardIndex = reordered.findIndex((item) => item.key === 'dashboard');
+  reordered.splice(dashboardIndex + 1, 0, {
+    ...approval,
+    label: 'Approval Center',
+    path: '/app/approvals',
+    section: dashboard.section || 'workspace',
+    sectionOrder: dashboard.sectionOrder ?? 1,
+    sortOrder: Number(dashboard.sortOrder ?? 10) + 0.0005,
+  });
+  return reordered;
+}
+
 function enforceRoleNavigation(menu: MenuDef[], user: any) {
   const role = String(user?.role || '').toLowerCase();
   const roleSafe = role === 'tenant' ? menu : menu.filter((item) => !TENANT_ONLY_ACTIVATION_KEYS.has(item.key));
-  if (role !== 'admin' || roleSafe.some((item) => item.key === 'documents')) return roleSafe;
-  // Admin Document Vault is a platform invariant. Keep it visible even when
-  // a stale/custom navigation catalog omitted or disabled its menu record.
-  return [ADMIN_DOCUMENT_VAULT, ...roleSafe];
+  if (role !== 'admin') return roleSafe;
+  let adminSafe = [...roleSafe];
+  if (!adminSafe.some((item) => item.key === 'approvals')) adminSafe = [ADMIN_APPROVAL_CENTER, ...adminSafe];
+  if (!adminSafe.some((item) => item.key === 'documents')) adminSafe = [ADMIN_DOCUMENT_VAULT, ...adminSafe];
+  return adminSafe;
 }
 
 function menuKeysFor(user: any) {
@@ -346,7 +366,8 @@ export default function AppShell() {
     !PROPERTY_DETAIL_ONLY_MENU_KEYS.has(module.key)
     && !HIDDEN_MENU_KEYS.has(module.key)
     && !(TENANT_ONLY_ACTIVATION_KEYS.has(module.key) && user?.role !== 'tenant')
-    && !(user?.role === 'tenant' && tenantProfileOnlyKeys.has(module.key)),
+    && !(user?.role === 'tenant' && tenantProfileOnlyKeys.has(module.key))
+    && !(user?.role === 'admin' && ['tenant-kyc', 'surveyor-verifications', 'subscription-payment-approvals'].includes(module.key)),
   ).map((module) => ({
     key: module.key, label: user?.role === 'landlord' && landlordFeatureKeys.has(module.key) ? landlordFeatureLabel(module.key, configuredModuleLabel(module)) : configuredModuleLabel(module), path: module.key === 'agreement-templates' ? '/app/agreement-templates' : module.path || `/app/${module.key}`, section: user?.role === 'tenant' && landlordFeatureKeys.has(module.key) ? 'landlord_features' : user?.role === 'tenant' && surveyorFeatureKeys.has(module.key) ? 'surveyor_features' : module.section, sectionOrder: Number(module.sectionOrder ?? 999), sortOrder: Number(module.sortOrder ?? 0), mobilePrimary: Boolean(module.mobilePrimary), badge: module.badge, placement: 'sidebar' as const,
     icon: resolveIconComponent(module.icon) || iconByName[normalizeIconName(module.icon)] || items[module.key]?.icon || SettingsRounded,
@@ -432,7 +453,7 @@ export default function AppShell() {
       ? placeDocumentVaultAfterDashboard(tenantCapabilityMenu)
       : isRegularTenant ? regularTenantMenu : placeDocumentVaultAfterDashboard(designedMenu);
     const scoped = hasLandlordSubscription || user?.role === 'landlord' ? source.filter((item) => !['notifications', 'profile'].includes(item.key)) : source;
-    return placeDocumentVaultAfterDashboard(enforceRoleNavigation(scoped, user));
+    return placeAdminApprovalCenterAfterDashboard(placeDocumentVaultAfterDashboard(enforceRoleNavigation(scoped, user)), user);
   }, [designedMenu, hasLandlordSubscription, hasTenantSubscription, isRegularTenant, tenantCapabilityMenu, user]);
   const showTenantUpgrade = user?.role === 'tenant' && tenantSubscription.checked && !hasTenantSubscription;
   const pathParts = location.pathname.split('/').filter(Boolean);

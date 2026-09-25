@@ -26,6 +26,7 @@ const BackupRecoveryPage = lazyWithRetry(() => import('./BackupRecoveryPage'));
 const PropertyManagementPage = lazyWithRetry(() => import('./PropertyManagementPage'));
 const TenantKycPage = lazyWithRetry(() => import('./TenantKycPage'));
 const TenantKycAdminPage = lazyWithRetry(() => import('./TenantKycAdminPage'));
+const ApprovalCenterPage = lazyWithRetry(() => import('./ApprovalCenterPage'));
 const LandlordTenantsPage = lazyWithRetry(() => import('./LandlordTenantsPage'));
 const SearchPage = lazyWithRetry(() => import('./SearchPage'));
 const MessagingPage = lazyWithRetry(() => import('./MessagingPage'));
@@ -92,7 +93,7 @@ export default function ModulePage() {
     if (TENANT_ONLY_ACTIVATION_MODULES.has(module)) return user?.role === 'tenant';
     if (module === 'my-applications') return user?.role === 'tenant';
     if (module === 'surveyor-subscription' && hasSurveyorFeatures) return true;
-    const adminOnly = ['drive-admin', 'backup-recovery', 'site-admin', 'settings', 'integration-settings', 'platform-modules', 'design-studio', 'role-permissions', 'subscription-payment-approvals'];
+    const adminOnly = ['approvals', 'drive-admin', 'backup-recovery', 'site-admin', 'settings', 'integration-settings', 'platform-modules', 'design-studio', 'role-permissions', 'subscription-payment-approvals'];
     if (adminOnly.includes(module)) return user?.role === 'admin';
     // Keep the workspace usable while the catalog is refreshed. Every
     // resource endpoint still enforces the current user's permissions.
@@ -149,6 +150,7 @@ export default function ModulePage() {
   if (module === 'backup-recovery' && user?.role === 'admin') return renderLazy(<BackupRecoveryPage />);
   if (module === 'design-studio' && user?.role === 'admin') return renderLazy(<DesignStudioPage />);
   if (module === 'role-permissions' && user?.role === 'admin') return renderLazy(<RolePermissionsPage />);
+  if (module === 'approvals' && user?.role === 'admin') return renderLazy(<ApprovalCenterPage />);
   if (module === 'subscription-payment-approvals' && user?.role === 'admin') return renderLazy(<SubscriptionPaymentReviewPage />);
   if ((module === 'site-admin' || module === 'settings' || module === 'integration-settings') && user?.role === 'admin') return renderLazy(<SiteAdministrationPage />);
   if (module === 'platform-modules' && user?.role === 'admin') return renderLazy(<NavigationManagementPage />);

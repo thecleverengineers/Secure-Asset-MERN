@@ -130,6 +130,10 @@ function applyResourceListFilters(req, filter, config) {
     if (req.query[field]) filter[field] = { $in: String(req.query[field]).split(',') };
   }
   const isPropertyResource = req.params.resource === 'properties' || config?.model?.modelName === 'Property';
+  if (isPropertyResource && req.query.publicApprovalStatus) {
+    const approvalStatuses = String(req.query.publicApprovalStatus).split(',').map((value) => value.trim()).filter(Boolean);
+    if (approvalStatuses.length) filter['publicListingApproval.status'] = { $in: approvalStatuses };
+  }
   if (isPropertyResource && req.query.listingPurpose) {
     const purposes = String(req.query.listingPurpose).split(',').map((value) => value.trim().toLowerCase()).filter((value) => ['rent', 'lease', 'sale'].includes(value));
     if (purposes.length) {
@@ -797,7 +801,11 @@ async function roleDefaults(resource, user, body) {
       // A landlord may request public visibility, but only an administrator
       // can approve the property for marketplace publication.
       body.publicationStatus = 'draft'; body.publishedAt = undefined; body.status = 'pending_approval';
-    } else body.publicationStatus = 'draft';
+      body.publicListingApproval = { status: 'pending', requestedAt: new Date(), requestedBy: user._id };
+    } else {
+      body.publicationStatus = 'draft';
+      body.publicListingApproval = { status: 'not_required' };
+    }
     delete body.isVerified; delete body.isFeatured;
     assertExactPropertyCoordinates(body.map);
   }
@@ -1030,7 +1038,17 @@ export const createResource = asyncHandler(async (req, res) => {
   if (req.params.resource === 'properties' && req.user.role === 'manager' && !req.user.assignedProperties.some((id) => id.equals(created._id))) {
     req.user.assignedProperties.push(created._id); await req.user.save({ validateModifiedOnly: true });
   }
-  if (req.params.resource === 'properties') await notifyPropertyListed(created, created.owner);
+  if (req.params.resource === 'properties' && created.visibility === 'public' && created.publicationStatus === 'published') await notifyPropertyListed(created, created.owner);
+  if (req.params.resource === 'properties' && created.visibility === 'public' && created.publicationStatus !== 'published' && created.owner) {
+    await createNotification({
+      user: created.owner,
+      title: 'Public listing awaiting approval',
+      message: `${created.title || 'Your property'} was submitted for administrator approval before it can appear in the marketplace.`,
+      category: 'system',
+      actionUrl: '/app/my-listings',
+      metadata: { propertyId: created._id, event: 'property_public_approval_requested' },
+    });
+  }
   if (req.params.resource === 'leases') await notifyLeaseAgreementReady(created);
   if (req.params.resource === 'surveys') await notifySurveyAssigned(created);
   await writeAudit(req, { action: 'create', module: req.params.resource, recordId: created._id, updatedValue: created.toObject() });
@@ -1144,18 +1162,32 @@ export const updateResource = asyncHandler(async (req, res) => {
   }
   if (isLandlordActor(req.user) && req.params.resource === 'properties') {
     changes = pick(changes, ['title', 'description', 'type', 'customType', 'customAttributes', 'hierarchyMode', 'status', 'price', 'listingType', 'purpose', 'isSale', 'floorManagementEnabled', 'liftAvailable', 'buildingSpecifications', 'commonFacilities', 'rulesAndRestrictions', 'visibility', 'bedrooms', 'bathrooms', 'area', 'roomCounts', 'roomDetails', 'listingDetails', 'pricing', 'areas', 'furnishing', 'ageDetails', 'address', 'location', 'map', 'locationPrivacy', 'occupancyRules', 'specifications', 'parking', 'utilities', 'amenityDetails', 'legalDetails', 'contactInformation', 'nearbyFacilities', 'images', 'amenities', 'documents', 'galleryCover', 'promotion']);
+    const requestedVisibility = changes.visibility;
+    const requestingPublic = requestedVisibility === 'public' && record.visibility !== 'public';
+    const movingPrivate = requestedVisibility === 'private';
+    const pendingPublicApproval = record.visibility === 'public' && String(record.publicListingApproval?.status || '') === 'pending';
     const willBePublic = (changes.visibility ?? record.visibility) === 'public';
     if (willBePublic) await getActiveLandlordSubscription(req.user._id);
     changes.purpose = changes.purpose || changes.listingType || (changes.isSale ? 'sale' : record.purpose || record.listingType || 'rent');
     changes.listingType = changes.purpose; changes.isSale = changes.purpose === 'sale';
-    if (willBePublic) {
-      if (changes.visibility === 'public' && record.visibility !== 'public') await assertLandlordLimit(req.user._id, 'publicListings');
-      // Any landlord edit to a public listing returns it to the admin queue;
-      // a landlord cannot self-publish by changing visibility or status.
-      changes.visibility = 'public'; changes.publicationStatus = 'draft'; changes.publishedAt = undefined; changes.status = 'pending_approval';
-    } else {
-      changes.visibility = 'private'; changes.publicationStatus = 'draft'; changes.publishedAt = undefined;
-      if (changes.status === 'pending_approval') changes.status = 'draft';
+    if (requestingPublic) {
+      await assertLandlordLimit(req.user._id, 'publicListings');
+      changes.visibility = 'public';
+      changes.publicationStatus = 'draft';
+      changes.publishedAt = undefined;
+      changes.status = 'pending_approval';
+      changes.publicListingApproval = { status: 'pending', requestedAt: new Date(), requestedBy: req.user._id, reason: '' };
+    } else if (movingPrivate) {
+      changes.visibility = 'private';
+      changes.publicationStatus = 'draft';
+      changes.publishedAt = undefined;
+      changes.publicListingApproval = { status: 'not_required', reason: '' };
+      if ((changes.status || record.status) === 'pending_approval') changes.status = 'draft';
+    } else if (pendingPublicApproval) {
+      changes.visibility = 'public';
+      changes.publicationStatus = 'draft';
+      changes.publishedAt = undefined;
+      changes.status = 'pending_approval';
     }
   }
   if (req.user.role === 'admin' && req.params.resource === 'properties') {
@@ -1164,6 +1196,14 @@ export const updateResource = asyncHandler(async (req, res) => {
     // by setting publicationStatus directly in the property editor.
     if (changes.publicationStatus === 'published') {
       changes.visibility = 'public'; changes.publishedAt = new Date();
+      changes.publicListingApproval = {
+        status: 'approved',
+        requestedAt: record.publicListingApproval?.requestedAt || record.updatedAt || record.createdAt,
+        requestedBy: record.publicListingApproval?.requestedBy || record.owner,
+        reviewedAt: new Date(),
+        reviewedBy: req.user._id,
+        reason: String(req.body.reason || req.body.comment || '').trim(),
+      };
       if (!['available', 'partially_occupied', 'occupied', 'reserved', 'rented', 'sold', 'leased', 'maintenance', 'unavailable', 'inactive'].includes(changes.status || record.status)) changes.status = 'available';
     } else if (['draft', 'archived'].includes(changes.publicationStatus)) {
       changes.publishedAt = undefined;
@@ -1458,6 +1498,14 @@ export const changeStatus = asyncHandler(async (req, res) => {
     }
     if (req.user.role === 'admin' && approvalStatuses.has(status) && record.visibility === 'public') {
       record.publicationStatus = 'published'; record.publishedAt = new Date();
+      record.publicListingApproval = {
+        status: 'approved',
+        requestedAt: record.publicListingApproval?.requestedAt || record.updatedAt || record.createdAt,
+        requestedBy: record.publicListingApproval?.requestedBy || record.owner,
+        reviewedAt: new Date(),
+        reviewedBy: req.user._id,
+        reason: String(req.body.comment || req.body.remarks || '').trim(),
+      };
     }
     if (status === 'pending_approval' || status === 'draft' || status === 'archived') {
       record.publicationStatus = status === 'archived' ? 'archived' : 'draft'; record.publishedAt = undefined;

@@ -6,7 +6,7 @@ import { useActionDialog } from '../../components/shared/useActionDialog';
 const money = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value || 0);
 const manualMethods = new Set(['upi', 'offline', 'bank_transfer']);
 
-export default function SubscriptionPaymentReviewPage() {
+export default function SubscriptionPaymentReviewPage({ embedded = false, onChanged }: { embedded?: boolean; onChanged?: () => void } = {}) {
   const actions = useActionDialog();
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +33,7 @@ export default function SubscriptionPaymentReviewPage() {
     try {
       await approveSubscriptionPayment(id);
       await load();
+      onChanged?.();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -47,6 +48,7 @@ export default function SubscriptionPaymentReviewPage() {
     try {
       await rejectSubscriptionPayment(id, reason.trim());
       await load();
+      onChanged?.();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -78,9 +80,9 @@ export default function SubscriptionPaymentReviewPage() {
 
   if (loading) return <Box sx={{ p: 8, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>;
 
-  return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 6 }}>
-    <Typography variant="h4" fontWeight={950}>Subscription payment approvals</Typography>
-    <Typography color="text.secondary" sx={{ mb: 3 }}>Review manual payment submissions before enabling the subscribed Landlord or Surveyor features inside the tenant workspace.</Typography>
+  return <Box sx={{ px: embedded ? 0 : { xs: 2, sm: 3, lg: 4 }, pb: embedded ? 0 : 6 }}>
+    {!embedded && <><Typography variant="h4" fontWeight={950}>Subscription payment approvals</Typography>
+    <Typography color="text.secondary" sx={{ mb: 3 }}>Review manual payment submissions before enabling the subscribed Landlord or Surveyor features inside the tenant workspace.</Typography></>}
     {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
     <Stack spacing={1.5}>
       {rows.map((row) => {

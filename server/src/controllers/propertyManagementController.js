@@ -15,6 +15,7 @@ import { TENANT_KYC_DOCUMENT_CATEGORIES } from '../constants/tenantKyc.js';
 import { assertApplicationDecisionTransition } from '../services/applicationWorkflow.js';
 import { canAcceptRentalApplication, syncPropertyRentalSummary, transitionRentalUnit } from '../services/rentalUnitLifecycle.js';
 import { writeAudit } from '../middleware/audit.js';
+import { notifyPropertyListed } from '../services/whatsappNotifications.js';
 
 function toCsv(rows) { if (!rows.length) return ''; const keys = Object.keys(rows[0]); const esc = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`; return [keys.map(esc).join(','), ...rows.map((row) => keys.map((key) => esc(row[key])).join(','))].join('\n'); }
 
@@ -369,6 +370,50 @@ export const streamTenantKycDocument = asyncHandler(async (req, res) => {
   }
 
   await sendStoredFile(req, res, file, { download: req.query.download === 'true' });
+});
+
+export const reviewPublicListingApproval = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'admin') throw new ApiError(403, 'Admin access required');
+  const decision = String(req.body.status || req.body.decision || '').toLowerCase();
+  const reason = String(req.body.reason || req.body.notes || '').trim();
+  if (!['approved', 'rejected'].includes(decision)) throw new ApiError(422, 'Public listing decision must be approved or rejected');
+  if (decision === 'rejected' && !reason) throw new ApiError(422, 'Add a reason before rejecting the public listing');
+  const property = await Property.findOne({ _id: req.params.propertyId, deletedAt: null });
+  if (!property) throw new ApiError(404, 'Property not found');
+  const pending = String(property.publicListingApproval?.status || '') === 'pending' || property.status === 'pending_approval';
+  if (!pending) throw new ApiError(409, 'This property does not have a pending public listing request');
+  const previousValue = property.toObject();
+  const now = new Date();
+  const requestedAt = property.publicListingApproval?.requestedAt || property.updatedAt || property.createdAt;
+  const requestedBy = property.publicListingApproval?.requestedBy || property.owner;
+  if (decision === 'approved') {
+    property.visibility = 'public';
+    property.publicationStatus = 'published';
+    property.publishedAt = now;
+    if (['draft', 'pending_approval'].includes(property.status)) property.status = 'available';
+  } else {
+    property.visibility = 'private';
+    property.publicationStatus = 'draft';
+    property.publishedAt = undefined;
+    if (property.status === 'pending_approval') property.status = 'draft';
+  }
+  property.publicListingApproval = { status: decision, requestedAt, requestedBy, reviewedAt: now, reviewedBy: req.user._id, reason };
+  property.updatedBy = req.user._id;
+  await property.save({ validateModifiedOnly: true });
+  await writeAudit(req, { action: `property-public-listing:${decision}`, module: 'approvals', recordId: property._id, previousValue, updatedValue: property.toObject() });
+  if (property.owner) {
+    await createNotification({
+      user: property.owner,
+      title: decision === 'approved' ? 'Public listing approved' : 'Public listing needs changes',
+      message: decision === 'approved' ? `${property.title || 'Your property'} is now published in the marketplace.` : `${property.title || 'Your property'} was not approved for public listing. ${reason}`,
+      category: 'system',
+      actionUrl: '/app/my-listings',
+      metadata: { propertyId: property._id, event: `property_public_approval_${decision}` },
+    });
+  }
+  if (decision === 'approved') await notifyPropertyListed(property, property.owner);
+  const data = await Property.findById(property._id).populate('owner', 'name email phone').lean();
+  res.json({ success: true, data, message: decision === 'approved' ? 'Property approved and published' : 'Property rejected and returned to private draft' });
 });
 
 export const getApplicationDetails = asyncHandler(async (req, res) => {

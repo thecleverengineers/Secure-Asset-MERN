@@ -37,7 +37,7 @@ function DocumentMeta({ label, value }: { label: string; value: any }) {
   return <Stack spacing={.2} sx={{ minWidth: 0 }}><Typography fontSize={11} color="text.secondary" fontWeight={800}>{label}</Typography><Typography fontSize={12} fontWeight={700} noWrap title={id}>{id || 'Not uploaded'}</Typography></Stack>;
 }
 
-export default function TenantKycAdminPage() {
+export default function TenantKycAdminPage({ embedded = false, onChanged }: { embedded?: boolean; onChanged?: () => void } = {}) {
   const [records, setRecords] = useState<KycRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -89,6 +89,7 @@ export default function TenantKycAdminPage() {
       setSelected((current) => current && String(current._id) === id ? { ...current, ...updated, user: current.user } : current);
       setDecision(null);
       setNotice(decision.status === 'verified' ? `${userLabel(decision.record)} KYC approved and verified.` : `${userLabel(decision.record)} KYC rejected.`);
+      onChanged?.();
     } catch (cause) {
       setError((cause as Error).message || 'Could not update KYC status');
     } finally {
@@ -98,8 +99,8 @@ export default function TenantKycAdminPage() {
 
   if (loading) return <Box sx={{ minHeight: 420, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>;
 
-  return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 6, maxWidth: 1320 }}>
-    <PageHeader eyebrow="Compliance workspace" title="Tenant KYC management" description="Review submitted tenant identity documents securely, verify complete records, and return clear decisions with an audit trail." meta={<Chip size="small" color={pendingCount ? 'warning' : 'success'} label={`${pendingCount} awaiting review`} />} />
+  return <Box sx={{ px: embedded ? 0 : { xs: 2, sm: 3, lg: 4 }, pb: embedded ? 0 : 6, maxWidth: 1320 }}>
+    {!embedded && <PageHeader eyebrow="Compliance workspace" title="Tenant KYC management" description="Review submitted tenant identity documents securely, verify complete records, and return clear decisions with an audit trail." meta={<Chip size="small" color={pendingCount ? 'warning' : 'success'} label={`${pendingCount} awaiting review`} />} />}
     {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
     {notice && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setNotice('')}>{notice}</Alert>}
 
