@@ -1,0 +1,233 @@
+/* Premium Applications workspace aligned with SecureAsset Vault, Dashboard and My Listings. */
+.sa-applications-premium {
+  --ap-ink: #0b2057;
+  --ap-muted: #6078a3;
+  --ap-paper: #ffffff;
+  --ap-bg: #f5faff;
+  --ap-soft: #eef5fd;
+  --ap-line: #e4edf9;
+  --ap-accent: #009f90;
+  min-height: calc(100dvh - 84px);
+  padding-top: 20px;
+  background: var(--ap-bg);
+  color: var(--ap-ink);
+  font-family: 'Open Sans', sans-serif;
+}
+.sa-applications-premium :is(.MuiTypography-root,.MuiButton-root,.MuiInputBase-root,.MuiChip-root,button) {
+  font-family: 'Open Sans', sans-serif;
+}
+.sa-applications-premium :is(button,a,input):focus-visible {
+  outline: 2px solid var(--ap-accent);
+  outline-offset: 3px;
+}
+.sa-applications-premium .sa-page-header {
+  margin: 0 4px 20px !important;
+  background: transparent !important;
+}
+.sa-applications-premium .sa-page-header h1 {
+  color: var(--ap-ink) !important;
+  font-size: clamp(26px,2.2vw,34px) !important;
+  font-weight: 500 !important;
+  letter-spacing: -.04em !important;
+  line-height: 1.25 !important;
+}
+.sa-applications-premium .sa-page-header > .MuiStack-root > .MuiBox-root > .MuiTypography-root:not(h1):not(.sa-page-kicker) {
+  color: var(--ap-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.sa-applications-premium .sa-page-kicker {
+  color: var(--ap-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .08em;
+}
+.sa-applications-premium .MuiButton-root {
+  text-transform: none;
+  box-shadow: none;
+}
+.sa-applications-premium .MuiButton-contained {
+  color: #fff !important;
+  background: linear-gradient(120deg,#00b391,#006286) !important;
+  border-radius: 9px;
+}
+.sa-applications-premium .MuiButton-contained:hover {
+  filter: brightness(.96);
+  box-shadow: 0 5px 14px #008c8c22 !important;
+}
+.sa-applications-premium .MuiButton-outlined {
+  border-color: var(--ap-line);
+}
+.sa-applications-premium .MuiChip-root {
+  border-color: var(--ap-line);
+  background: var(--ap-soft);
+  color: var(--ap-ink);
+}
+.sa-applications-premium .sa-surface-card {
+  border: 1px solid var(--ap-line) !important;
+  border-radius: 14px !important;
+  background: var(--ap-paper) !important;
+  color: var(--ap-ink);
+  box-shadow: 0 4px 14px #16457704 !important;
+}
+.sa-applications-filter-panel {
+  margin-bottom: 20px;
+  padding: 15px 16px 14px;
+}
+.sa-applications-search-row .MuiOutlinedInput-root {
+  min-height: 43px;
+  border-radius: 9px;
+  background: var(--ap-soft);
+}
+.sa-applications-search-row .MuiOutlinedInput-notchedOutline {
+  border-color: transparent;
+}
+.sa-applications-search-row .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: var(--ap-accent);
+}
+.sa-applications-search-row .MuiSvgIcon-root {
+  color: var(--ap-muted);
+}
+.sa-applications-search-row > .MuiButton-contained {
+  min-width: 108px;
+  min-height: 43px;
+}
+.sa-applications-clear.MuiButton-root {
+  min-width: auto;
+  color: var(--ap-muted);
+  font-size: 11px;
+}
+.sa-applications-status-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ap-line);
+}
+.sa-applications-status-heading {
+  margin: 0 2px 10px;
+}
+.sa-applications-filter-label.MuiTypography-root {
+  color: var(--ap-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+.sa-applications-filter-help.MuiTypography-root {
+  margin-top: 3px;
+  color: var(--ap-muted);
+  font-size: 10.5px;
+}
+.sa-applications-filter-count.MuiTypography-root {
+  color: var(--ap-muted);
+  font-size: 10.5px;
+}
+.sa-applications-status-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 2px 7px;
+  scrollbar-width: thin;
+  scrollbar-color: #c9d8e7 transparent;
+}
+.sa-applications-status-tab.MuiButton-root {
+  flex: 0 0 auto;
+  min-width: auto;
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid var(--ap-line);
+  border-radius: 8px;
+  background: var(--ap-soft);
+  color: var(--ap-muted);
+  font-size: 10.5px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.sa-applications-status-tab.MuiButton-root:hover {
+  border-color: #b9dce2;
+  background: #e7f4f7;
+  color: var(--ap-ink);
+}
+.sa-applications-status-tab[aria-selected="true"].MuiButton-root {
+  border-color: transparent;
+  color: #fff;
+  background: linear-gradient(120deg,#00ae98,#007887);
+  box-shadow: 0 4px 11px #008b8b1a;
+}
+.sa-applications-premium .sa-applications-record-list {
+  gap: 10px;
+}
+.sa-applications-premium .sa-applications-record-row {
+  border: 1px solid var(--ap-line) !important;
+  border-radius: 13px !important;
+  background: var(--ap-paper) !important;
+  box-shadow: 0 3px 9px #1b4c7904 !important;
+}
+.sa-applications-premium .sa-applications-record-row:hover {
+  border-color: #b9dce2 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px #1747730d !important;
+}
+.sa-applications-premium .sa-application-record-label {
+  color: var(--ap-muted) !important;
+  font-weight: 600 !important;
+}
+.sa-applications-premium .sa-application-record-title,
+.sa-applications-premium .sa-application-record-value {
+  color: var(--ap-ink) !important;
+  font-weight: 500 !important;
+}
+.sa-applications-premium .sa-application-record-subtitle {
+  color: var(--ap-muted) !important;
+}
+.sa-applications-premium .MuiPaginationItem-root.Mui-selected {
+  color: #fff;
+  background: linear-gradient(120deg,#00ae98,#007887);
+}
+@media (max-width: 899px) {
+  .sa-applications-premium {
+    padding-top: 16px;
+  }
+  .sa-applications-filter-panel {
+    padding: 13px;
+  }
+  .sa-applications-status-tabs {
+    margin-inline: -13px;
+    padding-inline: 13px;
+    scroll-snap-type: x proximity;
+  }
+  .sa-applications-status-tab.MuiButton-root {
+    scroll-snap-align: start;
+  }
+}
+@media (max-width: 599px) {
+  .sa-applications-premium .sa-page-header {
+    margin: 0 2px 15px !important;
+  }
+  .sa-applications-premium .sa-page-header h1 {
+    font-size: 27px !important;
+  }
+  .sa-applications-premium .sa-page-header > .MuiStack-root > .MuiBox-root > .MuiTypography-root:not(h1):not(.sa-page-kicker) {
+    font-size: 11px;
+  }
+  .sa-applications-premium .sa-surface-card {
+    border-radius: 11px !important;
+  }
+  .sa-applications-filter-panel {
+    margin-bottom: 14px;
+  }
+  .sa-applications-status-tab.MuiButton-root {
+    min-height: 32px;
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+  .sa-applications-premium .sa-applications-record-row {
+    border-radius: 11px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sa-applications-premium *,
+  .sa-applications-premium *::before,
+  .sa-applications-premium *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

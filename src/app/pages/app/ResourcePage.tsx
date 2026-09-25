@@ -47,6 +47,7 @@ import { PropertyContextBanner, PropertyDataBlock, PropertySectionHeader } from 
 import PropertyPortfolioCard from '../../components/property/PropertyPortfolioCard';
 import PropertyPortfolioMobileCard from '../../components/property/PropertyPortfolioMobileCard';
 import '../../../styles/my-listings-premium.css';
+import '../../../styles/applications-premium.css';
 
 type Field = { name: string; label: string; type?: 'text' | 'number' | 'date' | 'time' | 'datetime' | 'textarea' | 'select' | 'boolean' | 'radio' | 'array' | 'json' | 'reference' | 'password' | 'image'; options?: string[]; reference?: string; required?: boolean };
 
@@ -836,6 +837,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
   const config = configs[module];
   const { user } = useAuth();
   const isTenantApplications = module === 'applications' && user?.role === 'tenant' && tenantApplicationView;
+  const isApplicationsWorkspace = module === 'applications' && !isTenantApplications;
   const { data: siteData } = useSite();
   const realtime = useRealtime();
   const actions = useActionDialog();
@@ -993,6 +995,24 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
   const canDelete = Boolean(roleAllowed(config?.deleteRoles || []) && (!allowedActions || allowedActions.includes('delete')));
   const applicationReviewStatuses = ['submitted', 'under_review', 'shortlisted', 'interview_requested', 'interview_scheduled', 'site_visit_scheduled', 'additional_documents_requested', 'documents_pending'];
   const applicationAcceptedStatuses = ['approved', 'agreement_pending', 'deposit_pending', 'completed'];
+  const applicationStatusFilters = [
+    { value: '', label: 'All' },
+    { value: 'draft', label: 'Draft' },
+    { value: 'submitted', label: 'Submitted' },
+    { value: 'under_review', label: 'Under review' },
+    { value: 'shortlisted', label: 'Shortlisted' },
+    { value: 'interview_requested', label: 'Interview requested' },
+    { value: 'interview_scheduled', label: 'Interview scheduled' },
+    { value: 'site_visit_scheduled', label: 'Site visit' },
+    { value: 'additional_documents_requested', label: 'Documents requested' },
+    { value: 'documents_pending', label: 'Documents pending' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'agreement_pending', label: 'Agreement pending' },
+    { value: 'deposit_pending', label: 'Deposit pending' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'rejected', label: 'Rejected' },
+    { value: 'withdrawn', label: 'Withdrawn' },
+  ] as const;
 
   function isApplicationLandlordSide(row: any) {
     if (module !== 'applications' || !user) return false;
@@ -1294,7 +1314,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
     </Tooltip>}
   </Stack>;
 
-  return <Box className={isMyListings ? 'sa-my-listings-premium' : undefined} data-secureasset-applications-filter="applications-filter-v66" data-secureasset-application-list={module === 'applications' ? 'record-frame-v1' : undefined} data-secureasset-tenancy-list={module === 'tenancies' ? 'record-frame-v1' : undefined} data-secureasset-clickable-records="clickable-records-v70" data-secureasset-property-visibility="property-visibility-v71" data-secureasset-application-actions="direct-decision-v76" data-secureasset-surveyor-profile-source={module === 'surveyor-profiles' ? 'live-resource-api-v208' : undefined} data-secureasset-surveyor-profile-navigation={module === 'surveyor-profiles' ? 'admin-detail-v210' : undefined} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
+  return <Box className={isMyListings ? 'sa-my-listings-premium' : isApplicationsWorkspace ? 'sa-applications-premium' : undefined} data-secureasset-applications-filter="applications-filter-v66" data-secureasset-application-list={module === 'applications' ? 'record-frame-v1' : undefined} data-secureasset-tenancy-list={module === 'tenancies' ? 'record-frame-v1' : undefined} data-secureasset-clickable-records="clickable-records-v70" data-secureasset-property-visibility="property-visibility-v71" data-secureasset-application-actions="direct-decision-v76" data-secureasset-surveyor-profile-source={module === 'surveyor-profiles' ? 'live-resource-api-v208' : undefined} data-secureasset-surveyor-profile-navigation={module === 'surveyor-profiles' ? 'admin-detail-v210' : undefined} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
     {isMyListings ? <PageHeader
       variant="plain"
       eyebrow="Property portfolio"
@@ -1302,6 +1322,13 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
       description="Manage rent, lease and sale properties in one secure workspace. Filter listings by visibility and survey verification."
       meta={<Stack direction="row" gap={.7} flexWrap="wrap" useFlexGap><Chip size="small" label={`${pagination.total} matching ${pagination.total === 1 ? 'property' : 'properties'}`} variant="outlined" /><Chip size="small" color="success" label="Owner-scoped workspace" /></Stack>}
       actions={listingPageActions}
+    /> : isApplicationsWorkspace ? <PageHeader
+      variant="plain"
+      eyebrow="Tenant applications"
+      title="Applications"
+      description="Review every tenant request in one premium workspace, move quickly between workflow statuses, and open a record for the complete application and agreement journey."
+      meta={<Stack direction="row" gap={.7} flexWrap="wrap" useFlexGap><Chip size="small" label={`${pagination.total} matching ${pagination.total === 1 ? 'application' : 'applications'}`} variant="outlined" /><Chip size="small" color="success" label="Live application workflow" /></Stack>}
+      actions={pageActions}
     /> : compactTenantApplicationView ? <Stack data-secureasset-my-applications-toolbar="compact-v151" direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1.2} sx={{ mb: 2.2 }}>
       <Chip size="small" label={`${pagination.total} ${pagination.total === 1 ? 'application' : 'applications'}`} variant="outlined" sx={{ alignSelf: { xs: 'flex-start', sm: 'center' }, fontWeight: 750 }} />
       {pageActions}
@@ -1389,6 +1416,42 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
           setSearch(''); setStatus(''); setListingPurpose(''); setListingVisibility(''); setListingVerification('');
           void load(1, { search: '', status: '', listingPurpose: '', visibility: '', verification: '' });
         }}>Clear filters</Button>}
+      </Box>
+    </Paper> : isApplicationsWorkspace ? <Paper className="sa-applications-filter-panel sa-surface-card" elevation={0}>
+      <Stack className="sa-applications-search-row" direction={{ xs: 'column', md: 'row' }} alignItems={{ md: 'center' }} spacing={1}>
+        <TextField
+          className="sa-applications-search"
+          fullWidth
+          size="small"
+          placeholder="Search by application ID, tenant or property…"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          onKeyDown={(event) => event.key === 'Enter' && load(1)}
+          InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }}
+        />
+        <Button variant="contained" onClick={() => load(1)} sx={{ whiteSpace: 'nowrap' }}>Search</Button>
+        {(search || status) && <Button className="sa-applications-clear" variant="text" onClick={() => { setSearch(''); setStatus(''); void load(1, { search: '', status: '' }); }}>Clear</Button>}
+      </Stack>
+      <Box className="sa-applications-status-section">
+        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'flex-end' }} gap={.7} className="sa-applications-status-heading">
+          <Box>
+            <Typography className="sa-applications-filter-label">Application status</Typography>
+            <Typography className="sa-applications-filter-help">Select a workflow status to show only matching applications.</Typography>
+          </Box>
+          <Typography className="sa-applications-filter-count">{pagination.total} result{pagination.total === 1 ? '' : 's'}</Typography>
+        </Stack>
+        <Box className="sa-applications-status-tabs" role="tablist" aria-label="Filter applications by status">
+          {applicationStatusFilters.map((option) => <Button
+            key={option.value || 'all'}
+            role="tab"
+            aria-selected={status === option.value}
+            className="sa-applications-status-tab"
+            data-status={option.value || 'all'}
+            onClick={() => { setStatus(option.value); void load(1, { status: option.value }); }}
+          >
+            {option.label}
+          </Button>)}
+        </Box>
       </Box>
     </Paper> : <Paper className={`sa-surface-card${module === 'applications' ? ' sa-applications-filter-frame' : ''}`} elevation={0} sx={{ p: { xs: 1.4, sm: 1.7 }, mb: 2, borderRadius: 4, ...(module === 'applications' ? { borderColor: 'rgba(11,82,112,.16)', background: 'linear-gradient(145deg, #FFFFFF 0%, #F6FBFC 100%)' } : {}) }}><Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} spacing={1.2}><TextField fullWidth size="small" placeholder={`Search ${(isMyListings ? 'my listings' : moduleLabel(module)).toLowerCase()}…`} value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load(1)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }} />{config.statuses && <FormControl size="small" sx={{ minWidth: { sm: 185 } }}><InputLabel>Status</InputLabel><Select label="Status" value={status} onChange={(e) => { const next = e.target.value; setStatus(next); void load(1, { status: next }); }}><MenuItem value="">All statuses</MenuItem>{config.statuses.map((item) => <MenuItem key={item} value={item}>{optionText(item)}</MenuItem>)}</Select></FormControl>}<Button variant="contained" onClick={() => load(1)} sx={{ whiteSpace: 'nowrap' }}>Search</Button></Stack></Paper>}
 
