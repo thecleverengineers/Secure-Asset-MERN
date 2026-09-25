@@ -469,6 +469,14 @@ export async function getSurveyorProposals(params: Record<string, string | numbe
 export async function getSurveyWorkflowProjects(params: Record<string, string | number | boolean | undefined> = {}) {
   const query = surveyWorkflowQuery(params); return request<PaginatedResponse<Record<string, any>>>(`/survey-workflow/projects${query.size ? `?${query}` : ''}`);
 }
+export async function getMySurveyorQuoteRequests(params: Record<string, string | number | boolean | undefined> = {}) {
+  const query = surveyWorkflowQuery(params);
+  return request<PaginatedResponse<Record<string, any>>>(`/survey-workflow/requests/mine${query.size ? `?${query}` : ''}`);
+}
+export async function getIncomingSurveyorQuoteRequests(params: Record<string, string | number | boolean | undefined> = {}) {
+  const query = surveyWorkflowQuery(params);
+  return request<PaginatedResponse<Record<string, any>>>(`/survey-workflow/requests/incoming${query.size ? `?${query}` : ''}`);
+}
 export async function requestSurveyorQuote(body: Record<string, any>) { return request<ApiResponse<Record<string, any>>>('/survey-workflow/requests', { method: 'POST', body: JSON.stringify(body) }); }
 export async function respondSurveyorQuoteRequest(jobId: string, body: { decision: 'accept' | 'reject'; reason?: string }) { return request<ApiResponse<Record<string, any>>>(`/survey-workflow/requests/${encodeURIComponent(jobId)}/respond`, { method: 'POST', body: JSON.stringify(body) }); }
 export async function getSurveyWorkflowProject(projectId: string) { return request<ApiResponse<Record<string, any>>>(`/survey-workflow/projects/${encodeURIComponent(projectId)}`); }

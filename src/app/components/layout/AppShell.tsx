@@ -83,7 +83,7 @@ const ADMIN_DOCUMENT_VAULT: MenuDef = { key: 'documents', label: 'Document Vault
 const ADMIN_APPROVAL_CENTER: MenuDef = { key: 'approvals', label: 'Approval Center', icon: ApprovalRounded, path: '/app/approvals', section: 'workspace', sectionOrder: 1, sortOrder: 10.0005 };
 const SURVEYOR_WORKFLOW_LABELS: Record<string, string> = {
   'surveyor-dashboard': 'Surveyor Workspace',
-  'survey-job-marketplace': 'Find Survey Jobs',
+  'survey-job-marketplace': 'Quote Requests & Jobs',
   'survey-quotations': 'My Proposals',
   'survey-projects': 'Active Projects',
 };
@@ -148,7 +148,7 @@ const items: Record<string, MenuDef> = {
   'surveyor-verification': { key: 'surveyor-verification', label: 'Verification', icon: VerifiedUserRounded },
   'surveyor-profile': { key: 'surveyor-profile', label: 'Professional Profile', icon: PersonRounded },
   'survey-services': { key: 'survey-services', label: 'My Survey Services', icon: StorefrontRounded },
-  'survey-job-marketplace': { key: 'survey-job-marketplace', label: 'Find Survey Jobs', icon: ExploreRounded },
+  'survey-job-marketplace': { key: 'survey-job-marketplace', label: 'Quote Requests & Jobs', icon: ExploreRounded },
   'survey-jobs': { key: 'survey-jobs', label: 'Client Job Requests', icon: AssignmentRounded },
   'survey-quotations': { key: 'survey-quotations', label: 'My Proposals', icon: RequestQuoteRounded },
   'survey-projects': { key: 'survey-projects', label: 'Active Projects', icon: BusinessCenterRounded },
@@ -188,7 +188,7 @@ function tenantCapabilityEnabled(user: any, capability: 'landlord' | 'surveyor')
 const roleMenus: Record<UserRole, string[]> = {
   admin: ['dashboard', 'approvals', 'design-studio', 'role-permissions', 'site-admin', 'site-enquiries', 'users', 'properties', 'tenant-profiles', 'occupants', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'reminder-rules', 'leases', 'surveys', 'applications', 'payments', 'complaints', 'surveyor-plans', 'surveyor-profiles', 'survey-services', 'survey-jobs', 'survey-quotations', 'survey-projects', 'survey-reports', 'survey-disputes', 'survey-promotions', 'facilities', 'facility-bookings', 'documents', 'drive-admin', 'notifications', 'messages', 'reports', 'audit-logs', 'settings'],
   manager: ['dashboard', 'properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'applications', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'leases', 'surveys', 'payments', 'complaints', 'attendance', 'facilities', 'facility-bookings', 'documents', 'messages', 'notifications', 'reports'],
-  landlord: ['dashboard', 'my-listings', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects', 'documents'],
+  landlord: ['dashboard', 'my-listings', 'survey-jobs', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects', 'documents'],
   tenant: ['dashboard', 'marketplace', 'rent-properties', 'lease-properties', 'sale-properties', 'saved-properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'my-applications', 'property-visits', 'tenancies', 'subscription', 'surveyor-subscription', 'my-property', 'leases', 'complaints', 'documents', 'facilities', 'facility-bookings', 'messages', 'notifications', 'profile'],
   user: ['dashboard', 'marketplace', 'rent-properties', 'lease-properties', 'sale-properties', 'saved-properties', 'applications', 'payments', 'complaints', 'facilities', 'facility-bookings', 'documents', 'messages', 'notifications', 'profile'],
   surveyor: ['surveyor-dashboard', 'survey-job-marketplace', 'survey-quotations', 'survey-projects', 'surveyor-profile', 'surveyor-verification'],
@@ -211,10 +211,11 @@ const regularTenantPropertyMenu: MenuDef[] = [
 
 const regularTenantMenu: MenuDef[] = [...regularTenantWorkspaceMenu, ...regularTenantPropertyMenu, ...regularTenantFinanceMenu];
 
-const LANDLORD_FEATURE_MENU_KEYS = ['my-listings', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects'] as const;
+const LANDLORD_FEATURE_MENU_KEYS = ['my-listings', 'survey-jobs', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects'] as const;
 const LANDLORD_SUBSCRIBER_WORKSPACE: Array<Pick<MenuDef, 'key' | 'label' | 'path' | 'icon' | 'section' | 'sectionOrder' | 'sortOrder'>> = [
   { key: 'dashboard', label: 'Dashboard', path: '/app/dashboard', icon: DashboardRounded, section: 'general', sectionOrder: 10, sortOrder: 10 },
   { key: 'my-listings', label: 'My Listings', path: '/app/my-listings', icon: ApartmentRounded, section: 'general', sectionOrder: 10, sortOrder: 20 },
+  { key: 'survey-jobs', label: 'My Survey Quotes', path: '/app/survey-jobs', icon: RequestQuoteRounded, section: 'general', sectionOrder: 10, sortOrder: 25 },
   { key: 'documents', label: 'Documents', path: '/app/documents', icon: FolderRounded, section: 'general', sectionOrder: 10, sortOrder: 30 },
   { key: 'applications', label: 'Tenant Applications', path: '/app/applications', icon: FactCheckRounded, section: 'tenancy', sectionOrder: 30, sortOrder: 10 },
   { key: 'tenants', label: 'Manage Tenants', path: '/app/tenants', icon: PeopleRounded, section: 'tenancy', sectionOrder: 30, sortOrder: 20 },
@@ -223,6 +224,7 @@ const LANDLORD_SUBSCRIBER_WORKSPACE: Array<Pick<MenuDef, 'key' | 'label' | 'path
 ];
 const LANDLORD_FEATURE_LABELS: Record<string, string> = {
   'my-listings': 'My Listings',
+  'survey-jobs': 'My Survey Quotes',
   applications: 'Tenant Applications',
   tenants: 'Manage Tenants',
   'tenancy-history': 'Tenancy History',

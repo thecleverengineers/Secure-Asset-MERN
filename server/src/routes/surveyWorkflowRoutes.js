@@ -30,6 +30,8 @@ import {
   listSurveyJobBids,
   listSurveyMarketplace,
   requestSurveyorQuote,
+  listMyDirectSurveyQuoteRequests,
+  listIncomingDirectSurveyQuoteRequests,
   respondSurveyorQuoteRequest,
   rejectMilestone,
   submitMilestone,
@@ -40,6 +42,8 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/marketplace', listSurveyMarketplace);
+router.get('/requests/mine', listMyDirectSurveyQuoteRequests);
+router.get('/requests/incoming', listIncomingDirectSurveyQuoteRequests);
 router.post('/requests', requestSurveyorQuote);
 router.post('/requests/:jobId/respond', respondSurveyorQuoteRequest);
 router.get('/jobs', listLandlordSurveyJobs);

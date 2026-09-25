@@ -164,6 +164,63 @@ export const listLandlordSurveyJobs = asyncHandler(async (req, res) => {
   res.json({ success: true, data, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) });
 });
 
+export const listMyDirectSurveyQuoteRequests = asyncHandler(async (req, res) => {
+  await requireLandlord(req);
+  const { page, limit, skip } = paging({ ...req.query, limit: req.query.limit || 50 });
+  const filter = { client: req.user._id, hiringPath: 'direct_surveyor' };
+  if (req.query.status) filter.requestStatus = String(req.query.status);
+  const [records, total] = await Promise.all([
+    SurveyJob.find(filter)
+      .populate('requestedSurveyor', 'name avatar surveyorPlan surveyorEnabled')
+      .populate('hiredSurveyor', 'name avatar surveyorPlan')
+      .populate('property', 'title name code referenceNumber address')
+      .sort({ requestedAt: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    SurveyJob.countDocuments(filter),
+  ]);
+  const projects = records.length
+    ? await SurveyProject.find({ job: { $in: records.map((item) => item._id) }, client: req.user._id })
+      .select('_id job projectNumber status workflowStage')
+      .lean()
+    : [];
+  const projectByJob = new Map(projects.map((project) => [String(project.job), project]));
+  const data = records.map((item) => ({ ...item, project: projectByJob.get(String(item._id)) || null }));
+  res.json({ success: true, data, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) });
+});
+
+export const listIncomingDirectSurveyQuoteRequests = asyncHandler(async (req, res) => {
+  await requireSurveyor(req);
+  const { page, limit, skip } = paging({ ...req.query, limit: req.query.limit || 50 });
+  const filter = { requestedSurveyor: req.user._id, hiringPath: 'direct_surveyor' };
+  if (req.query.status) filter.requestStatus = String(req.query.status);
+  const [records, total] = await Promise.all([
+    SurveyJob.find(filter)
+      .select('-exactLocation -contact -documents -photographs')
+      .populate('client', 'name avatar')
+      .sort({ requestedAt: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    SurveyJob.countDocuments(filter),
+  ]);
+  const projects = records.length
+    ? await SurveyProject.find({ job: { $in: records.map((item) => item._id) }, surveyor: req.user._id })
+      .select('_id job projectNumber status workflowStage')
+      .lean()
+    : [];
+  const projectByJob = new Map(projects.map((project) => [String(project.job), project]));
+  const data = records
+    .map((item) => ({ ...item, project: projectByJob.get(String(item._id)) || null }))
+    .sort((left, right) => {
+      const leftPending = left.requestStatus === 'pending' ? 0 : 1;
+      const rightPending = right.requestStatus === 'pending' ? 0 : 1;
+      return leftPending - rightPending || new Date(right.requestedAt || right.createdAt).getTime() - new Date(left.requestedAt || left.createdAt).getTime();
+    });
+  res.json({ success: true, data, total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) });
+});
+
 export const requestSurveyorQuote = asyncHandler(async (req, res) => {
   await requireLandlord(req);
   const surveyorId = String(req.body.surveyorId || '').trim();

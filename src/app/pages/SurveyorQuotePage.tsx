@@ -104,7 +104,7 @@ export default function SurveyorQuotePage(){
     <Container maxWidth="lg">
       <Button startIcon={<ArrowBackRounded/>} onClick={()=>navigate('/surveyors')} sx={{mb:2,textTransform:'none'}}>Back to surveyors</Button>
 
-      {success&&<Alert severity="success" onClose={()=>setSuccess('')} sx={{mb:2,borderRadius:2}}>{success}</Alert>}
+      {success&&<Alert severity="success" onClose={()=>setSuccess('')} sx={{mb:2,borderRadius:2}} action={<Button size="small" onClick={()=>navigate('/app/survey-jobs')}>View my quotes</Button>}>{success}</Alert>}
       {error&&<Alert severity="error" onClose={()=>setError('')} sx={{mb:2,borderRadius:2}}>{error}</Alert>}
 
       <Grid container spacing={2.5}>

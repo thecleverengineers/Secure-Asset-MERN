@@ -9,11 +9,12 @@ import GavelRounded from '@mui/icons-material/GavelRounded';
 import LocationOnRounded from '@mui/icons-material/LocationOnRounded';
 import OpenInNewRounded from '@mui/icons-material/OpenInNewRounded';
 import VisibilityRounded from '@mui/icons-material/VisibilityRounded';
+import RequestQuoteRounded from '@mui/icons-material/RequestQuoteRounded';
 import { useNavigate } from 'react-router';
 import ProfessionalDialog from '../../components/shared/ProfessionalDialog';
 import CompactPageToolbar from '../../components/layout/CompactPageToolbar';
 import {
-  createConversation, createResource, getLandlordSurveyJobs, getMyListings, getSurveyJobBids, hireSurveyorFromQuotation,
+  createConversation, createResource, getLandlordSurveyJobs, getMyListings, getMySurveyorQuoteRequests, getSurveyJobBids, hireSurveyorFromQuotation,
 } from '../../services/api';
 
 const money = (value: unknown) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(value || 0));
@@ -24,6 +25,7 @@ const splitLines = (value: string) => value.split(/\r?\n|,/).map((item) => item.
 export default function SurveyJobsWorkspacePage() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<any[]>([]);
+  const [quoteRequests, setQuoteRequests] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [bids, setBids] = useState<any[]>([]);
@@ -35,12 +37,19 @@ export default function SurveyJobsWorkspacePage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const selectedProperty = useMemo(() => properties.find((item) => item._id === job.property), [job.property, properties]);
+  const marketplaceJobs = useMemo(() => jobs.filter((item) => item.hiringPath !== 'direct_surveyor'), [jobs]);
 
   async function load() {
     setLoading(true); setError('');
     try {
-      const [jobResponse, propertyResponse] = await Promise.all([getLandlordSurveyJobs({ limit: 50 }), getMyListings({ limit: 100 })]);
-      setJobs(jobResponse.data || []); setProperties(propertyResponse.data || []);
+      const [jobResponse, propertyResponse, quoteResponse] = await Promise.all([
+        getLandlordSurveyJobs({ limit: 50 }),
+        getMyListings({ limit: 100 }),
+        getMySurveyorQuoteRequests({ limit: 100 }),
+      ]);
+      setJobs(jobResponse.data || []);
+      setProperties(propertyResponse.data || []);
+      setQuoteRequests(quoteResponse.data || []);
     } catch (reason) { setError((reason as Error).message); }
     finally { setLoading(false); }
   }
@@ -87,14 +96,55 @@ export default function SurveyJobsWorkspacePage() {
   }
 
   return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 7 }}>
-    <CompactPageToolbar marker="survey-jobs-toolbar-v153" title="Survey Jobs" description="Post a job, compare verified Surveyors, chat, and hire one proposal." actions={<Button variant="contained" startIcon={<AddRounded />} onClick={() => setCreateOpen(true)}>Post survey job</Button>} />
+    <CompactPageToolbar
+      marker="survey-jobs-toolbar-v154"
+      title="Survey Jobs & Quotes"
+      description="Track your direct Surveyor quote requests and manage public survey jobs from one place."
+      actions={<Stack direction="row" spacing={1}><Button variant="outlined" startIcon={<RequestQuoteRounded />} onClick={() => navigate('/surveyors')}>Request a quote</Button><Button variant="contained" startIcon={<AddRounded />} onClick={() => setCreateOpen(true)}>Post survey job</Button></Stack>}
+    />
     {notice && <Alert severity="success" onClose={() => setNotice('')} sx={{ mb: 2 }}>{notice}</Alert>}
     {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>{error}</Alert>}
-    {loading ? <Box sx={{ py: 10, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box> : !jobs.length ? <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 4 }}><CardContent sx={{ p: 4, textAlign: 'center' }}><GavelRounded color="primary" sx={{ fontSize: 44 }} /><Typography sx={{ fontWeight: 900, mt: 1 }}>No survey jobs yet</Typography><Typography color="text.secondary" sx={{ mb: 2 }}>Choose an owned property and publish its survey requirements.</Typography><Button variant="contained" onClick={() => setCreateOpen(true)} disabled={!properties.length}>Create your first job</Button>{!properties.length && <Typography color="error" variant="body2" sx={{ mt: 1.5 }}>Add a property before posting a survey job.</Typography>}</CardContent></Card> : <Grid container spacing={2}>{jobs.map((item) => <Grid size={{ xs: 12, md: 6 }} key={item._id}><Card elevation={0} sx={{ height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 4 }}><CardContent sx={{ p: 2.5 }}>
-      <Stack direction="row" justifyContent="space-between" spacing={1}><Box sx={{ minWidth: 0 }}><Typography sx={{ fontWeight: 900, fontSize: 17 }} noWrap>{item.title}</Typography><Typography color="primary" sx={{ mt: .5, fontSize: 12, fontWeight: 800 }}>{label(item.surveyType)}</Typography></Box><Chip size="small" label={label(item.workflowStage || item.status)} color={item.workflowStage === 'completed' ? 'success' : item.status === 'open' || item.status === 'quotation_review' ? 'primary' : 'default'} /></Stack>
-      <Stack spacing={.9} sx={{ my: 2 }}><Stack direction="row" spacing={1} alignItems="center"><LocationOnRounded sx={{ fontSize: 18 }} color="action" /><Typography variant="body2" color="text.secondary">{item.addressApproximate || 'Property location protected'}</Typography></Stack><Typography variant="body2" color="text.secondary">Budget · {money(item.budget?.min)} – {money(item.budget?.max)}</Typography><Typography variant="body2" color="text.secondary">Visit · {item.preferredVisitDate ? new Date(item.preferredVisitDate).toLocaleDateString('en-IN') : 'Flexible'} · Deadline · {item.preferredCompletionDate ? new Date(item.preferredCompletionDate).toLocaleDateString('en-IN') : 'Flexible'}</Typography><Typography variant="body2" color="text.secondary">{item.quotationCount || 0} proposal{Number(item.quotationCount || 0) === 1 ? '' : 's'} received</Typography></Stack>
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap><Button size="small" variant="outlined" startIcon={<VisibilityRounded />} onClick={() => openBids(item)}>Review proposals</Button>{item.hiredSurveyor && <Button size="small" variant="contained" endIcon={<OpenInNewRounded />} onClick={() => navigate('/app/survey-projects')}>Open project</Button>}</Stack>
-    </CardContent></Card></Grid>)}</Grid>}
+    {loading ? <Box sx={{ py: 10, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box> : <>
+      <Box sx={{ mb: 3 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1} sx={{ mb: 1.3 }}>
+          <Box><Typography sx={{ fontSize: 16, fontWeight: 700 }}>My Quote Requests</Typography><Typography color="text.secondary" sx={{ fontSize: 11 }}>Only direct requests created by your landlord account are visible here.</Typography></Box>
+          <Chip size="small" label={`${quoteRequests.length} request${quoteRequests.length === 1 ? '' : 's'}`} />
+        </Stack>
+        {!quoteRequests.length ? <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}><CardContent sx={{ p: 3, textAlign: 'center' }}><RequestQuoteRounded color="primary" sx={{ fontSize: 38 }} /><Typography sx={{ mt: 1, fontWeight: 700 }}>No quote requests yet</Typography><Typography color="text.secondary" sx={{ mt: .5, mb: 1.5, fontSize: 12 }}>Browse verified Surveyors and request a quote for one of your properties.</Typography><Button variant="contained" onClick={() => navigate('/surveyors')}>Browse Surveyors</Button></CardContent></Card> : <Grid container spacing={1.5}>{quoteRequests.map((item) => {
+          const requested = item.requestedSurveyor || {};
+          const status = String(item.requestStatus || 'pending');
+          return <Grid size={{ xs: 12, md: 6 }} key={item._id}><Card elevation={0} sx={{ height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 3 }}><CardContent sx={{ p: 2.25 }}>
+            <Stack direction="row" justifyContent="space-between" spacing={1}><Box sx={{ minWidth: 0 }}><Typography sx={{ fontWeight: 700, fontSize: 16 }} noWrap>{item.title}</Typography><Typography color="primary" sx={{ mt: .35, fontSize: 11.5, fontWeight: 600 }}>{label(item.surveyType)}</Typography></Box><Chip size="small" label={label(status)} color={status === 'accepted' ? 'success' : status === 'rejected' ? 'error' : 'warning'} /></Stack>
+            <Stack spacing={.75} sx={{ my: 1.6 }}>
+              <Typography sx={{ fontSize: 12 }}><strong>Requested Surveyor:</strong> {requested.name || item.hiredSurveyor?.name || 'Verified Surveyor'}</Typography>
+              <Typography color="text.secondary" sx={{ fontSize: 11.5 }}><strong>Property:</strong> {item.property?.title || item.property?.name || item.property?.code || item.property?.referenceNumber || item.addressApproximate || 'Your property'}</Typography>
+              <Typography color="text.secondary" sx={{ fontSize: 11.5 }}><strong>Budget:</strong> {money(item.budget?.min)} – {money(item.budget?.max)}</Typography>
+              <Typography color="text.secondary" sx={{ fontSize: 11.5 }}><strong>Requested:</strong> {item.requestedAt ? new Date(item.requestedAt).toLocaleString('en-IN') : '—'}</Typography>
+              {item.respondedAt && <Typography color="text.secondary" sx={{ fontSize: 11.5 }}><strong>Responded:</strong> {new Date(item.respondedAt).toLocaleString('en-IN')}</Typography>}
+              {item.responseReason && <Alert severity={status === 'rejected' ? 'warning' : 'info'} sx={{ py: .25, mt: .5 }}>{item.responseReason}</Alert>}
+            </Stack>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {status === 'pending' && <Chip size="small" variant="outlined" color="warning" label="Waiting for Surveyor review" />}
+              {status === 'accepted' && item.project?._id && <Button size="small" variant="contained" endIcon={<OpenInNewRounded />} onClick={() => navigate(`/app/survey-projects/${item.project._id}`)}>Open project</Button>}
+              {status === 'accepted' && !item.project?._id && <Button size="small" variant="contained" onClick={() => navigate('/app/survey-projects')}>Open projects</Button>}
+              {status === 'rejected' && <Button size="small" variant="outlined" onClick={() => navigate('/surveyors')}>Request another Surveyor</Button>}
+            </Stack>
+          </CardContent></Card></Grid>;
+        })}</Grid>}
+      </Box>
+
+      <Box>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.3 }}>
+          <Box><Typography sx={{ fontSize: 16, fontWeight: 700 }}>Marketplace Survey Jobs</Typography><Typography color="text.secondary" sx={{ fontSize: 11 }}>Public jobs you posted for Surveyors to propose on.</Typography></Box>
+          <Chip size="small" label={`${marketplaceJobs.length} job${marketplaceJobs.length === 1 ? '' : 's'}`} />
+        </Stack>
+        {!marketplaceJobs.length ? <Alert severity="info">No public survey jobs yet. You can post one or request a specific Surveyor directly.</Alert> : <Grid container spacing={2}>{marketplaceJobs.map((item) => <Grid size={{ xs: 12, md: 6 }} key={item._id}><Card elevation={0} sx={{ height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 4 }}><CardContent sx={{ p: 2.5 }}>
+          <Stack direction="row" justifyContent="space-between" spacing={1}><Box sx={{ minWidth: 0 }}><Typography sx={{ fontWeight: 900, fontSize: 17 }} noWrap>{item.title}</Typography><Typography color="primary" sx={{ mt: .5, fontSize: 12, fontWeight: 800 }}>{label(item.surveyType)}</Typography></Box><Chip size="small" label={label(item.workflowStage || item.status)} color={item.workflowStage === 'completed' ? 'success' : item.status === 'open' || item.status === 'quotation_review' ? 'primary' : 'default'} /></Stack>
+          <Stack spacing={.9} sx={{ my: 2 }}><Stack direction="row" spacing={1} alignItems="center"><LocationOnRounded sx={{ fontSize: 18 }} color="action" /><Typography variant="body2" color="text.secondary">{item.addressApproximate || 'Property location protected'}</Typography></Stack><Typography variant="body2" color="text.secondary">Budget · {money(item.budget?.min)} – {money(item.budget?.max)}</Typography><Typography variant="body2" color="text.secondary">Visit · {item.preferredVisitDate ? new Date(item.preferredVisitDate).toLocaleDateString('en-IN') : 'Flexible'} · Deadline · {item.preferredCompletionDate ? new Date(item.preferredCompletionDate).toLocaleDateString('en-IN') : 'Flexible'}</Typography><Typography variant="body2" color="text.secondary">{item.quotationCount || 0} proposal{Number(item.quotationCount || 0) === 1 ? '' : 's'} received</Typography></Stack>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap><Button size="small" variant="outlined" startIcon={<VisibilityRounded />} onClick={() => openBids(item)}>Review proposals</Button>{item.hiredSurveyor && <Button size="small" variant="contained" endIcon={<OpenInNewRounded />} onClick={() => navigate('/app/survey-projects')}>Open project</Button>}</Stack>
+        </CardContent></Card></Grid>)}</Grid>}
+      </Box>
+    </>}
 
     <ProfessionalDialog open={Boolean(selectedJob)} onClose={() => setSelectedJob(null)} maxWidth="md" fullWidth professionalTitle={`Proposals · ${selectedJob?.title || ''}`} professionalSubtitle="Compare experience, rating, portfolio, distance, price, and dates before hiring."><DialogContent dividers><Stack spacing={1.5}>{!bids.length ? <Alert severity="info">No submitted proposals are available for this job yet.</Alert> : bids.map((bid) => { const profile = bid.professionalProfile || {}; return <Card key={bid._id} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}><CardContent sx={{ p: 2 }}>
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}><Box><Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap><Typography sx={{ fontWeight: 900, fontSize: 17 }}>{bid.surveyor?.name || 'Surveyor'}</Typography>{profile.verificationStatus === 'verified' && <Chip size="small" color="success" label="Verified" />}</Stack><Typography color="text.secondary" variant="body2">{profile.professionalTitle || 'Professional Surveyor'} · {Number(profile.yearsExperience || 0)} years experience</Typography><Stack direction="row" spacing={.8} alignItems="center" sx={{ mt: .5 }}><Rating size="small" readOnly precision={.1} value={Number(profile.rating?.average || 0)} /><Typography variant="caption" color="text.secondary">{Number(profile.rating?.average || 0).toFixed(1)} ({profile.rating?.count || 0}) · {profile.completedProjects || 0} completed · {profile.portfolio?.length || 0} portfolio items</Typography></Stack></Box><Chip label={label(bid.status)} size="small" color={bid.status === 'accepted' ? 'success' : 'primary'} sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }} /></Stack>
