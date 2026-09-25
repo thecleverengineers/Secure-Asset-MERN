@@ -144,14 +144,15 @@ export const listItems = asyncHandler(async (req, res) => {
   const visibility = req.query.visibility;
   const category = req.query.category;
   const starred = req.query.starred === 'true';
-  const fileQuery = { owner: req.user._id, folder: folderId, status };
+  const allDocuments = req.query.scope === 'all' && !folderId;
+  const fileQuery = { owner: req.user._id, ...(allDocuments ? {} : { folder: folderId }), status };
   const folderQuery = { owner: req.user._id, parent: folderId, status };
   if (search) { fileQuery.$text = { $search: search }; folderQuery.$text = { $search: search }; }
   if (visibility) { fileQuery.visibility = visibility; folderQuery.visibility = visibility; }
   if (category) { fileQuery.category = category; folderQuery.category = category; }
   if (starred) { fileQuery.starred = true; folderQuery.starred = true; }
   const [folders, files] = await Promise.all([
-    DriveFolder.find(folderQuery).sort({ starred: -1, name: 1 }).lean(),
+    allDocuments ? Promise.resolve([]) : DriveFolder.find(folderQuery).sort({ starred: -1, name: 1 }).lean(),
     DriveFile.find(fileQuery).sort({ starred: -1, updatedAt: -1 }).lean(),
   ]);
   res.json({ success: true, data: { folders, files } });

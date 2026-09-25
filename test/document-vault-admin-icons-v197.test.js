@@ -9,7 +9,7 @@ const defaults = read('server/src/services/platformDefaults.js');
 const configuration = read('server/src/services/platformConfiguration.js');
 const controller = read('server/src/controllers/siteController.js');
 const studio = read('src/app/pages/app/AdvancedDesignStudio.tsx');
-const vault = read('src/app/pages/app/DocumentVaultPage.tsx');
+const vault = read('src/app/pages/app/DocumentVaultPage.tsx') + read('src/app/components/documents/DocumentVaultWorkspace.tsx');
 const frontLayout = read('src/app/components/FrontLayout.tsx');
 const appShell = read('src/app/components/layout/AppShell.tsx');
 
@@ -31,7 +31,7 @@ test('v197 renders configured icons in both bottom navigation shells and the vau
   assert.match(frontLayout, /configuredBottomIcon/);
   assert.match(appShell, /configuredBottomIcon/);
   assert.match(vault, /VaultConfiguredIcon/);
-  assert.match(vault, /design\.iconAssets\.quickAccess\[item\.key\]/);
+  assert.match(vault, /props\.iconAssets\[category\.key\]/);
   assert.match(vault, /design\.iconAssets\.globalShare/);
 });
 

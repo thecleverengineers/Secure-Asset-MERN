@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const vault = readFileSync(new URL('../src/app/pages/app/DocumentVaultPage.tsx', import.meta.url), 'utf8');
-const styles = readFileSync(new URL('../src/styles/globals.css', import.meta.url), 'utf8');
+const vault = readFileSync(new URL('../src/app/pages/app/DocumentVaultPage.tsx', import.meta.url), 'utf8') + readFileSync(new URL('../src/app/components/documents/DocumentVaultWorkspace.tsx', import.meta.url), 'utf8');
+const styles = readFileSync(new URL('../src/styles/document-vault.css', import.meta.url), 'utf8');
 const service = readFileSync(new URL('../server/src/services/driveService.js', import.meta.url), 'utf8');
 const controller = readFileSync(new URL('../server/src/controllers/driveController.js', import.meta.url), 'utf8');
 
-test('v187 exposes the seven requested document categories in the exact order', () => {
-  const names = ['PAN Card', 'Birth Certificate', 'Indian Passport', 'Voter ID', 'Aadhaar Card', 'Driving Licence', 'Land Patta'];
+test('v187 exposes the eight reference document categories in the exact order', () => {
+  const names = ['PAN Card', 'Birth Certificate', 'Indian Passport', 'Voter ID', 'Aadhaar Card', 'Driving Licence', 'Vehicle Registration Certificate', 'Land Patta'];
   assert.match(vault, /STORAGE_DOCUMENT_CATEGORIES/);
   assert.match(service, /SMART_DOCUMENT_PINNED_QUICK_ACCESS/);
   assert.match(controller, /quickAccessDocuments/);
@@ -20,16 +20,14 @@ test('v187 exposes the seven requested document categories in the exact order', 
     assert.match(service, new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   assert.match(service, /smart-property-land-records/);
-  assert.match(vault, /data-secureasset-document-vault-storage-documents="pan-birth-passport-voter-aadhaar-driving-land-patta-v187"/);
+
 });
 
-test('v187 makes each storage category keyboard accessible and responsive', () => {
-  for (const token of ['action: \'smart-folder\'', 'role="button"', 'tabIndex={0}', 'openStorageDocument', 'sa-vault-mobile-category-tile', 'is-smart-folder']) {
-    assert.match(vault, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  }
-  for (const token of ['grid-template-columns: repeat(4', '.sa-vault-mobile-category-tile.is-smart-folder', '.sa-vault-mobile-category-icon.is-land-patta']) {
-    assert.match(styles, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  }
+test('reference storage categories use native accessible buttons and responsive cards', () => {
+  assert.match(vault, /<Button key=\{category.key\}/);
+  assert.match(vault, /aria-label=\{`Open \$\{category.label\} files`\}/);
+  assert.match(vault, /onClick=\{\(\) => onCategory\(category\)\}/);
+  assert.match(styles, /grid-template-columns: repeat\(4,minmax\(0,1fr\)\)/);
 });
 
 test('v187 keeps storage categories backed by the existing protected Drive folders', () => {
@@ -41,35 +39,28 @@ test('v187 keeps storage categories backed by the existing protected Drive folde
   assert.match(vault, /storageDocumentFolders/);
 });
 
-test('v188 removes legacy download, zip and apk storage tiles', () => {
+test('reference vault exposes document previews and keeps file actions in the menu', () => {
   assert.doesNotMatch(vault, /label: '(Download|Zip File|Apk)'/);
-  assert.match(vault, /gridTemplateColumns: \{ xs:/);
-  assert.match(vault, /md: 'repeat\(4,minmax\(0,1fr\)\)'/);
-  assert.match(vault, />Share<\/Button>/);
-  assert.match(vault, /data-secureasset-document-vault-recent-action="preview"/);
-  assert.match(vault, /data-secureasset-document-vault-recent-action="delete"/);
-});
-
-test('v189 opens the selected storage folder instead of rendering global recent files', () => {
-  assert.match(vault, /const selectedStorageDocument = useMemo\(\(\) => storageDocumentFolders\.find/);
-  assert.match(vault, /const source = selectedStorageDocument \|\| mobileCategory \? filtered/);
-  assert.match(vault, /data-secureasset-document-vault-folder-only/);
-  assert.match(vault, /storage-folder-\$\{selectedStorageDocument\.key\}-v189/);
-  assert.match(vault, /selectedStorageDocument \? <Button/);
-  assert.match(vault, />Back<\/Button>/);
-});
-
-test('v190 gives recent and folder cards full thumbnails with direct original sharing, rename and reliable delete', () => {
   assert.match(vault, /VaultRecentThumbnail item=\{item\} full/);
-  assert.match(vault, /sa-vault-card-share-button/);
-  assert.match(vault, /direct-original-file-v197/);
+  assert.match(vault, /aria-label=\{`Preview \$\{item.name\}`\}/);
+  assert.match(vault, /aria-label=\{`Actions for \$\{item.name\}`\}/);
+  assert.match(vault, /onMenu=\{\(anchor,\s*item\)\s*=>\s*setMenu/);
+});
+
+test('selected categories load their actual protected folder and clear stale searches', () => {
+  assert.match(vault, /const targetFolder = document\._id/);
+  assert.match(vault, /setSection\(targetSection\); setFolderId\(targetFolder\); setSearch\(''\)/);
+  assert.match(vault, /await load\(targetSection, targetFolder\)/);
+  assert.match(vault, /getDriveItems\(\{ folderId: resolvedFolder/);
+  assert.match(vault, /items=\{allItems\}/);
+});
+
+test('file actions preserve original sharing, rename and reliable delete', () => {
   assert.match(vault, /navigator\.share/);
   assert.match(vault, /allowDownload/);
   assert.doesNotMatch(vault, /window\.open\(target/);
-  assert.match(vault, /data-secureasset-document-vault-recent-action="rename"/);
-  assert.match(vault, /if \(action === 'rename'\)/);
-  assert.match(vault, /if \(action === 'trash'\)/);
-  assert.match(vault, /item\.itemType \? item : \{ \.\.\.item, itemType: 'file'/);
-  assert.match(styles, /\.sa-vault-recent-card-media/);
-  assert.match(styles, /\.sa-vault-share-channel\.is-whatsapp/);
+  for (const action of ['rename', 'trash', 'restore', 'download']) assert.ok(vault.includes(`if (action === '${action}')`));
+  assert.match(vault, /files\.map\(\(x\) => \(\{ \.\.\.x, itemType: 'file'/);
+  assert.match(vault, /Quick Share/);
+  assert.match(vault, /removeVisibleDriveItem/);
 });

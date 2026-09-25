@@ -6,7 +6,7 @@ const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf
 
 test('My Property and Document Vault remove their desktop hero panels without removing actions', () => {
   const properties = read('src/app/pages/app/MyPropertyPage.tsx');
-  const vault = read('src/app/pages/app/DocumentVaultPage.tsx');
+  const vault = read('src/app/pages/app/DocumentVaultPage.tsx') + read('src/app/components/documents/DocumentVaultWorkspace.tsx');
 
   assert.doesNotMatch(properties, /PageHeader/);
   assert.match(properties, /data-secureasset-my-property-toolbar="compact-v151"/);
@@ -16,8 +16,8 @@ test('My Property and Document Vault remove their desktop hero panels without re
   assert.doesNotMatch(vault, /sa-vault-desktop-console/);
   assert.match(vault, /data-secureasset-document-vault-toolbar="compact-v151"/);
   assert.match(vault, /New folder/);
-  assert.match(vault, /Scan securely to PNG/);
-  assert.match(vault, /Upload files/);
+  assert.match(vault, /Scan document/);
+  assert.match(vault, /Upload/);
 });
 
 test('tenant My Applications uses a compact toolbar while all other resource pages keep their normal header', () => {

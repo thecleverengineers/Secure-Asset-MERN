@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const vault = readFileSync(new URL('../src/app/pages/app/DocumentVaultPage.tsx', import.meta.url), 'utf8');
+const vault = readFileSync(new URL('../src/app/pages/app/DocumentVaultPage.tsx', import.meta.url), 'utf8') + readFileSync(new URL('../src/app/components/documents/DocumentVaultWorkspace.tsx', import.meta.url), 'utf8');
 const globalStyles = readFileSync(new URL('../src/styles/globals.css', import.meta.url), 'utf8');
 const vaultRoutes = readFileSync(new URL('../server/src/routes/driveRoutes.js', import.meta.url), 'utf8');
 const vaultSecurity = readFileSync(new URL('../server/src/middleware/vaultSecurity.js', import.meta.url), 'utf8');
@@ -16,7 +16,7 @@ test('Document Vault keeps its secure unlock and file workflows without the desk
   assert.match(vault, /Identity verified/);
   assert.match(vault, /Access scope checked/);
   assert.match(vault, /data-secureasset-document-vault-toolbar="compact-v151"/);
-  assert.match(vault, /Private document workspace/);
+  assert.match(vault, /Securely store, organize and access/);
   assert.doesNotMatch(vault, /sa-vault-security-console/);
   assert.match(vault, /private by default/i);
   assert.match(vault, /uploadDriveFile/);
@@ -38,26 +38,11 @@ test('Document Vault security visuals include animated lock, scanline, progress 
   ]) assert.match(globalStyles, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });
 
-test('Document Vault mobile and tablet surface uses compact category cards and thumbnail-led recent files', () => {
-  for (const token of [
-    'Quick Access',
-    'sa-vault-mobile-category-grid',
-    'sa-vault-mobile-recent-list',
-    'Recent files',
-    'chooseMobileCategory',
-    'CloudRounded',
-    'VaultRecentThumbnail',
-    'fetchDriveFileBlob',
-  ]) assert.match(vault, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  assert.match(vault, /data-secureasset-document-vault-storage-categories="four-icon-cards-v160"/);
-  assert.match(vault, /data-secureasset-document-vault-recent-files="thumbnail-list-v160"/);
-  assert.doesNotMatch(vault, /sa-vault-mobile-storage-card/);
+test('Document Vault provides accessible search, file-type filters and scan/upload controls', () => {
+  for (const label of ['Quick Access', 'Recent Files', 'Search documents and categories', 'Filter by file type', 'Grid view', 'List view', 'Scan document']) assert.ok(vault.includes(label));
+  assert.match(vault, /onUpload=\{\(\)\s*=>\s*inputRef\.current\?\.click\(\)\}/);
+  assert.match(vault, /onScan=\{\(\)\s*=>\s*scanRef\.current\?\.click\(\)\}/);
   assert.doesNotMatch(vault, /sa-vault-mobile-bottom-nav/);
-  assert.match(globalStyles, /@media \(max-width: 1199px\)/);
-  assert.match(globalStyles, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
-  assert.match(globalStyles, /\.sa-vault-mobile-category-tile \{[^}]*flex-direction: column/);
-  assert.match(globalStyles, /\.sa-vault-mobile-recent-thumbnail/);
-  assert.match(globalStyles, /body:has\(\.sa-vault-mobile-shell\) \.sa-global-mobile-bottom-navigation/);
 });
 
 test('Document Vault keeps every authenticated response private and forces deliberate sharing', () => {

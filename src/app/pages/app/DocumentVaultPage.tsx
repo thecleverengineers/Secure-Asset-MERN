@@ -1,19 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent, type ElementType, type ReactNode } from 'react';
 import {
-  Alert, Avatar, Box, Breadcrumbs, Button, Chip, CircularProgress, DialogActions, DialogContent, DialogTitle,
-  Divider, Drawer, FormControl, IconButton, InputAdornment, LinearProgress, List, ListItemButton, ListItemIcon,
-  ListItemText, Menu, MenuItem, Pagination, Paper, Select, Stack, Tab, Tabs, TextField, Tooltip, Typography,
+  Alert, Avatar, Box, Button, Chip, DialogActions, DialogContent, DialogTitle,
+  Divider, Drawer, FormControl, IconButton, InputAdornment,
+  Menu, MenuItem, Paper, Select, Stack, Tab, Tabs, TextField, Typography,
   useMediaQuery, useTheme,
 } from '@mui/material';
 import ProfessionalDialog from '../../components/shared/ProfessionalDialog';
-import AddRounded from '@mui/icons-material/AddRounded';
 import ArchiveRounded from '@mui/icons-material/ArchiveRounded';
-import AccountBalanceRounded from '@mui/icons-material/AccountBalanceRounded';
-import BadgeRounded from '@mui/icons-material/BadgeRounded';
 import AudioFileRounded from '@mui/icons-material/AudioFileRounded';
-import CakeRounded from '@mui/icons-material/CakeRounded';
-import ChevronRightRounded from '@mui/icons-material/ChevronRightRounded';
-import CloudRounded from '@mui/icons-material/CloudRounded';
 import CloudUploadRounded from '@mui/icons-material/CloudUploadRounded';
 import ContentCopyRounded from '@mui/icons-material/ContentCopyRounded';
 import DeleteForeverRounded from '@mui/icons-material/DeleteForeverRounded';
@@ -25,35 +19,29 @@ import EditRounded from '@mui/icons-material/EditRounded';
 import CreditCardRounded from '@mui/icons-material/CreditCardRounded';
 import FolderOpenRounded from '@mui/icons-material/FolderOpenRounded';
 import FolderRounded from '@mui/icons-material/FolderRounded';
-import GridViewRounded from '@mui/icons-material/GridViewRounded';
 import ImageRounded from '@mui/icons-material/ImageRounded';
 import InsertDriveFileRounded from '@mui/icons-material/InsertDriveFileRounded';
 import LinkRounded from '@mui/icons-material/LinkRounded';
-import ListRounded from '@mui/icons-material/ListRounded';
 import LockRounded from '@mui/icons-material/LockRounded';
 import MoreVertRounded from '@mui/icons-material/MoreVertRounded';
 import MovieRounded from '@mui/icons-material/MovieRounded';
 import PeopleRounded from '@mui/icons-material/PeopleRounded';
 import PreviewRounded from '@mui/icons-material/PreviewRounded';
 import PublicRounded from '@mui/icons-material/PublicRounded';
-import RefreshRounded from '@mui/icons-material/RefreshRounded';
 import RestoreFromTrashRounded from '@mui/icons-material/RestoreFromTrashRounded';
-import SearchRounded from '@mui/icons-material/SearchRounded';
 import ShareRounded from '@mui/icons-material/ShareRounded';
 import StarBorderRounded from '@mui/icons-material/StarBorderRounded';
 import StarRounded from '@mui/icons-material/StarRounded';
 import GavelRounded from '@mui/icons-material/GavelRounded';
 import HistoryRounded from '@mui/icons-material/HistoryRounded';
-import StorageRounded from '@mui/icons-material/StorageRounded';
 import VerifiedRounded from '@mui/icons-material/VerifiedRounded';
-import CameraAltRounded from '@mui/icons-material/CameraAltRounded';
 import SecurityRounded from '@mui/icons-material/SecurityRounded';
 import LockOpenRounded from '@mui/icons-material/LockOpenRounded';
 import HowToVoteRounded from '@mui/icons-material/HowToVoteRounded';
 import MapRounded from '@mui/icons-material/MapRounded';
 import { toast } from 'sonner';
 import {
-  addDriveComment, bulkDriveAction, createDriveFolder, createDriveLegalTemplates, createDrivePublicLink, uploadDriveScannedPng,
+  addDriveComment, createDriveFolder, createDriveLegalTemplates, createDrivePublicLink, uploadDriveScannedPng,
   downloadDriveFile, downloadDriveFolder, driveItemAction, fetchDriveFileBlob, getDriveActivity, getDriveBootstrap,
   getDriveBreadcrumbs, getDriveComments, getDriveFile, getDriveItems, getDriveSharedWithMe, permanentlyDeleteDriveItem,
   revokeDrivePublicLink, setDriveFileApproval, shareDriveItem, updateDriveFile, updateDriveFolder, uploadDriveFile, uploadDriveVersion,
@@ -65,6 +53,10 @@ import { useSite } from '../../context/SiteContext';
 import { normaliseDesignSystem } from '../../designSystem';
 import { authenticationOptionsForBrowser, deviceUnlockSupported, serializePublicKeyCredential } from '../../services/deviceUnlock';
 import { enhanceScannedPage, SCAN_ENHANCER_PROFILE } from '../../utils/scanEnhancement';
+import DocumentVaultWorkspace from '../../components/documents/DocumentVaultWorkspace';
+import DirectionsCarRounded from '@mui/icons-material/DirectionsCarRounded';
+import FingerprintRounded from '@mui/icons-material/FingerprintRounded';
+import ArticleRounded from '@mui/icons-material/ArticleRounded';
 import '../../../styles/document-vault.css';
 
 const systemSections = [
@@ -76,27 +68,13 @@ const systemSections = [
 
 const STORAGE_DOCUMENT_CATEGORIES = [
   { key: 'pan-card', label: 'PAN Card', systemKey: 'smart-national-identity-financial-proofs-pan-card', icon: CreditCardRounded, color: '#087ea4' },
-  { key: 'birth-certificate', label: 'Birth Certificate', systemKey: 'smart-civil-life-event-certificates-birth-certificate', icon: CakeRounded, color: '#7c3aed' },
+  { key: 'birth-certificate', label: 'Birth Certificate', systemKey: 'smart-civil-life-event-certificates-birth-certificate', icon: ArticleRounded, color: '#7c3aed' },
   { key: 'indian-passport', label: 'Indian Passport', systemKey: 'smart-national-identity-financial-proofs-indian-passport', icon: PublicRounded, color: '#2563eb' },
   { key: 'voter-id', label: 'Voter ID', systemKey: 'smart-national-identity-financial-proofs-voter-id', icon: HowToVoteRounded, color: '#4f46e5' },
-  { key: 'aadhaar-card', label: 'Aadhaar Card', systemKey: 'smart-national-identity-financial-proofs-aadhaar-card', icon: BadgeRounded, color: '#0f9f8c' },
+  { key: 'aadhaar-card', label: 'Aadhaar Card', systemKey: 'smart-national-identity-financial-proofs-aadhaar-card', icon: FingerprintRounded, color: '#0f9f8c' },
   { key: 'driving-licence', label: 'Driving Licence', systemKey: 'smart-transport-mobility-driving-licence', icon: DriveFileMoveRounded, color: '#b7791f' },
+  { key: 'vehicle-registration', label: 'Vehicle Registration Certificate', systemKey: 'smart-transport-mobility-vehicle-registration-certificate', icon: DirectionsCarRounded, color: '#9856df' },
   { key: 'land-patta', label: 'Land Patta', systemKey: 'smart-property-land-records-land-patta', icon: MapRounded, color: '#4d8b18' },
-] as const;
-
-const mobileCategories = [
-  { key: 'image', label: 'Image', icon: ImageRounded, category: 'image', action: 'category' },
-  { key: 'video', label: 'Video', icon: MovieRounded, category: 'video', action: 'category' },
-  { key: 'audio', label: 'Music', icon: AudioFileRounded, category: 'audio', action: 'category' },
-  { key: 'document', label: 'Document', icon: DescriptionRounded, category: 'document', action: 'category' },
-  { key: 'shared', label: 'Cloud', icon: CloudRounded, category: 'shared', action: 'section' },
-  { key: 'pan-card', label: 'PAN Card', icon: CreditCardRounded, color: '#087ea4', category: 'smart-national-identity-financial-proofs-pan-card', action: 'smart-folder' },
-  { key: 'birth-certificate', label: 'Birth Certificate', icon: CakeRounded, color: '#7c3aed', category: 'smart-civil-life-event-certificates-birth-certificate', action: 'smart-folder' },
-  { key: 'indian-passport', label: 'Indian Passport', icon: PublicRounded, color: '#2563eb', category: 'smart-national-identity-financial-proofs-indian-passport', action: 'smart-folder' },
-  { key: 'voter-id', label: 'Voter ID', icon: HowToVoteRounded, color: '#4f46e5', category: 'smart-national-identity-financial-proofs-voter-id', action: 'smart-folder' },
-  { key: 'aadhaar-card', label: 'Aadhaar Card', icon: BadgeRounded, color: '#0f9f8c', category: 'smart-national-identity-financial-proofs-aadhaar-card', action: 'smart-folder' },
-  { key: 'driving-licence', label: 'Driving Licence', icon: DriveFileMoveRounded, color: '#b7791f', category: 'smart-transport-mobility-driving-licence', action: 'smart-folder' },
-  { key: 'land-patta', label: 'Land Patta', icon: MapRounded, color: '#4d8b18', category: 'smart-property-land-records-land-patta', action: 'smart-folder' },
 ] as const;
 
 const VAULT_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
@@ -118,11 +96,6 @@ type StorageDocumentCategory = {
 function formatBytes(bytes = 0) {
   if (!bytes) return '0 B'; const units = ['B', 'KB', 'MB', 'GB', 'TB']; const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
   return `${(bytes / 1024 ** index).toFixed(index > 1 ? 1 : 0)} ${units[index]}`;
-}
-function formatVaultDate(value?: string) {
-  if (!value) return '—';
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 function itemIcon(item: DriveItem) {
   if (item.itemType === 'folder') return <FolderRounded color="primary" />;
@@ -177,16 +150,12 @@ export default function DocumentVaultPage() {
   const mobileOrTablet = useMediaQuery(theme.breakpoints.down('lg'));
   const [loading, setLoading] = useState(true);
   const [bootstrap, setBootstrap] = useState<Record<string, any> | null>(null);
-  const [section, setSection] = useState('my-drive');
+  const [section, setSection] = useState('recent');
   const [folderId, setFolderId] = useState<string | null>(null);
   const [folders, setFolders] = useState<DriveItem[]>([]);
   const [files, setFiles] = useState<DriveItem[]>([]);
   const [breadcrumbs, setBreadcrumbs] = useState<DriveItem[]>([]);
-  const [view, setView] = useState<'grid' | 'list'>('list');
   const [search, setSearch] = useState('');
-  const [mobileCategory, setMobileCategory] = useState<string | null>(null);
-  const [mobilePage, setMobilePage] = useState(1);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<{ anchor: HTMLElement; item: DriveItem } | null>(null);
   const [folderDialog, setFolderDialog] = useState(false);
   const [folderName, setFolderName] = useState('');
@@ -202,7 +171,6 @@ export default function DocumentVaultPage() {
   const [comments, setComments] = useState<Record<string, any>[]>([]);
   const [comment, setComment] = useState('');
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
-  const [dragActive, setDragActive] = useState(false);
   const [vaultUnlocking, setVaultUnlocking] = useState(true);
   const [vaultLocked, setVaultLocked] = useState(false);
   const [vaultLockRequired, setVaultLockRequired] = useState(false);
@@ -229,7 +197,6 @@ export default function DocumentVaultPage() {
     setFolders((current) => current.filter((item) => item._id !== id));
     setFiles((current) => current.filter((item) => item._id !== id));
     setBootstrap((current) => current ? { ...current, recent: Array.isArray(current.recent) ? current.recent.filter((item: DriveItem) => item._id !== id) : current.recent } : current);
-    setSelected((current) => { const next = new Set(current); next.delete(id); return next; });
     setDetails((current) => current?.file?._id === id ? null : current);
   }
 
@@ -253,40 +220,28 @@ export default function DocumentVaultPage() {
       } as StorageDocumentCategory;
     });
   }, [bootstrap]);
-  const selectedStorageDocument = useMemo(() => storageDocumentFolders.find((item) => item.systemKey === section && item._id === folderId) || null, [folderId, section, storageDocumentFolders]);
   const allItems = useMemo<DriveItem[]>(() => [...folders.map((x) => ({ ...x, itemType: 'folder' } as DriveItem)), ...files.map((x) => ({ ...x, itemType: 'file' } as DriveItem))], [folders, files]);
   const activeSmartFolder = useMemo(() => {
     const candidate = breadcrumbs[breadcrumbs.length - 1] || allItems.find((item) => item.itemType === 'folder' && item._id === folderId);
     return String(candidate?.systemKey || '').startsWith('smart-') ? candidate : null;
   }, [allItems, breadcrumbs, folderId]);
-  const filtered = useMemo(() => search ? allItems.filter((item) => `${item.name} ${item.description || ''} ${(item.tags || []).join(' ')}`.toLowerCase().includes(search.toLowerCase())) : allItems, [allItems, search]);
-  const mobileMatchingItems = useMemo(() => {
-    const source = selectedStorageDocument || mobileCategory ? filtered : (section !== 'my-drive' || folderId ? filtered : ((Array.isArray(bootstrap?.recent) && bootstrap.recent.length ? bootstrap.recent : filtered) as DriveItem[]));
-    const query = search.trim().toLowerCase();
-    return source.map((item) => item.itemType ? item : { ...item, itemType: 'file' as const }).filter((item) => !query || `${item.name} ${item.description || ''} ${(item.tags || []).join(' ')}`.toLowerCase().includes(query));
-  }, [bootstrap, filtered, folderId, mobileCategory, search, section, selectedStorageDocument]);
-  const mobilePageCount = Math.max(1, Math.ceil(mobileMatchingItems.length / 8));
-  const currentMobilePage = Math.min(mobilePage, mobilePageCount);
-  const mobileRecentItems = mobileMatchingItems.slice((currentMobilePage - 1) * 8, currentMobilePage * 8);
-  useEffect(() => { setMobilePage(1); }, [section, folderId, mobileCategory, search]);
-
-
   const loadBootstrap = useCallback(async () => {
     const result = await getDriveBootstrap(); setBootstrap(result.data);
     return result.data;
   }, []);
 
   const load = useCallback(async (targetSection = section, targetFolder = folderId) => {
-    setLoading(true); setSelected(new Set());
+    setLoading(true);
     try {
       const base = bootstrap || await loadBootstrap();
       if (targetSection === 'shared') {
         const response = await getDriveSharedWithMe();
         setFolders((response.data.folders || []) as DriveItem[]); setFiles((response.data.files || []) as DriveItem[]); setBreadcrumbs([]); setFolderId(null);
-      } else if (targetSection === 'recent') {
-        setFolders([]); setFiles((base.recent || []) as DriveItem[]); setBreadcrumbs([]); setFolderId(null);
+      } else if (targetSection === 'recent' || targetSection === 'all-documents') {
+        const response = await getDriveItems({ scope: 'all', status: 'active' });
+        setFolders([]); setFiles(response.data.files as DriveItem[]); setBreadcrumbs([]); setFolderId(null);
       } else if (targetSection === 'starred') {
-        const response = await getDriveItems({ folderId: targetFolder || undefined, starred: true }); setFolders(response.data.folders as DriveItem[]); setFiles(response.data.files as DriveItem[]);
+        const response = await getDriveItems({ scope: 'all', starred: true }); setFolders([]); setFiles(response.data.files as DriveItem[]); setBreadcrumbs([]); setFolderId(null);
       } else {
         const systemFolder = systemFolders.get(targetSection) || (base.folders || []).find((x: DriveItem) => x.systemKey === targetSection);
         const resolvedFolder = targetFolder || systemFolder?._id || null;
@@ -305,40 +260,27 @@ export default function DocumentVaultPage() {
       return;
     }
     const targetSection = document.systemKey;
-    setSection(targetSection); setMobileCategory(null); setFolderId(targetFolder); setSearch(''); setSelected(new Set());
+    setSection(targetSection); setFolderId(targetFolder); setSearch('');
     await load(targetSection, targetFolder);
   }
 
   async function chooseSection(key: string) {
-    setSection(key); setMobileCategory(null); setFolderId(null); setSearch('');
+    setSection(key); setFolderId(null); setSearch('');
     const base = bootstrap || await loadBootstrap(); const target = (base.folders || []).find((x: DriveItem) => x.systemKey === key)?._id || null;
     await load(key, target);
   }
-  async function openFolder(item: DriveItem) { setFolderId(item._id); await load(section, item._id); }
-
-  async function chooseMobileCategory(category: string, action: string) {
-    if (action === 'smart-folder') {
-      const document = storageDocumentFolders.find((item) => item.systemKey === category);
-      if (document) await openStorageDocument(document);
-      else toast.error('This storage category is unavailable. Refresh the vault and try again.');
-      return;
-    }
-    if (action === 'section') {
-      await chooseSection(category);
-      return;
-    }
-    setMobileCategory(category); setSection('my-drive'); setFolderId(null); setSearch(''); setSelected(new Set()); setLoading(true);
-    try {
-      const response = await getDriveItems({ category, status: 'active' });
-      setFolders((response.data.folders || []) as DriveItem[]); setFiles((response.data.files || []) as DriveItem[]); setBreadcrumbs([]);
-    } catch (error: any) { toast.error(error.message); }
-    finally { setLoading(false); }
-  }
+  async function openFolder(item: DriveItem) { const targetSection = item.systemKey || 'my-drive'; setSection(targetSection); setFolderId(item._id); await load(targetSection, item._id); }
 
   async function createFolder() {
     if (!folderName.trim()) return;
     const smartContext = section.startsWith('smart-') || Boolean(activeSmartFolder);
-    try { await createDriveFolder({ name: folderName, parent: folderId, category: section.includes('legal') || smartContext ? 'legal' : 'general', sensitive: section.includes('legal') || smartContext }); toast.success('Folder created'); setFolderDialog(false); setFolderName(''); await load(); }
+    try {
+      const parent = folderId || systemFolders.get('my-drive')?._id || null;
+      await createDriveFolder({ name: folderName, parent, category: section.includes('legal') || smartContext ? 'legal' : 'general', sensitive: section.includes('legal') || smartContext });
+      toast.success('Folder created'); setFolderDialog(false); setFolderName('');
+      if (!folderId) { setSection('my-drive'); setFolderId(parent); await load('my-drive', parent); }
+      else await load();
+    }
     catch (error: any) { toast.error(error.message); }
   }
 
@@ -350,7 +292,7 @@ export default function DocumentVaultPage() {
         const smartFolder = activeSmartFolder || (section.startsWith('smart-') ? systemFolders.get(section) : null);
         const smartUpload = Boolean(smartFolder?.systemKey?.startsWith('smart-'));
         await uploadDriveFile(file, {
-          folder: folderId || '', category: smartUpload || section === 'legal-documents' ? 'legal' : '',
+          folder: folderId || systemFolders.get('my-drive')?._id || '', category: smartUpload || section === 'legal-documents' ? 'legal' : '',
           confidentiality: smartUpload || section === 'legal-documents' ? 'legal_record' : 'private',
           documentType: smartFolder?.name || '',
         }, (percent) => setUploadProgress((current) => ({ ...current, [file.name]: percent })));
@@ -375,7 +317,7 @@ export default function DocumentVaultPage() {
       for (const [index, page] of pages.entries()) {
         const enhancedPage = await enhanceScannedPage(page, (percent) => setUploadProgress((current) => ({ ...current, [enhanceProgressKey]: Math.min(100, Math.round(((index + (percent / 100)) / pages.length) * 100)) })));
         await uploadDriveScannedPng(enhancedPage, {
-          folder: folderId || '', name: enhancedPage.name,
+          folder: folderId || systemFolders.get('my-drive')?._id || '', name: enhancedPage.name,
           legal: String(section === 'legal-documents' || Boolean(activeSmartFolder)),
           category: section.startsWith('smart-') || Boolean(activeSmartFolder) ? 'legal' : '',
           enhancement: SCAN_ENHANCER_PROFILE,
@@ -387,7 +329,7 @@ export default function DocumentVaultPage() {
   }
 
   function handleDrop(event: DragEvent<HTMLElement>) {
-    event.preventDefault(); setDragActive(false);
+    event.preventDefault();
     const chosen = Array.from(event.dataTransfer.files || []); void uploadChosenFiles(chosen);
   }
 
@@ -396,7 +338,13 @@ export default function DocumentVaultPage() {
     try {
       if (action === 'open') return item.itemType === 'folder' ? openFolder(item) : openPreview(item);
       if (action === 'download') return item.itemType === 'folder' ? downloadDriveFolder(item._id, item.name) : downloadDriveFile(item._id, item.name);
-      if (action === 'star') item.itemType === 'folder' ? await updateDriveFolder(item._id, { starred: !item.starred }) : await updateDriveFile(item._id, { starred: !item.starred });
+      if (action === 'star') {
+        if (item.itemType === 'folder') await updateDriveFolder(item._id, { starred: !item.starred });
+        else await updateDriveFile(item._id, { starred: !item.starred });
+        if (section === 'starred' && item.starred) removeVisibleDriveItem(item._id);
+        else patchVisibleDriveItem(item._id, { starred: !item.starred });
+        return;
+      }
       if (action === 'rename') {
         const nextName = await actions.askText(`Enter a new name for “${item.name}”.`, { title: 'Rename item', label: 'New name', initialValue: item.name });
         if (!nextName?.trim() || nextName.trim() === item.name) return;
@@ -495,10 +443,6 @@ export default function DocumentVaultPage() {
     try { await uploadDriveVersion(details.file._id, file, 'New version uploaded from Document Vault'); toast.success('New version uploaded'); await openDetails({ ...details.file, itemType: 'file' }); await load(); }
     catch (error: any) { toast.error(error.message); } event.target.value = '';
   }
-
-  const usage = bootstrap?.usage?.usedBytes || 0; const quota = bootstrap?.quotaBytes || 1; const percent = Math.min(100, usage / quota * 100);
-  const workspaceLabel = breadcrumbs.at(-1)?.name || systemSections.find(([key]) => key === section)?.[1] || 'Documents';
-  const mobileRecentLabel = selectedStorageDocument?.label || (mobileCategory ? mobileCategories.find((item) => item.category === mobileCategory)?.label || 'Filtered files' : section === 'my-drive' && !folderId ? 'Recent files' : workspaceLabel);
 
   function openVaultPinDialog() {
     setNewPin(''); setConfirmPin(''); setPinDialogError('');
@@ -636,127 +580,30 @@ export default function DocumentVaultPage() {
       </DialogContent>
       <DialogActions><Button onClick={() => setPinDialogOpen(false)} disabled={pinSaveBusy}>Cancel</Button><Button variant="contained" disabled={pinSaveBusy || newPin.length !== 6 || confirmPin.length !== 6} onClick={() => void saveVaultPin()}>{pinSaveBusy ? 'Saving…' : vaultPinEnabled ? 'Change security code' : 'Protect vault'}</Button></DialogActions>
     </ProfessionalDialog>
-    <Stack data-secureasset-document-vault-toolbar="compact-v151" data-secureasset-document-vault-layout="record-workspace-v1" className="sa-vault-heading">
-      <Stack direction="row" spacing={1.6} alignItems="center">
-        <Box className="sa-vault-brand-mark"><SecurityRounded /></Box>
-        <Box><Typography className="sa-vault-kicker">SECUREASSET / PRIVATE WORKSPACE</Typography><Typography component="h1" className="sa-vault-heading-title">Document vault</Typography><Typography className="sa-vault-heading-copy">Private document workspace. Everything important, thoughtfully organised.</Typography></Box>
-      </Stack>
-      <Stack direction="row" className="sa-vault-heading-actions" spacing={1}>
-        <Button variant="outlined" startIcon={<CameraAltRounded />} onClick={() => scanRef.current?.click()}>Scan document</Button>
-        <Button variant="contained" startIcon={<CloudUploadRounded />} onClick={() => inputRef.current?.click()}>Upload files</Button>
-      </Stack>
-    </Stack>
-    <Box className="sa-vault-overview" aria-label="Vault overview">
-      <Paper elevation={0} className="sa-vault-overview-card sa-vault-access-card">
-        <Stack direction="row" alignItems="center" justifyContent="space-between"><Typography className="sa-vault-stat-label">ACCESS PROTECTION</Typography><SecurityRounded /></Stack>
-        <Typography className="sa-vault-stat-value">{vaultUnlocking ? 'Checking access' : vaultLocked ? 'Vault locked' : vaultPinEnabled ? 'Security code enabled' : vaultLockRequired ? 'Device verification' : 'Account access'}</Typography>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}><Typography className="sa-vault-stat-detail">{vaultLockRequired ? 'Auto-lock after 10 minutes idle' : 'Add a six-digit vault code'}</Typography><Button onClick={openVaultPinDialog} endIcon={<ChevronRightRounded />}>{vaultPinEnabled ? 'Manage' : 'Set up'}</Button></Stack>
-      </Paper>
-      <Paper elevation={0} className="sa-vault-overview-card">
-        <Stack direction="row" alignItems="center" justifyContent="space-between"><Typography className="sa-vault-stat-label">STORAGE</Typography><StorageRounded /></Stack>
-        <Typography className="sa-vault-stat-value">{bootstrap ? formatBytes(usage) : '—'}<Box component="span">{bootstrap ? ` / ${formatBytes(quota)}` : ' Loading'}</Box></Typography>
-        <LinearProgress aria-label="Vault storage usage" variant="determinate" value={percent} color={percent >= 90 ? 'error' : percent >= 75 ? 'warning' : 'primary'} />
-        <Typography className="sa-vault-stat-detail">{bootstrap ? `${formatBytes(Math.max(0, quota - usage))} available` : 'Checking available storage'}</Typography>
-      </Paper>
-      <Paper elevation={0} className="sa-vault-overview-card sa-vault-privacy-card">
-        <Stack direction="row" alignItems="center" justifyContent="space-between"><Typography className="sa-vault-stat-label">SHARING CONTROL</Typography><LockRounded /></Stack>
-        <Typography className="sa-vault-stat-value">Private by default</Typography>
-        <Typography className="sa-vault-stat-detail">You choose who can access your documents.</Typography>
-      </Paper>
-    </Box>
-    <Box className="sa-vault-upload-progress" aria-live="polite">{Object.entries(uploadProgress).map(([name, progress]) => <Paper key={name} sx={{ p: 1.5, mb: 1.5, borderRadius: 3 }}><Stack direction="row" justifyContent="space-between"><Typography variant="body2" sx={{ fontWeight: 600 }}>{name}</Typography><Typography variant="caption">{progress}%</Typography></Stack><LinearProgress aria-label={`Uploading ${name}`} variant="determinate" value={progress} sx={{ mt: 1, borderRadius: 9 }} /></Paper>)}</Box>
-    <Box className="sa-vault-mobile-shell" aria-label="SecureAsset mobile and tablet document drive">
-      <TextField className="sa-vault-mobile-search" fullWidth size="small" placeholder="Search your documents" value={search} onChange={(e) => setSearch(e.target.value)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment>, endAdornment: <InputAdornment position="end"><IconButton size="small" aria-label="Upload files" onClick={() => inputRef.current?.click()}><CloudUploadRounded fontSize="small" /></IconButton></InputAdornment> }} />
-      <Box className="sa-vault-mobile-navigation" component="nav" aria-label="Vault sections">{systemSections.map(([key, label, Icon]) => <Button key={key} aria-current={section === key && !mobileCategory ? 'page' : undefined} startIcon={<Icon />} onClick={() => void chooseSection(key)}>{label}</Button>)}</Box>
-
-      <Stack direction="row" alignItems="center" justifyContent="space-between" className="sa-vault-mobile-section-heading">
-        <Box><Typography>Quick Access</Typography><Typography>Tap a category to open its protected files</Typography></Box>
-        <Stack direction="row" spacing={.6} alignItems="center"><Button onClick={() => setFolderDialog(true)} startIcon={<AddRounded />}>Folder</Button></Stack>
-      </Stack>
-      <Box className="sa-vault-mobile-category-grid" data-secureasset-document-vault-storage-categories="four-icon-cards-v160" data-secureasset-document-vault-storage-categories-v187="document-essentials-v187" data-secureasset-document-vault-storage-documents="pan-birth-passport-voter-aadhaar-driving-land-patta-v187" data-secureasset-document-vault-quick-access="transparent-cards-v205" data-secureasset-document-vault-quick-access-mobile="white-premium-cards-v213">
-        {mobileCategories.map((item) => {
-          const Icon = item.icon;
-          const active = (item.action === 'category' && mobileCategory === item.category) || (item.action === 'section' && section === item.category) || (item.action === 'smart-folder' && section === item.category);
-          return <Paper key={item.key} className={`sa-vault-mobile-category-tile${active ? ' is-active' : ''}${item.action === 'smart-folder' ? ' is-smart-folder' : ''}`} elevation={0} onClick={() => void chooseMobileCategory(item.category, item.action)} role="button" tabIndex={0} aria-pressed={active} aria-label={`Open ${item.label} files`} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); void chooseMobileCategory(item.category, item.action); } }}>
-            <Box className={`sa-vault-mobile-category-icon is-${item.key}`}>{design.iconAssets.quickAccess[item.key] ? <Box component="img" src={design.iconAssets.quickAccess[item.key]} alt="" aria-hidden="true" sx={{ width: 30, height: 30, objectFit: 'contain' }} /> : <Icon sx={{ color: (item as { color?: string }).color }} />}</Box><Typography>{item.label}</Typography>
-          </Paper>;
-        })}
-      </Box>
-
-      <Box className="sa-vault-mobile-actions"><Button onClick={() => scanRef.current?.click()} startIcon={<CameraAltRounded />}>Scan securely to PNG</Button><Button onClick={() => inputRef.current?.click()} startIcon={<CloudUploadRounded />}>Upload</Button></Box>
-
-      {breadcrumbs.length > 0 && <Breadcrumbs className="sa-vault-mobile-breadcrumbs" aria-label="Document folder path" maxItems={3}>{breadcrumbs.map((crumb) => <Button key={crumb._id} size="small" onClick={() => void openFolder(crumb)}>{crumb.name}</Button>)}</Breadcrumbs>}
-      <Stack direction="row" alignItems="center" justifyContent="space-between" className={`sa-vault-mobile-section-heading sa-vault-mobile-files-heading${selectedStorageDocument ? ' is-storage-folder' : ''}`} data-secureasset-document-vault-mobile-content={selectedStorageDocument ? `storage-folder-${selectedStorageDocument.key}-v189` : 'recent-files-v188'}>
-        <Box><Typography>{mobileRecentLabel}</Typography><Typography>{`${mobileMatchingItems.length} item${mobileMatchingItems.length === 1 ? '' : 's'}`}</Typography></Box>
-        {selectedStorageDocument ? <Button onClick={() => void chooseSection('recent')}>Back</Button> : <Button onClick={() => void chooseSection('recent')}>View all</Button>}
-      </Stack>
-      <Stack className={selectedStorageDocument ? 'sa-vault-mobile-folder-list' : 'sa-vault-mobile-recent-list'} data-secureasset-document-vault-recent-files="thumbnail-list-v160" data-secureasset-document-vault-folder-only={selectedStorageDocument ? selectedStorageDocument.key : undefined}>
-        {loading ? <Box className="sa-vault-mobile-empty"><CircularProgress size={24} /><Typography>Loading your files…</Typography></Box> : mobileRecentItems.length === 0 ? <Box className="sa-vault-mobile-empty"><FolderOpenRounded /><Typography>{search ? 'No matching documents' : selectedStorageDocument ? `No ${selectedStorageDocument.label} files yet` : 'Your documents belong here'}</Typography><Button onClick={() => search ? setSearch('') : inputRef.current?.click()}>{search ? 'Clear search' : 'Upload a document'}</Button></Box> : <Box className="sa-vault-mobile-recent-grid">{mobileRecentItems.map((item) => <Paper key={`mobile-${item.itemType}-${item._id}`} className="sa-vault-mobile-recent-card" elevation={0} onClick={() => void itemAction(item, 'open')} role="button" tabIndex={0} aria-label={`Open ${item.name}`} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); void itemAction(item, 'open'); } }}>
-          <Box className="sa-vault-mobile-recent-card-media"><VaultRecentThumbnail item={item} full /><IconButton size="small" aria-label={`Open actions for ${item.name}`} onClick={(event) => { event.stopPropagation(); setMenu({ anchor: event.currentTarget, item }); }}><MoreVertRounded fontSize="small" /></IconButton></Box>
-          <Box sx={{ minWidth: 0 }}><Typography noWrap>{item.name}</Typography><Typography noWrap>{item.itemType === 'folder' ? 'Protected folder' : `${item.category || 'Document'} · ${formatBytes(item.sizeBytes)}`}</Typography><Typography className="sa-vault-mobile-file-date" noWrap>{item.updatedAt ? new Date(item.updatedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : 'Protected file'}</Typography></Box>
-          <Button className="sa-vault-card-share-button" fullWidth startIcon={<VaultConfiguredIcon source={design.iconAssets.globalShare} fallback={<ShareRounded />} />} disabled={item.itemType === 'folder'} onClick={(event) => { event.stopPropagation(); void instantShare(item); }}>Share</Button>
-        </Paper>)}</Box>}
-      </Stack>
-      {mobilePageCount > 1 && <Pagination className="sa-vault-mobile-pagination" aria-label="Document pages" count={mobilePageCount} page={currentMobilePage} onChange={(_event, page) => setMobilePage(page)} size="small" siblingCount={0} />}
-
-    </Box>
-    <Tooltip title="Scan securely to PNG" placement="left">
-      <IconButton className="sa-vault-mobile-floating-scan" aria-label="Open secure document scanner" onClick={() => scanRef.current?.click()}>
-        <CameraAltRounded />
-      </IconButton>
-    </Tooltip>
-
-    <input ref={inputRef} hidden type="file" multiple onChange={handleFiles} /><input ref={scanRef} hidden type="file" accept="image/jpeg,image/png" multiple capture="environment" onChange={handleScan} />
-
-    <Box className="sa-vault-desktop-workspace" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '218px minmax(0,1fr)' }, gap: 2.5 }}>
-      <Paper className="sa-surface-card sa-vault-collection-nav" component="nav" aria-label="Vault sections" elevation={0} sx={{ p: 1.2, borderRadius: 4, alignSelf: 'start', position: { lg: 'sticky' }, top: { lg: 92 } }}>
-        <Typography className="sa-vault-sidebar-heading">Library</Typography>
-        <List dense>{systemSections.map(([key, label, Icon]) => <ListItemButton key={key} selected={section === key} onClick={() => chooseSection(key)} sx={{ borderRadius: 2.5, mb: .4 }}><ListItemIcon sx={{ minWidth: 38 }}><Icon fontSize="small" /></ListItemIcon><ListItemText primary={label} primaryTypographyProps={{ fontWeight: section === key ? 800 : 600, fontSize: 13 }} /></ListItemButton>)}</List>
-        <Divider sx={{ my: 1 }} />
-        <Typography className="sa-vault-sidebar-heading">Quick Access</Typography>
-        <List dense>{storageDocumentFolders.map((document) => { const Icon = document.icon; const active = section === document.systemKey && folderId === document._id; return <ListItemButton key={`storage-${document.key}`} selected={active} onClick={() => void openStorageDocument(document)} sx={{ borderRadius: 2.5, mb: .25, pl: 1.5 }}><ListItemIcon sx={{ minWidth: 34 }}><Icon fontSize="small" sx={{ color: document.color }} /></ListItemIcon><ListItemText primary={document.label} secondary={`${document.fileCount || 0} records`} primaryTypographyProps={{ fontWeight: active ? 800 : 600, fontSize: 11 }} secondaryTypographyProps={{ fontSize: 9 }} /></ListItemButton>; })}</List>
-        <Divider sx={{ my: 1 }} />
-        <Box sx={{ p: 1.5 }}><Stack direction="row" alignItems="center" gap={1}><StorageRounded color="primary" /><Typography variant="body2" sx={{ fontWeight: 800 }}>Storage</Typography></Stack><LinearProgress variant="determinate" value={percent} color={percent >= 90 ? 'error' : percent >= 75 ? 'warning' : 'primary'} sx={{ mt: 1.2, height: 8, borderRadius: 9 }} /><Typography variant="caption" color="text.secondary">{formatBytes(usage)} of {formatBytes(quota)} used</Typography></Box>
-      </Paper>
-
-      <Paper className="sa-surface-card sa-vault-library" elevation={0} onDragEnter={(event) => { event.preventDefault(); setDragActive(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setDragActive(false); }} onDrop={handleDrop} sx={{ borderRadius: 4, overflow: 'hidden', minHeight: 590, position: 'relative', outline: dragActive ? '2px dashed' : 'none', outlineColor: 'primary.main', outlineOffset: -8 }}>
-        <Stack className="sa-vault-library-heading" direction="row" justifyContent="space-between" alignItems="center" gap={1}>
-          <Box><Typography className="sa-vault-kicker">YOUR DOCUMENT LIBRARY</Typography><Typography component="h2">{workspaceLabel}</Typography></Box>
-          <Button variant="outlined" startIcon={<AddRounded />} onClick={() => setFolderDialog(true)}>New folder</Button>
-        </Stack>
-        {dragActive && <Box sx={{ position: 'absolute', inset: 0, zIndex: 5, bgcolor: 'rgba(11,82,112,.12)', backdropFilter: 'blur(2px)', display: 'grid', placeItems: 'center', pointerEvents: 'none' }}><Paper sx={{ px: 4, py: 3, borderRadius: 4, textAlign: 'center' }}><CloudUploadRounded color="primary" sx={{ fontSize: 52 }} /><Typography variant="h6" sx={{ fontWeight: 900 }}>Drop files to upload</Typography><Typography color="text.secondary">Files remain private by default.</Typography></Paper></Box>}
-        <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" gap={1.5} sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Box>
-            <Breadcrumbs maxItems={5}>{breadcrumbs.map((crumb) => <Button key={crumb._id} size="small" onClick={() => openFolder(crumb)} sx={{ minWidth: 0 }}>{crumb.name}</Button>)}</Breadcrumbs>
-            <Typography variant="caption" color="text.secondary">{filtered.length} item{filtered.length === 1 ? '' : 's'}</Typography>
-          </Box>
-          <Stack direction="row" gap={1} alignItems="center"><TextField size="small" placeholder="Search this folder" value={search} onChange={(e) => setSearch(e.target.value)} inputProps={{ 'aria-label': 'Search this folder' }} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }} sx={{ minWidth: { sm: 230 } }} /><Tooltip title="Refresh"><IconButton aria-label="Refresh documents" onClick={() => load()}><RefreshRounded /></IconButton></Tooltip><Tooltip title={view === 'grid' ? 'List view' : 'Grid view'}><IconButton aria-label={view === 'grid' ? 'Switch to list view' : 'Switch to grid view'} onClick={() => setView(view === 'grid' ? 'list' : 'grid')}>{view === 'grid' ? <ListRounded /> : <GridViewRounded />}</IconButton></Tooltip></Stack>
-        </Stack>
-
-        {section === 'legal-documents' && <Alert severity="info" action={<Button color="inherit" size="small" onClick={buildTemplates}>Create templates</Button>} sx={{ m: 2 }}>Legal records are private by default. Public sharing requires explicit confirmation and creates a permanent audit record.</Alert>}
-        {section === 'trash' && <Alert severity="warning" sx={{ m: 2 }}>Items are retained for the configured recovery period. Final signed legal records cannot be permanently deleted by normal users.</Alert>}
-
-        {loading ? <Box className="sa-vault-library-empty"><CircularProgress size={28} /><Typography>Loading your documents…</Typography></Box> : filtered.length === 0 ? <Box className="sa-vault-library-empty"><Box className="sa-vault-empty-emblem"><FolderOpenRounded /></Box><Typography component="h3">{search ? 'No matching documents' : 'A place for what matters'}</Typography><Typography>{search ? 'Try another name, description or tag.' : 'Keep your identity, property and legal records together.'}</Typography><Button variant="contained" startIcon={search ? <SearchRounded /> : <CloudUploadRounded />} onClick={() => search ? setSearch('') : inputRef.current?.click()}>{search ? 'Clear search' : 'Upload your first document'}</Button><Typography variant="caption">New uploads are private by default.</Typography></Box> : view === 'grid' ?
-          <Box className="sa-vault-recent-grid" sx={{ p: 2, display: 'grid', gridTemplateColumns: { xs: 'repeat(2,minmax(0,1fr))', md: 'repeat(4,minmax(0,1fr))' }, gap: 1.5 }}>{filtered.map((item) => <Paper key={`${item.itemType}-${item._id}`} className="sa-vault-recent-card" variant="outlined" onClick={() => void itemAction(item, 'open')} role="button" tabIndex={0} aria-label={`Open ${item.name}`} onKeyDown={(event) => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); void itemAction(item, 'open'); } }} sx={{ p: 0, borderRadius: 3, cursor: 'pointer', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: '.18s', '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 } }}><Box className="sa-vault-recent-card-media"><VaultRecentThumbnail item={item} full /><IconButton size="small" aria-label={`Open actions for ${item.name}`} onClick={(event) => { event.stopPropagation(); setMenu({ anchor: event.currentTarget, item }); }}><MoreVertRounded fontSize="small" /></IconButton></Box><Box sx={{ px: 1.5, pt: 1.4, minWidth: 0, flex: 1 }}><Typography noWrap sx={{ fontWeight: 800, fontSize: 13.5 }}>{item.name}</Typography><Typography variant="caption" color="text.secondary">{item.itemType === 'folder' ? 'Folder' : formatBytes(item.sizeBytes)}</Typography><Stack direction="row" gap={.5} sx={{ mt: 1.2 }} flexWrap="wrap">{visibilityChip(item)}{item.starred && <StarRounded color="warning" sx={{ fontSize: 20 }} />}{item.immutable && <VerifiedRounded color="success" sx={{ fontSize: 20 }} />}</Stack></Box><Button className="sa-vault-card-share-button" fullWidth startIcon={<VaultConfiguredIcon source={design.iconAssets.globalShare} fallback={<ShareRounded />} />} disabled={item.itemType === 'folder'} onClick={(event) => { event.stopPropagation(); void instantShare(item); }}>Share</Button></Paper>)}</Box> :
-          <Box className="sa-vault-record-list" data-secureasset-document-vault-records="list-v1" role="table">
-            <Box className="sa-vault-record-list-head" role="row"><Typography role="columnheader">Document</Typography><Typography role="columnheader">Access</Typography><Typography role="columnheader">Modified</Typography><Typography role="columnheader">Size</Typography><Typography role="columnheader" aria-label="Actions" /></Box>
-            {filtered.map((item) => <Box key={`${item.itemType}-${item._id}`} className="sa-vault-record-row" role="row" tabIndex={0} onClick={() => void itemAction(item, 'open')} onKeyDown={(event) => { if (event.target === event.currentTarget && event.key === 'Enter') void itemAction(item, 'open'); }}>
-              <Box className="sa-vault-record-document" role="cell"><VaultRecentThumbnail item={item} /><Box className="sa-vault-record-name"><Typography noWrap>{item.name}</Typography><Typography noWrap>{item.description || (item.itemType === 'folder' ? 'Protected folder' : item.category || 'Document')}</Typography></Box></Box>
-              <Box role="cell">{visibilityChip(item)}{item.immutable && <VerifiedRounded color="success" sx={{ ml: .5, fontSize: 17, verticalAlign: 'middle' }} />}</Box>
-              <Typography className="sa-vault-record-date" role="cell">{formatVaultDate(item.updatedAt || item.createdAt)}</Typography>
-              <Typography className="sa-vault-record-size" role="cell">{item.itemType === 'folder' ? '—' : formatBytes(item.sizeBytes)}</Typography>
-              <IconButton size="small" aria-label={`Actions for ${item.name}`} onClick={(event) => { event.stopPropagation(); setMenu({ anchor: event.currentTarget, item }); }}><MoreVertRounded fontSize="small" /></IconButton>
-            </Box>)}
-          </Box>}
-      </Paper>
-    </Box>
+    <input ref={inputRef} hidden type="file" multiple onChange={handleFiles} />
+    <input ref={scanRef} hidden type="file" accept="image/jpeg,image/png" multiple capture="environment" onChange={handleScan} />
+    {!vaultUnlocking && !vaultLocked && <DocumentVaultWorkspace
+      items={allItems} categories={storageDocumentFolders} sections={systemSections}
+      section={section} folderId={folderId} breadcrumbs={breadcrumbs} search={search} loading={loading}
+      usage={Number(bootstrap?.usage?.usedBytes || 0)} quota={Number(bootstrap?.quotaBytes || 0)}
+      usageByCategory={bootstrap?.usage?.byCategory || {}} ready={Boolean(bootstrap)}
+      pinEnabled={vaultPinEnabled} lockRequired={vaultLockRequired} uploadProgress={uploadProgress}
+      iconAssets={design.iconAssets.quickAccess} thumbnail={(item) => <VaultRecentThumbnail item={item} full />}
+      onSearch={setSearch} onSection={(key) => void chooseSection(key)}
+      onCategory={(category) => { const document = storageDocumentFolders.find(d => d.key === category.key); if (document) void openStorageDocument(document); }}
+      onOpen={(item) => void itemAction(item, 'open')} onMenu={(anchor, item) => setMenu({ anchor, item })}
+      onStar={(item) => void itemAction(item, 'star')}
+      onUpload={() => inputRef.current?.click()} onScan={() => scanRef.current?.click()}
+      onSecurity={openVaultPinDialog} onRefresh={() => { void load(); void loadBootstrap(); }}
+      onNewFolder={() => setFolderDialog(true)} onTemplates={() => void buildTemplates()} onDrop={handleDrop}
+    />}
 
     <Menu anchorEl={menu?.anchor} open={Boolean(menu)} onClose={() => setMenu(null)} PaperProps={{ sx: { minWidth: 210, borderRadius: 3 } }}>
       <MenuItem data-secureasset-document-vault-recent-action="preview" onClick={() => menu && itemAction(menu.item, 'open')}><PreviewRounded fontSize="small" sx={{ mr: 1.3 }} />Preview</MenuItem>
       <MenuItem onClick={() => menu && itemAction(menu.item, 'download')}><DownloadRounded fontSize="small" sx={{ mr: 1.3 }} />Download</MenuItem>
       <MenuItem onClick={() => menu && itemAction(menu.item, 'star')}>{menu?.item.starred ? <StarRounded fontSize="small" sx={{ mr: 1.3 }} /> : <StarBorderRounded fontSize="small" sx={{ mr: 1.3 }} />} {menu?.item.starred ? 'Remove star' : 'Add to Starred'}</MenuItem>
       <MenuItem data-secureasset-document-vault-recent-action="rename" onClick={() => menu && itemAction(menu.item, 'rename')}><EditRounded fontSize="small" sx={{ mr: 1.3 }} />Rename</MenuItem>
-      <MenuItem data-secureasset-document-vault-sharing="direct-original-file-v197" onClick={() => menu && itemAction(menu.item, 'instant-share')}><VaultConfiguredIcon source={design.iconAssets.globalShare} fallback={<ContentCopyRounded fontSize="small" />} size={18} /> <Box component="span" sx={{ ml: 1.3 }}>Share</Box></MenuItem>
+      <MenuItem data-secureasset-document-vault-sharing="direct-original-file-v197" onClick={() => menu && itemAction(menu.item, 'instant-share')}><VaultConfiguredIcon source={design.iconAssets.globalShare} fallback={<ContentCopyRounded fontSize="small" />} size={18} /> <Box component="span" sx={{ ml: 1.3 }}>Quick Share</Box></MenuItem>
       <MenuItem onClick={() => menu && itemAction(menu.item, 'share')}><VaultConfiguredIcon source={design.iconAssets.globalShare} fallback={<ShareRounded fontSize="small" />} size={18} /> <Box component="span" sx={{ ml: 1.3 }}>Share privately</Box></MenuItem>
       <MenuItem onClick={() => menu && itemAction(menu.item, 'link')}><LinkRounded fontSize="small" sx={{ mr: 1.3 }} />Public / restricted link</MenuItem>
       <MenuItem onClick={() => menu && itemAction(menu.item, 'details')}><DescriptionRounded fontSize="small" sx={{ mr: 1.3 }} />Details & versions</MenuItem><Divider />
