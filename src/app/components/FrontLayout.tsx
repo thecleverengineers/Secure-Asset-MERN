@@ -126,11 +126,21 @@ export default function FrontLayout() {
   const configuredLegalLinks = Array.isArray(settings.footer?.legalLinks)
     ? settings.footer.legalLinks.map(footerLink).filter(Boolean) as FooterLink[]
     : [];
-  const legalLinks: FooterLink[] = configuredLegalLinks.length ? configuredLegalLinks : [
-    { label: 'Privacy Policy', path: settings.legal?.privacyUrl || '/privacy-policy' },
-    { label: 'Terms of Service', path: settings.legal?.termsUrl || '/terms-of-service' },
-    { label: settings.footer?.callback?.label || 'Request a callback', path: settings.footer?.callback?.path || '/callback' },
-  ];
+  const cmsFooterLinks: FooterLink[] = Array.isArray((site as any).footerPages)
+    ? (site as any).footerPages.map((page: any) => footerLink({
+      label: page?.footer?.label || page?.title,
+      path: page?.path,
+    })).filter(Boolean) as FooterLink[]
+    : [];
+  const legalLinks: FooterLink[] = Array.isArray((site as any).footerPages)
+    ? cmsFooterLinks
+    : configuredLegalLinks.length ? configuredLegalLinks : [
+      { label: 'Terms and Conditions', path: '/terms-and-conditions' },
+      { label: 'Privacy Policy', path: settings.legal?.privacyUrl || '/privacy-policy' },
+      { label: 'Shipping Policy', path: '/shipping-policy' },
+      { label: 'Contact Us', path: '/contact' },
+      { label: 'Cancellation and Refunds', path: '/cancellation-and-refunds' },
+    ];
   const callbackLink = footerLink(settings.footer?.callback) || legalLinks.find((item) => item.path === '/callback') || { label: 'Request a callback', path: '/callback' };
 
   useEffect(() => {

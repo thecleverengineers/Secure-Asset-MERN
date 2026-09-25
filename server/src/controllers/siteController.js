@@ -122,7 +122,7 @@ export const getPublicSite = asyncHandler(async (req, res) => {
   await Promise.all([ensureLandlordPlans(), ensurePlatformConfiguration()]);
   const now = new Date();
   const path = String(req.query.path || '/').split('?')[0] || '/';
-  const [settings, maps, seo, carousel, sections, landlordPlans, propertyTypes, areaUnits, publicNavigation, page] = await Promise.all([
+  const [settings, maps, seo, carousel, sections, landlordPlans, propertyTypes, areaUnits, publicNavigation, page, footerPages] = await Promise.all([
     ensureSiteSetting(),
     getMapsConfiguration(),
     SeoPage.findOne({ path, active: true }).lean(),
@@ -133,6 +133,10 @@ export const getPublicSite = asyncHandler(async (req, res) => {
     AreaUnit.find({ active: true }).sort({ sortOrder: 1, label: 1 }).lean(),
     getPublicNavigation(),
     getContentPage(path, false),
+    ContentPage.find({ active: true, visibility: 'public', 'footer.enabled': true })
+      .select('path title footer')
+      .sort({ 'footer.sortOrder': 1, title: 1 })
+      .lean(),
   ]);
   const featured = await featuredMarketplaceData(sections);
   const publicMapKeys = [
@@ -147,7 +151,7 @@ export const getPublicSite = asyncHandler(async (req, res) => {
   const safeSettings = { ...settings, map: safeMap };
   if (safeSettings.map) delete safeSettings.map.privateApiKey;
   res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=120');
-  res.json({ success: true, data: { settings: safeSettings, seo, page, carousel, sections, landlordPlans, propertyTypes, areaUnits, publicNavigation, ...featured } });
+  res.json({ success: true, data: { settings: safeSettings, seo, page, carousel, sections, landlordPlans, propertyTypes, areaUnits, publicNavigation, footerPages, ...featured } });
 });
 
 export const getAppConfiguration = asyncHandler(async (req, res) => {

@@ -300,7 +300,7 @@ export const resources = {
   'content-pages': {
     model: ContentPage, readRoles: ['admin'], createRoles: ['admin'], updateRoles: ['admin'], deleteRoles: ['admin'],
     search: ['path', 'slug', 'title', 'subtitle'], populate: ['updatedBy'],
-    writable: ['path', 'slug', 'title', 'subtitle', 'hero', 'sections', 'visibility', 'active'],
+    writable: ['path', 'slug', 'title', 'subtitle', 'hero', 'sections', 'visibility', 'footer', 'active'],
   },
   'notification-preferences': {
     model: NotificationPreference, readRoles: allRoles, createRoles: allRoles, updateRoles: allRoles, deleteRoles: [],

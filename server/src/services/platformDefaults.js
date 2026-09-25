@@ -284,9 +284,11 @@ export const DEFAULT_SITE_FOOTER = {
     { heading: 'Access', links: [{ label: 'Secure login', path: '/login' }, { label: 'Create account', path: '/login?mode=register' }, { label: 'Contact support', path: '/contact' }] },
   ],
   legalLinks: [
+    { label: 'Terms and Conditions', path: '/terms-and-conditions' },
     { label: 'Privacy Policy', path: '/privacy-policy' },
-    { label: 'Terms of Service', path: '/terms-of-service' },
-    { label: 'Request a callback', path: '/callback' },
+    { label: 'Shipping Policy', path: '/shipping-policy' },
+    { label: 'Contact Us', path: '/contact' },
+    { label: 'Cancellation and Refunds', path: '/cancellation-and-refunds' },
   ],
   callback: { label: 'Request a callback', path: '/callback' },
 };
@@ -304,20 +306,39 @@ export const DEFAULT_CONTENT_PAGES = [
     path: '/contact', slug: 'contact', title: 'Contact SecureAsset', subtitle: 'Ask about subscriptions, onboarding, enterprise deployment or platform support.',
     hero: { eyebrow: 'Contact', title: 'Talk to our team', subtitle: 'Send an enquiry and the appropriate team can review, assign and track it from the administration workspace.', align: 'left' },
     sections: [{ key: 'contact-form', type: 'contact_form', title: 'Send a message', content: { enquiryType: 'contact' }, sortOrder: 10, active: true }],
+    footer: { enabled: true, label: 'Contact Us', sortOrder: 40 },
   },
   {
     path: '/privacy-policy', slug: 'privacy-policy', title: 'Privacy Policy', subtitle: 'How SecureAsset collects, uses and protects information provided through this website.',
+    footer: { enabled: true, label: 'Privacy Policy', sortOrder: 20 },
     hero: { eyebrow: 'Privacy', title: 'Privacy, explained clearly.', subtitle: 'This page is published from the administration workspace and can be updated whenever your privacy practices change.', align: 'left' },
     sections: [
       { key: 'privacy-introduction', type: 'rich_text', title: 'Your information and our responsibility', subtitle: 'Review this policy before using the platform.', content: { paragraphs: ['SecureAsset collects information that is necessary to provide property, tenancy, survey, document and support services. This can include account, contact, verification, property and transaction information that you choose to provide.', 'We use that information to operate the platform, respond to requests, protect accounts, meet legal obligations and improve the services. Access is limited by role-based permissions and operational controls.', 'Administrators should keep this page accurate for their organisation and obtain appropriate professional advice before publishing legal terms.'] }, sortOrder: 10, active: true },
     ],
   },
   {
-    path: '/terms-of-service', slug: 'terms-of-service', title: 'Terms of Service', subtitle: 'The operating terms for use of the SecureAsset website and platform.',
-    hero: { eyebrow: 'Terms', title: 'Terms for using the platform.', subtitle: 'This page is administered from MongoDB-backed content controls, so it can reflect your current operating policies.', align: 'left' },
+    path: '/terms-and-conditions', slug: 'terms-and-conditions', title: 'Terms and Conditions', subtitle: 'The operating terms and conditions for use of the SecureAsset website and platform.',
+    hero: { eyebrow: 'Terms', title: 'Terms and Conditions', subtitle: 'Review the conditions that apply when accessing SecureAsset services and platform features.', align: 'left' },
     sections: [
-      { key: 'terms-introduction', type: 'rich_text', title: 'Using SecureAsset responsibly', subtitle: 'Please review these terms before creating an account or using the service.', content: { paragraphs: ['Use SecureAsset only for lawful property, tenancy, survey and document activities, and keep the information you provide accurate and up to date.', 'Account holders are responsible for maintaining the confidentiality of their credentials and for activity performed through their authorised accounts.', 'Administrators should adapt this page to their business, jurisdiction and service model before publication.'] }, sortOrder: 10, active: true },
+      { key: 'terms-introduction', type: 'rich_text', title: 'Using SecureAsset responsibly', subtitle: 'Please review these terms before creating an account or using the service.', content: { paragraphs: ['Use SecureAsset only for lawful property, tenancy, survey and document activities, and keep the information you provide accurate and up to date.', 'Account holders are responsible for maintaining the confidentiality of their credentials and for activity performed through their authorised accounts.', 'Administrators can update these terms from the Content Pages workspace whenever business policies or service conditions change.'] }, sortOrder: 10, active: true },
     ],
+    footer: { enabled: true, label: 'Terms and Conditions', sortOrder: 10 },
+  },
+  {
+    path: '/shipping-policy', slug: 'shipping-policy', title: 'Shipping Policy', subtitle: 'Information about delivery and fulfilment for SecureAsset services and any applicable physical items.',
+    hero: { eyebrow: 'Shipping', title: 'Shipping Policy', subtitle: 'Understand how delivery or fulfilment is handled when a SecureAsset service includes a physical item or shipment.', align: 'left' },
+    sections: [
+      { key: 'shipping-policy', type: 'rich_text', title: 'Delivery and fulfilment', content: { paragraphs: ['SecureAsset primarily provides digital property, tenancy, survey and document-management services. Where a purchase includes a physical item or document shipment, the applicable delivery method, charges and expected fulfilment details should be disclosed at the time of purchase.', 'Administrators can update this policy from the Content Pages workspace to reflect current delivery partners, service areas, timelines and exceptions.'] }, sortOrder: 10, active: true },
+    ],
+    footer: { enabled: true, label: 'Shipping Policy', sortOrder: 30 },
+  },
+  {
+    path: '/cancellation-and-refunds', slug: 'cancellation-and-refunds', title: 'Cancellation and Refunds', subtitle: 'How cancellation requests and eligible refunds are handled for SecureAsset services.',
+    hero: { eyebrow: 'Cancellations and refunds', title: 'Cancellation and Refunds', subtitle: 'Review the applicable cancellation process and refund conditions for SecureAsset services.', align: 'left' },
+    sections: [
+      { key: 'cancellation-refunds', type: 'rich_text', title: 'Cancellation and refund requests', content: { paragraphs: ['Cancellation and refund eligibility can depend on the service purchased, payment status, work already performed, subscription period and any applicable agreement.', 'Users should submit a cancellation or refund request through the available support channel with the relevant account, payment and service details. Administrators can maintain the current rules, timelines and exceptions from the Content Pages workspace.'] }, sortOrder: 10, active: true },
+    ],
+    footer: { enabled: true, label: 'Cancellation and Refunds', sortOrder: 50 },
   },
   {
     path: '/callback', slug: 'callback', title: 'Request a callback', subtitle: 'Leave your details and preferred time, and the team can follow up from the Website Enquiries workspace.',

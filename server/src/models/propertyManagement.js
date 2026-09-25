@@ -481,10 +481,16 @@ const ContentPageSchema = new Schema({
   hero: { eyebrow: String, title: String, subtitle: String, imageUrl: String, align: { type: String, enum: ['left', 'center', 'right'], default: 'left' }, primaryCta: { label: String, url: String }, secondaryCta: { label: String, url: String } },
   sections: [{ key: String, type: { type: String }, title: String, subtitle: String, content: Schema.Types.Mixed, sortOrder: Number, active: { type: Boolean, default: true } }],
   visibility: { type: String, enum: ['public', 'authenticated'], default: 'public', index: true },
+  footer: {
+    enabled: { type: Boolean, default: false, index: true },
+    label: { type: String, trim: true },
+    sortOrder: { type: Number, default: 100, index: true },
+  },
   active: { type: Boolean, default: true, index: true },
   updatedBy: objectId('User'),
 }, timestamps);
 ContentPageSchema.index({ active: 1, visibility: 1, path: 1 }, { name: 'content_page_public_lookup' });
+ContentPageSchema.index({ 'footer.enabled': 1, 'footer.sortOrder': 1, active: 1 }, { name: 'content_page_footer_order' });
 
 const NotificationPreferenceSchema = new Schema({
   user: { ...objectId('User', true), unique: true, index: true },

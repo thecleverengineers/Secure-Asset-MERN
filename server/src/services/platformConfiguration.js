@@ -59,6 +59,24 @@ export async function ensurePlatformConfiguration() {
       { $setOnInsert: page },
       { upsert: true },
     )));
+    // Retire only the untouched legacy Terms of Service seed. The new
+    // /terms-and-conditions record is seeded independently, while any page an
+    // administrator renamed or rewrote remains untouched.
+    await ContentPage.updateOne(
+      { path: '/terms-of-service', slug: 'terms-of-service', title: 'Terms of Service' },
+      { $set: { active: false, 'footer.enabled': false } },
+    );
+    // Existing seeded legal/contact records predate footer metadata. Add it
+    // without overwriting page content or any administrator customisation.
+    await Promise.all([
+      ['/privacy-policy', 'Privacy Policy', 20],
+      ['/shipping-policy', 'Shipping Policy', 30],
+      ['/contact', 'Contact Us', 40],
+      ['/cancellation-and-refunds', 'Cancellation and Refunds', 50],
+    ].map(([path, label, sortOrder]) => ContentPage.updateOne(
+      { path, 'footer.enabled': { $exists: false } },
+      { $set: { footer: { enabled: true, label, sortOrder } } },
+    )));
     await Promise.all(DEFAULT_HOME_SECTIONS.map((section) => HomeSection.updateOne(
       { key: section.key },
       { $setOnInsert: section },
