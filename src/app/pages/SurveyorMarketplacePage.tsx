@@ -41,34 +41,40 @@ export default function SurveyorMarketplacePage(){
     {loading?<Box className="sa-surveyor-directory-loading"><CircularProgress size={30}/></Box>:<Grid container spacing={{xs:1,sm:1.4,md:1.8}}>{rows.map(p=>{
       const profilePath=`/surveyors/${p.publicSlug||p._id}`;
       const location=(p.serviceLocations||[]).map((x:any)=>[x.city,x.state].filter(Boolean).join(', ')).filter(Boolean).slice(0,1).join('')||'Service area available';
-      const image=p.profilePhoto||p.agencyLogo||'';
+      const avatarImage=p.profilePhoto||p.agencyLogo||'';
+      const coverImage=p.agencyLogo||p.profilePhoto||'';
       return <Grid size={{xs:6,sm:6,lg:3}} key={p._id}>
         <Card elevation={0} className="sa-surveyor-profile-card">
-          <Box className="sa-surveyor-card-image-wrap" onClick={()=>navigate(profilePath)}>
-            {image
-              ? <Box component="img" src={image} alt={p.name||'Surveyor'} className="sa-surveyor-card-image"/>
-              : <Box className="sa-surveyor-card-image sa-surveyor-card-image-fallback">{String(p.name||'S').slice(0,1).toUpperCase()}</Box>}
+          <Box className="sa-surveyor-card-cover" onClick={()=>navigate(profilePath)}>
+            {coverImage
+              ? <Box component="img" src={coverImage} alt="" className="sa-surveyor-card-cover-image"/>
+              : <Box className="sa-surveyor-card-cover-fallback"/>}
+          </Box>
+          <Box className="sa-surveyor-card-avatar-wrap" onClick={()=>navigate(profilePath)}>
+            {avatarImage
+              ? <Box component="img" src={avatarImage} alt={p.name||'Surveyor'} className="sa-surveyor-card-avatar"/>
+              : <Box className="sa-surveyor-card-avatar sa-surveyor-card-avatar-fallback">{String(p.name||'S').slice(0,1).toUpperCase()}</Box>}
           </Box>
           <Box className="sa-surveyor-card-body">
-            <Stack direction="row" alignItems="center" spacing={.5} className="sa-surveyor-card-name-row">
+            <Stack direction="row" alignItems="center" justifyContent="center" spacing={.45} className="sa-surveyor-card-name-row">
               <Typography className="sa-surveyor-profile-name" noWrap>{p.name}</Typography>
               {p.verificationStatus==='verified'&&<VerifiedRounded className="sa-surveyor-profile-verified"/>}
             </Stack>
-            <Stack className="sa-surveyor-card-meta" spacing={.45}>
-              <Stack direction="row" spacing={.45} alignItems="center" className="sa-surveyor-profile-location">
+            <Stack direction="row" alignItems="center" justifyContent="space-between" className="sa-surveyor-card-meta">
+              <Stack direction="row" spacing={.35} alignItems="center" className="sa-surveyor-profile-location">
                 <LocationOnRounded/>
                 <Typography noWrap>{location}</Typography>
               </Stack>
-              <Stack direction="row" alignItems="center" spacing={.45} className="sa-surveyor-profile-rating">
+              <Stack direction="row" alignItems="center" spacing={.3} className="sa-surveyor-profile-rating">
                 <Rating readOnly size="small" precision={.1} value={p.rating?.average||0}/>
-                <Typography>{Number(p.rating?.average||0).toFixed(1)} ({p.rating?.count||0})</Typography>
+                <Typography>{Number(p.rating?.average||0).toFixed(1)}</Typography>
               </Stack>
             </Stack>
-            <Stack direction="row" spacing={.7} className="sa-surveyor-card-actions">
-              <Button className="sa-surveyor-profile-button" variant="outlined" fullWidth onClick={()=>navigate(profilePath)}>Profile</Button>
-              <Button className="sa-surveyor-quote-button" variant="contained" fullWidth startIcon={<RequestQuoteRounded/>} onClick={()=>navigate(`${profilePath}?quote=1`)}>Quote</Button>
-            </Stack>
           </Box>
+          <Stack direction="row" className="sa-surveyor-card-actions">
+            <Button className="sa-surveyor-profile-button" variant="text" fullWidth onClick={()=>navigate(profilePath)}>Profile</Button>
+            <Button className="sa-surveyor-quote-button" variant="contained" fullWidth startIcon={<RequestQuoteRounded/>} onClick={()=>navigate(`${profilePath}?quote=1`)}>Quote</Button>
+          </Stack>
         </Card>
       </Grid>;
     })}</Grid>}
