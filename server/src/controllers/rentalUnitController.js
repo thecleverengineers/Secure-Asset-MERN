@@ -548,7 +548,7 @@ export const getTenancyDetails = asyncHandler(async (req, res) => {
     RentalInvoice.find({ tenancy: tenancy._id }).sort({ billingMonth: -1, createdAt: -1 })
       .populate('receiptFile')
       .populate('legalAgreement')
-      .populate({ path: 'payments.payment', select: 'invoiceNumber amount paidAmount status method transactionId paidAt paymentVerification notes proofFile' })
+      .populate({ path: 'payments.payment', select: 'invoiceNumber amount paidAmount status method transactionId paidAt paymentVerification notes proofFile proofUrl createdAt updatedAt' })
       .lean(),
     RentCycle.find({ tenancy: tenancy._id }).sort({ cycleMonth: -1 }).populate('invoice').lean(),
     tenancy.agreement ? Promise.resolve(tenancy.agreement) : AgreementRequest.findOne({ tenancy: tenancy._id }).sort({ createdAt: -1 }).populate([{ path: 'firstPartyMark.file' }, { path: 'secondPartySignature.file' }]).lean(),
