@@ -10,6 +10,7 @@ export function safeUser(user) {
   delete value.password;
   delete value.emailNormalized;
   delete value.phoneNormalized;
+  delete value.whatsappNumberNormalized;
   delete value.otpHash;
   delete value.otpExpiresAt;
   delete value.otpPurpose;
