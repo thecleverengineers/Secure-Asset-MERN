@@ -299,7 +299,7 @@ export const respondSurveyorQuoteRequest = asyncHandler(async (req, res) => {
     job.requestStatus = 'rejected'; job.respondedAt = now; job.responseReason = reason || 'The Surveyor is unavailable for this request.';
     job.status = 'cancelled'; job.workflowStage = 'cancelled'; job.updatedBy = req.user._id;
     await job.save();
-    await createNotification({ user: job.client, title: 'Survey quote request declined', message: `${job.title} was declined by the Surveyor.`, category: 'survey', actionUrl: '/surveyors', metadata: { jobId: job._id, event: 'direct_survey_quote_rejected' } });
+    await createNotification({ user: job.client, title: 'Survey quote request declined', message: `${job.title} was declined by the Surveyor.`, category: 'survey', actionUrl: '/app/survey-jobs', metadata: { jobId: job._id, event: 'direct_survey_quote_rejected' } });
     await writeAudit(req, { action: 'survey-quote:rejected-directly', module: 'survey-projects', recordId: job._id, updatedValue: { requestStatus: job.requestStatus, responseReason: job.responseReason } });
     return res.json({ success: true, data: { job }, message: 'Quote request rejected' });
   }

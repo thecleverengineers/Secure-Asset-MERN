@@ -83,7 +83,7 @@ const ADMIN_DOCUMENT_VAULT: MenuDef = { key: 'documents', label: 'Document Vault
 const ADMIN_APPROVAL_CENTER: MenuDef = { key: 'approvals', label: 'Approval Center', icon: ApprovalRounded, path: '/app/approvals', section: 'workspace', sectionOrder: 1, sortOrder: 10.0005 };
 const SURVEYOR_WORKFLOW_LABELS: Record<string, string> = {
   'surveyor-dashboard': 'Surveyor Workspace',
-  'survey-job-marketplace': 'Quote Requests & Jobs',
+  'survey-job-marketplace': 'Quote Requests',
   'survey-quotations': 'My Proposals',
   'survey-projects': 'Active Projects',
 };
@@ -148,8 +148,8 @@ const items: Record<string, MenuDef> = {
   'surveyor-verification': { key: 'surveyor-verification', label: 'Verification', icon: VerifiedUserRounded },
   'surveyor-profile': { key: 'surveyor-profile', label: 'Professional Profile', icon: PersonRounded },
   'survey-services': { key: 'survey-services', label: 'My Survey Services', icon: StorefrontRounded },
-  'survey-job-marketplace': { key: 'survey-job-marketplace', label: 'Quote Requests & Jobs', icon: ExploreRounded },
-  'survey-jobs': { key: 'survey-jobs', label: 'Client Job Requests', icon: AssignmentRounded },
+  'survey-job-marketplace': { key: 'survey-job-marketplace', label: 'Quote Requests', icon: RequestQuoteRounded },
+  'survey-jobs': { key: 'survey-jobs', label: 'My Survey Quotes', icon: RequestQuoteRounded },
   'survey-quotations': { key: 'survey-quotations', label: 'My Proposals', icon: RequestQuoteRounded },
   'survey-projects': { key: 'survey-projects', label: 'Active Projects', icon: BusinessCenterRounded },
   'active-projects': { key: 'active-projects', label: 'Active Projects', icon: BusinessCenterRounded, path: '/app/survey-projects' },
@@ -240,9 +240,8 @@ const LANDLORD_FEATURE_LABELS: Record<string, string> = {
 };
 const landlordFeatureKeys = new Set<string>(LANDLORD_FEATURE_MENU_KEYS);
 const landlordMenu = ['dashboard', ...LANDLORD_FEATURE_MENU_KEYS, 'documents'];
-// The PDF-defined Surveyor workflow has four operational destinations. Profile
-// and verification are the only supporting screens; navigation, chat, evidence,
-// reporting, audit and payment live inside the selected project.
+// Surveyors receive direct quote requests from landlords instead of browsing
+// a public job board. Accepted requests move into Active Projects.
 const surveyorMenu = ['surveyor-dashboard', 'survey-job-marketplace', 'survey-quotations', 'survey-projects', 'surveyor-profile', 'surveyor-verification'];
 const tenantBaseKeys = new Set(regularTenantMenu.map((item) => item.key));
 const tenantProfileOnlyKeys = new Set(['subscription', 'surveyor-subscription', 'profile']);

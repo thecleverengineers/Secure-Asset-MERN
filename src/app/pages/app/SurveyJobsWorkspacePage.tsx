@@ -1,171 +1,109 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  Alert, Box, Button, Card, CardContent, Chip, CircularProgress, DialogActions, DialogContent, Divider, Grid,
-  MenuItem, Rating, Stack, TextField, Typography,
+  Alert, Box, Button, Card, CardContent, Chip, CircularProgress, Grid, MenuItem,
+  Stack, TextField, Typography,
 } from '@mui/material';
-import AddRounded from '@mui/icons-material/AddRounded';
-import ChatRounded from '@mui/icons-material/ChatRounded';
-import GavelRounded from '@mui/icons-material/GavelRounded';
-import LocationOnRounded from '@mui/icons-material/LocationOnRounded';
 import OpenInNewRounded from '@mui/icons-material/OpenInNewRounded';
-import VisibilityRounded from '@mui/icons-material/VisibilityRounded';
 import RequestQuoteRounded from '@mui/icons-material/RequestQuoteRounded';
+import RefreshRounded from '@mui/icons-material/RefreshRounded';
 import { useNavigate } from 'react-router';
-import ProfessionalDialog from '../../components/shared/ProfessionalDialog';
 import CompactPageToolbar from '../../components/layout/CompactPageToolbar';
-import {
-  createConversation, createResource, getLandlordSurveyJobs, getMyListings, getMySurveyorQuoteRequests, getSurveyJobBids, hireSurveyorFromQuotation,
-} from '../../services/api';
+import { getMySurveyorQuoteRequests } from '../../services/api';
 
-const money = (value: unknown) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(value || 0));
-const label = (value: unknown) => String(value || '').replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
-const initialJob = { property: '', title: '', surveyType: 'land_measurement', landArea: '', measurementUnit: 'sq_ft', purpose: '', preferredVisitDate: '', preferredCompletionDate: '', budgetMin: '', budgetMax: '', requirements: '', deliverables: '', description: '', urgency: 'normal' };
-const splitLines = (value: string) => value.split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean);
+const money=(value:unknown)=>new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(Number(value||0));
+const label=(value:unknown)=>String(value||'').replaceAll('_',' ').replace(/\b\w/g,(letter)=>letter.toUpperCase());
 
-export default function SurveyJobsWorkspacePage() {
-  const navigate = useNavigate();
-  const [jobs, setJobs] = useState<any[]>([]);
-  const [quoteRequests, setQuoteRequests] = useState<any[]>([]);
-  const [properties, setProperties] = useState<any[]>([]);
-  const [selectedJob, setSelectedJob] = useState<any>(null);
-  const [bids, setBids] = useState<any[]>([]);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [hireTarget, setHireTarget] = useState<any>(null);
-  const [job, setJob] = useState<Record<string, string>>(initialJob);
-  const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
-  const selectedProperty = useMemo(() => properties.find((item) => item._id === job.property), [job.property, properties]);
-  const marketplaceJobs = useMemo(() => jobs.filter((item) => item.hiringPath !== 'direct_surveyor'), [jobs]);
+export default function SurveyJobsWorkspacePage(){
+  const navigate=useNavigate();
+  const [rows,setRows]=useState<any[]>([]);
+  const [status,setStatus]=useState('');
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState('');
 
-  async function load() {
-    setLoading(true); setError('');
-    try {
-      const [jobResponse, propertyResponse, quoteResponse] = await Promise.all([
-        getLandlordSurveyJobs({ limit: 50 }),
-        getMyListings({ limit: 100 }),
-        getMySurveyorQuoteRequests({ limit: 100 }),
-      ]);
-      setJobs(jobResponse.data || []);
-      setProperties(propertyResponse.data || []);
-      setQuoteRequests(quoteResponse.data || []);
-    } catch (reason) { setError((reason as Error).message); }
-    finally { setLoading(false); }
-  }
-  useEffect(() => { void load(); }, []);
-
-  async function openBids(item: any) {
-    setSelectedJob(item); setError(''); setBids([]);
-    try { const response = await getSurveyJobBids(item._id); setBids(response.data?.bids || []); }
-    catch (reason) { setError((reason as Error).message); }
+  async function load(){
+    setLoading(true);
+    setError('');
+    try{
+      const response=await getMySurveyorQuoteRequests({limit:100,status:status||undefined});
+      setRows(response.data||[]);
+    }catch(cause){
+      setError((cause as Error).message);
+    }finally{
+      setLoading(false);
+    }
   }
 
-  async function submitJob(event: FormEvent) {
-    event.preventDefault(); setBusy(true); setError('');
-    try {
-      await createResource('survey-jobs', {
-        property: job.property, title: job.title.trim(), surveyType: job.surveyType, landArea: Number(job.landArea || 0), measurementUnit: job.measurementUnit,
-        purpose: job.purpose.trim(), preferredVisitDate: job.preferredVisitDate || undefined, preferredCompletionDate: job.preferredCompletionDate || undefined,
-        budget: { min: Number(job.budgetMin || 0), max: Number(job.budgetMax || 0), currency: 'INR' }, requirements: splitLines(job.requirements),
-        deliverables: splitLines(job.deliverables), description: job.description.trim(), urgency: job.urgency, visibility: 'public', status: 'open', bookingType: 'quotation',
-      });
-      setCreateOpen(false); setJob(initialJob); setNotice('Survey job posted. Verified Surveyors can now submit proposals.'); await load();
-    } catch (reason) { setError((reason as Error).message); }
-    finally { setBusy(false); }
-  }
+  useEffect(()=>{void load();},[status]);
 
-  async function hire() {
-    if (!hireTarget) return;
-    setBusy(true); setError('');
-    try {
-      const response = await hireSurveyorFromQuotation(hireTarget._id);
-      const projectId = response.data?.project?._id;
-      setHireTarget(null); setSelectedJob(null); setNotice(`${hireTarget.surveyor?.name || 'Surveyor'} was hired. Payment and delivery tracking are secured in the new project.`); await load();
-      if (projectId) navigate(`/app/survey-projects/${projectId}`);
-    } catch (reason) { setError((reason as Error).message); }
-    finally { setBusy(false); }
-  }
-
-  async function chatWith(bid: any) {
-    setBusy(true); setError('');
-    try {
-      const response = await createConversation({ participants: [bid.surveyor?._id || bid.surveyor], type: 'survey', title: `Survey job · ${selectedJob?.title || 'Discussion'}`, reference: { model: 'SurveyQuotation', id: bid._id, label: selectedJob?.title || 'Survey proposal' } });
-      navigate(`/app/messages?conversation=${response.data?._id || ''}`);
-    } catch (reason) { setError((reason as Error).message); setBusy(false); }
-  }
-
-  return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 7 }}>
+  return <Box sx={{px:{xs:2,sm:3,lg:4},pb:7}}>
     <CompactPageToolbar
-      marker="survey-jobs-toolbar-v154"
-      title="Survey Jobs & Quotes"
-      description="Track your direct Surveyor quote requests and manage public survey jobs from one place."
-      actions={<Stack direction="row" spacing={1}><Button variant="outlined" startIcon={<RequestQuoteRounded />} onClick={() => navigate('/surveyors')}>Request a quote</Button><Button variant="contained" startIcon={<AddRounded />} onClick={() => setCreateOpen(true)}>Post survey job</Button></Stack>}
+      marker="landlord-survey-quotes-v155"
+      title="My Survey Quotes"
+      description="Track only the quote requests you sent directly to verified Surveyors."
+      actions={<Stack direction="row" spacing={1}>
+        <TextField select size="small" label="Status" value={status} onChange={(event)=>setStatus(event.target.value)} sx={{minWidth:150}}>
+          <MenuItem value="">All</MenuItem>
+          {['pending','accepted','rejected'].map((item)=><MenuItem key={item} value={item}>{label(item)}</MenuItem>)}
+        </TextField>
+        <Button variant="outlined" startIcon={<RefreshRounded/>} onClick={()=>void load()}>Refresh</Button>
+        <Button variant="contained" startIcon={<RequestQuoteRounded/>} onClick={()=>navigate('/surveyors')}>Request Quote</Button>
+      </Stack>}
     />
-    {notice && <Alert severity="success" onClose={() => setNotice('')} sx={{ mb: 2 }}>{notice}</Alert>}
-    {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>{error}</Alert>}
-    {loading ? <Box sx={{ py: 10, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box> : <>
-      <Box sx={{ mb: 3 }}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1} sx={{ mb: 1.3 }}>
-          <Box><Typography sx={{ fontSize: 16, fontWeight: 700 }}>My Quote Requests</Typography><Typography color="text.secondary" sx={{ fontSize: 11 }}>Only direct requests created by your landlord account are visible here.</Typography></Box>
-          <Chip size="small" label={`${quoteRequests.length} request${quoteRequests.length === 1 ? '' : 's'}`} />
-        </Stack>
-        {!quoteRequests.length ? <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}><CardContent sx={{ p: 3, textAlign: 'center' }}><RequestQuoteRounded color="primary" sx={{ fontSize: 38 }} /><Typography sx={{ mt: 1, fontWeight: 700 }}>No quote requests yet</Typography><Typography color="text.secondary" sx={{ mt: .5, mb: 1.5, fontSize: 12 }}>Browse verified Surveyors and request a quote for one of your properties.</Typography><Button variant="contained" onClick={() => navigate('/surveyors')}>Browse Surveyors</Button></CardContent></Card> : <Grid container spacing={1.5}>{quoteRequests.map((item) => {
-          const requested = item.requestedSurveyor || {};
-          const status = String(item.requestStatus || 'pending');
-          return <Grid size={{ xs: 12, md: 6 }} key={item._id}><Card elevation={0} sx={{ height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 3 }}><CardContent sx={{ p: 2.25 }}>
-            <Stack direction="row" justifyContent="space-between" spacing={1}><Box sx={{ minWidth: 0 }}><Typography sx={{ fontWeight: 700, fontSize: 16 }} noWrap>{item.title}</Typography><Typography color="primary" sx={{ mt: .35, fontSize: 11.5, fontWeight: 600 }}>{label(item.surveyType)}</Typography></Box><Chip size="small" label={label(status)} color={status === 'accepted' ? 'success' : status === 'rejected' ? 'error' : 'warning'} /></Stack>
-            <Stack spacing={.75} sx={{ my: 1.6 }}>
-              <Typography sx={{ fontSize: 12 }}><strong>Requested Surveyor:</strong> {requested.name || item.hiredSurveyor?.name || 'Verified Surveyor'}</Typography>
-              <Typography color="text.secondary" sx={{ fontSize: 11.5 }}><strong>Property:</strong> {item.property?.title || item.property?.name || item.property?.code || item.property?.referenceNumber || item.addressApproximate || 'Your property'}</Typography>
-              <Typography color="text.secondary" sx={{ fontSize: 11.5 }}><strong>Budget:</strong> {money(item.budget?.min)} – {money(item.budget?.max)}</Typography>
-              <Typography color="text.secondary" sx={{ fontSize: 11.5 }}><strong>Requested:</strong> {item.requestedAt ? new Date(item.requestedAt).toLocaleString('en-IN') : '—'}</Typography>
-              {item.respondedAt && <Typography color="text.secondary" sx={{ fontSize: 11.5 }}><strong>Responded:</strong> {new Date(item.respondedAt).toLocaleString('en-IN')}</Typography>}
-              {item.responseReason && <Alert severity={status === 'rejected' ? 'warning' : 'info'} sx={{ py: .25, mt: .5 }}>{item.responseReason}</Alert>}
-            </Stack>
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {status === 'pending' && <Chip size="small" variant="outlined" color="warning" label="Waiting for Surveyor review" />}
-              {status === 'accepted' && item.project?._id && <Button size="small" variant="contained" endIcon={<OpenInNewRounded />} onClick={() => navigate(`/app/survey-projects/${item.project._id}`)}>Open project</Button>}
-              {status === 'accepted' && !item.project?._id && <Button size="small" variant="contained" onClick={() => navigate('/app/survey-projects')}>Open projects</Button>}
-              {status === 'rejected' && <Button size="small" variant="outlined" onClick={() => navigate('/surveyors')}>Request another Surveyor</Button>}
-            </Stack>
-          </CardContent></Card></Grid>;
-        })}</Grid>}
-      </Box>
 
-      <Box>
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.3 }}>
-          <Box><Typography sx={{ fontSize: 16, fontWeight: 700 }}>Marketplace Survey Jobs</Typography><Typography color="text.secondary" sx={{ fontSize: 11 }}>Public jobs you posted for Surveyors to propose on.</Typography></Box>
-          <Chip size="small" label={`${marketplaceJobs.length} job${marketplaceJobs.length === 1 ? '' : 's'}`} />
-        </Stack>
-        {!marketplaceJobs.length ? <Alert severity="info">No public survey jobs yet. You can post one or request a specific Surveyor directly.</Alert> : <Grid container spacing={2}>{marketplaceJobs.map((item) => <Grid size={{ xs: 12, md: 6 }} key={item._id}><Card elevation={0} sx={{ height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 4 }}><CardContent sx={{ p: 2.5 }}>
-          <Stack direction="row" justifyContent="space-between" spacing={1}><Box sx={{ minWidth: 0 }}><Typography sx={{ fontWeight: 900, fontSize: 17 }} noWrap>{item.title}</Typography><Typography color="primary" sx={{ mt: .5, fontSize: 12, fontWeight: 800 }}>{label(item.surveyType)}</Typography></Box><Chip size="small" label={label(item.workflowStage || item.status)} color={item.workflowStage === 'completed' ? 'success' : item.status === 'open' || item.status === 'quotation_review' ? 'primary' : 'default'} /></Stack>
-          <Stack spacing={.9} sx={{ my: 2 }}><Stack direction="row" spacing={1} alignItems="center"><LocationOnRounded sx={{ fontSize: 18 }} color="action" /><Typography variant="body2" color="text.secondary">{item.addressApproximate || 'Property location protected'}</Typography></Stack><Typography variant="body2" color="text.secondary">Budget · {money(item.budget?.min)} – {money(item.budget?.max)}</Typography><Typography variant="body2" color="text.secondary">Visit · {item.preferredVisitDate ? new Date(item.preferredVisitDate).toLocaleDateString('en-IN') : 'Flexible'} · Deadline · {item.preferredCompletionDate ? new Date(item.preferredCompletionDate).toLocaleDateString('en-IN') : 'Flexible'}</Typography><Typography variant="body2" color="text.secondary">{item.quotationCount || 0} proposal{Number(item.quotationCount || 0) === 1 ? '' : 's'} received</Typography></Stack>
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap><Button size="small" variant="outlined" startIcon={<VisibilityRounded />} onClick={() => openBids(item)}>Review proposals</Button>{item.hiredSurveyor && <Button size="small" variant="contained" endIcon={<OpenInNewRounded />} onClick={() => navigate('/app/survey-projects')}>Open project</Button>}</Stack>
-        </CardContent></Card></Grid>)}</Grid>}
-      </Box>
-    </>}
+    {error&&<Alert severity="error" onClose={()=>setError('')} sx={{mb:2}}>{error}</Alert>}
 
-    <ProfessionalDialog open={Boolean(selectedJob)} onClose={() => setSelectedJob(null)} maxWidth="md" fullWidth professionalTitle={`Proposals · ${selectedJob?.title || ''}`} professionalSubtitle="Compare experience, rating, portfolio, distance, price, and dates before hiring."><DialogContent dividers><Stack spacing={1.5}>{!bids.length ? <Alert severity="info">No submitted proposals are available for this job yet.</Alert> : bids.map((bid) => { const profile = bid.professionalProfile || {}; return <Card key={bid._id} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}><CardContent sx={{ p: 2 }}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}><Box><Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap><Typography sx={{ fontWeight: 900, fontSize: 17 }}>{bid.surveyor?.name || 'Surveyor'}</Typography>{profile.verificationStatus === 'verified' && <Chip size="small" color="success" label="Verified" />}</Stack><Typography color="text.secondary" variant="body2">{profile.professionalTitle || 'Professional Surveyor'} · {Number(profile.yearsExperience || 0)} years experience</Typography><Stack direction="row" spacing={.8} alignItems="center" sx={{ mt: .5 }}><Rating size="small" readOnly precision={.1} value={Number(profile.rating?.average || 0)} /><Typography variant="caption" color="text.secondary">{Number(profile.rating?.average || 0).toFixed(1)} ({profile.rating?.count || 0}) · {profile.completedProjects || 0} completed · {profile.portfolio?.length || 0} portfolio items</Typography></Stack></Box><Chip label={label(bid.status)} size="small" color={bid.status === 'accepted' ? 'success' : 'primary'} sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }} /></Stack>
-      {!!profile.specialisations?.length && <Stack direction="row" spacing={.6} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>{profile.specialisations.slice(0, 4).map((item: string) => <Chip key={item} size="small" variant="outlined" label={item} />)}</Stack>}
-      {!!profile.qualifications?.length && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>Qualifications · {profile.qualifications.slice(0, 3).join(' · ')}</Typography>}
-      {!!profile.portfolio?.length && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: .5 }}>Previous work · {profile.portfolio.slice(0, 3).map((item: any) => item.title).filter(Boolean).join(' · ') || `${profile.portfolio.length} portfolio records`}</Typography>}
-      <Typography variant="body2" sx={{ mt: 1.5 }}>{bid.scope || 'Scope details shared in proposal.'}</Typography>{bid.methodology && <Typography variant="body2" color="text.secondary" sx={{ mt: .5 }}>{bid.methodology}</Typography>}
-      <Divider sx={{ my: 1.5 }} /><Grid container spacing={1.5}><Grid size={{ xs: 6, sm: 3 }}><Typography variant="caption" color="text.secondary">PRICE</Typography><Typography sx={{ fontWeight: 900 }}>{money(bid.totalAmount)}</Typography></Grid><Grid size={{ xs: 6, sm: 3 }}><Typography variant="caption" color="text.secondary">DISTANCE</Typography><Typography sx={{ fontWeight: 900 }}>{Number.isFinite(bid.distanceKm) ? `${bid.distanceKm} km` : '—'}</Typography></Grid><Grid size={{ xs: 6, sm: 3 }}><Typography variant="caption" color="text.secondary">START</Typography><Typography sx={{ fontWeight: 800 }}>{bid.estimatedStartDate ? new Date(bid.estimatedStartDate).toLocaleDateString('en-IN') : 'Flexible'}</Typography></Grid><Grid size={{ xs: 6, sm: 3 }}><Typography variant="caption" color="text.secondary">COMPLETE</Typography><Typography sx={{ fontWeight: 800 }}>{bid.estimatedCompletionDate ? new Date(bid.estimatedCompletionDate).toLocaleDateString('en-IN') : 'Flexible'}</Typography></Grid></Grid>
-      <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}><Button size="small" variant="outlined" startIcon={<ChatRounded />} onClick={() => chatWith(bid)} disabled={busy}>Chat / negotiate</Button>{['submitted', 'viewed', 'under_negotiation', 'revised'].includes(bid.status) && !selectedJob?.hiredSurveyor && <Button size="small" variant="contained" startIcon={<GavelRounded />} onClick={() => setHireTarget(bid)}>Hire Surveyor</Button>}</Stack>
-    </CardContent></Card>; })}</Stack></DialogContent></ProfessionalDialog>
+    {loading
+      ? <Box sx={{minHeight:320,display:'grid',placeItems:'center'}}><CircularProgress/></Box>
+      : !rows.length
+        ? <Card elevation={0} sx={{border:'1px solid',borderColor:'divider',borderRadius:4}}>
+            <CardContent sx={{p:5,textAlign:'center'}}>
+              <RequestQuoteRounded color="primary" sx={{fontSize:46}}/>
+              <Typography sx={{mt:1,fontSize:17,fontWeight:700}}>No Surveyor quote requests yet</Typography>
+              <Typography color="text.secondary" sx={{mt:.5,mb:2,fontSize:12}}>Open the verified Surveyor directory, choose a Surveyor, and send a quote request for one of your properties.</Typography>
+              <Button variant="contained" onClick={()=>navigate('/surveyors')}>Browse Surveyors</Button>
+            </CardContent>
+          </Card>
+        : <Grid container spacing={1.5}>{rows.map((item)=>{
+            const requestStatus=String(item.requestStatus||'pending');
+            const requested=item.requestedSurveyor||{};
+            const property=item.property||{};
+            return <Grid size={{xs:12,md:6}} key={item._id}>
+              <Card elevation={0} sx={{height:'100%',border:'1px solid',borderColor:'divider',borderRadius:4}}>
+                <CardContent sx={{p:2.5}}>
+                  <Stack direction="row" justifyContent="space-between" spacing={1}>
+                    <Box sx={{minWidth:0}}>
+                      <Typography sx={{fontSize:16,fontWeight:700}} noWrap>{item.title||'Survey quote request'}</Typography>
+                      <Typography color="primary" sx={{mt:.35,fontSize:11.5,fontWeight:600}}>{label(item.surveyType)}</Typography>
+                    </Box>
+                    <Chip
+                      size="small"
+                      label={label(requestStatus)}
+                      color={requestStatus==='accepted'?'success':requestStatus==='rejected'?'error':'warning'}
+                    />
+                  </Stack>
 
-    <ProfessionalDialog open={Boolean(hireTarget)} onClose={() => setHireTarget(null)} maxWidth="sm" fullWidth professionalTitle="Hire this Surveyor" professionalSubtitle="This locks the selected proposal and creates the secure project and payment record."><DialogContent dividers><Alert severity="warning">Hire {hireTarget?.surveyor?.name || 'this Surveyor'} for {money(hireTarget?.totalAmount)}? All other proposals for this job will be rejected.</Alert></DialogContent><DialogActions><Button onClick={() => setHireTarget(null)}>Cancel</Button><Button variant="contained" startIcon={<GavelRounded />} onClick={hire} disabled={busy}>{busy ? 'Hiring…' : 'Confirm hire'}</Button></DialogActions></ProfessionalDialog>
+                  <Stack spacing={.75} sx={{my:1.6}}>
+                    <Typography sx={{fontSize:12}}><strong>Surveyor:</strong> {requested.name||item.hiredSurveyor?.name||'Verified Surveyor'}</Typography>
+                    <Typography color="text.secondary" sx={{fontSize:11.5}}><strong>Property:</strong> {property.title||property.name||property.code||property.referenceNumber||item.addressApproximate||'Your property'}</Typography>
+                    <Typography color="text.secondary" sx={{fontSize:11.5}}><strong>Size:</strong> {item.landArea||'—'} {item.measurementUnit||''}</Typography>
+                    <Typography color="text.secondary" sx={{fontSize:11.5}}><strong>Purpose:</strong> {item.purpose||'Property verification'}</Typography>
+                    <Typography color="text.secondary" sx={{fontSize:11.5}}><strong>Budget:</strong> {money(item.budget?.min)} – {money(item.budget?.max)}</Typography>
+                    <Typography color="text.secondary" sx={{fontSize:11.5}}><strong>Visit:</strong> {item.preferredVisitDate?new Date(item.preferredVisitDate).toLocaleDateString('en-IN'):'Flexible'} · <strong>Report:</strong> {item.preferredCompletionDate?new Date(item.preferredCompletionDate).toLocaleDateString('en-IN'):'Flexible'}</Typography>
+                    <Typography color="text.secondary" sx={{fontSize:11.5}}><strong>Requested:</strong> {item.requestedAt?new Date(item.requestedAt).toLocaleString('en-IN'):'—'}</Typography>
+                    {item.requestMessage&&<Typography sx={{fontSize:11.5,p:1,bgcolor:'action.hover',borderRadius:1.5}}>{item.requestMessage}</Typography>}
+                    {item.respondedAt&&<Typography color="text.secondary" sx={{fontSize:11.5}}><strong>Surveyor responded:</strong> {new Date(item.respondedAt).toLocaleString('en-IN')}</Typography>}
+                    {item.responseReason&&<Alert severity={requestStatus==='rejected'?'warning':'info'} sx={{py:.2}}>{item.responseReason}</Alert>}
+                  </Stack>
 
-    <ProfessionalDialog open={createOpen} onClose={() => setCreateOpen(false)} maxWidth="md" fullWidth professionalTitle="Post a survey job" professionalSubtitle="The property must belong to your landlord-enabled account."><Box component="form" onSubmit={submitJob}><DialogContent dividers><Grid container spacing={2}>
-      <Grid size={12}><TextField required select fullWidth label="Property" value={job.property} onChange={(event) => setJob({ ...job, property: event.target.value })}>{properties.map((property) => <MenuItem key={property._id} value={property._id}>{property.title || property.name || property.referenceNumber || property.code || property._id}</MenuItem>)}</TextField>{selectedProperty && <Typography variant="caption" color="text.secondary">{selectedProperty.address?.fullAddress || [selectedProperty.address?.line1, selectedProperty.address?.locality, selectedProperty.address?.city, selectedProperty.address?.state].filter(Boolean).join(', ')}</Typography>}</Grid>
-      <Grid size={{ xs: 12, sm: 7 }}><TextField required fullWidth label="Job title" value={job.title} onChange={(event) => setJob({ ...job, title: event.target.value })} placeholder="Boundary and built-up area survey" /></Grid><Grid size={{ xs: 12, sm: 5 }}><TextField required select fullWidth label="Survey type" value={job.surveyType} onChange={(event) => setJob({ ...job, surveyType: event.target.value })}>{['land_measurement', 'boundary_survey', 'building_survey', 'valuation', 'topographic', 'condition_survey', 'legal_verification', 'other'].map((item) => <MenuItem key={item} value={item}>{label(item)}</MenuItem>)}</TextField></Grid>
-      <Grid size={{ xs: 12, sm: 6 }}><TextField required type="number" fullWidth label="Approximate size" value={job.landArea} onChange={(event) => setJob({ ...job, landArea: event.target.value })} /></Grid><Grid size={{ xs: 12, sm: 6 }}><TextField required select fullWidth label="Measurement unit" value={job.measurementUnit} onChange={(event) => setJob({ ...job, measurementUnit: event.target.value })}>{['sq_ft', 'sq_metre', 'acre', 'bigha', 'hectare'].map((item) => <MenuItem key={item} value={item}>{label(item)}</MenuItem>)}</TextField></Grid>
-      <Grid size={12}><TextField required fullWidth label="Purpose" value={job.purpose} onChange={(event) => setJob({ ...job, purpose: event.target.value })} placeholder="Sale verification, construction, boundary confirmation…" /></Grid>
-      <Grid size={{ xs: 12, sm: 6 }}><TextField required type="date" fullWidth label="Preferred visit date" InputLabelProps={{ shrink: true }} value={job.preferredVisitDate} onChange={(event) => setJob({ ...job, preferredVisitDate: event.target.value })} /></Grid><Grid size={{ xs: 12, sm: 6 }}><TextField required type="date" fullWidth label="Report deadline" InputLabelProps={{ shrink: true }} value={job.preferredCompletionDate} onChange={(event) => setJob({ ...job, preferredCompletionDate: event.target.value })} /></Grid>
-      <Grid size={{ xs: 12, sm: 4 }}><TextField required type="number" fullWidth label="Minimum budget" value={job.budgetMin} onChange={(event) => setJob({ ...job, budgetMin: event.target.value })} /></Grid><Grid size={{ xs: 12, sm: 4 }}><TextField required type="number" fullWidth label="Maximum budget" value={job.budgetMax} onChange={(event) => setJob({ ...job, budgetMax: event.target.value })} /></Grid><Grid size={{ xs: 12, sm: 4 }}><TextField select fullWidth label="Urgency" value={job.urgency} onChange={(event) => setJob({ ...job, urgency: event.target.value })}>{['normal', 'priority', 'urgent', 'emergency'].map((item) => <MenuItem key={item} value={item}>{label(item)}</MenuItem>)}</TextField></Grid>
-      <Grid size={{ xs: 12, md: 6 }}><TextField required fullWidth multiline minRows={3} label="Requirements (one per line)" value={job.requirements} onChange={(event) => setJob({ ...job, requirements: event.target.value })} /></Grid><Grid size={{ xs: 12, md: 6 }}><TextField required fullWidth multiline minRows={3} label="Expected deliverables (one per line)" value={job.deliverables} onChange={(event) => setJob({ ...job, deliverables: event.target.value })} /></Grid><Grid size={12}><TextField fullWidth multiline minRows={3} label="Additional description and site access notes" value={job.description} onChange={(event) => setJob({ ...job, description: event.target.value })} /></Grid>
-    </Grid></DialogContent><DialogActions><Button onClick={() => setCreateOpen(false)}>Cancel</Button><Button type="submit" variant="contained" disabled={busy || !job.property || !job.title.trim() || !job.purpose.trim() || !Number(job.landArea) || !Number(job.budgetMax) || Number(job.budgetMax) < Number(job.budgetMin) || !splitLines(job.requirements).length || !splitLines(job.deliverables).length}>{busy ? 'Publishing…' : 'Publish survey job'}</Button></DialogActions></Box></ProfessionalDialog>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {requestStatus==='pending'&&<Chip size="small" variant="outlined" color="warning" label="Waiting for Surveyor review"/>}
+                    {requestStatus==='accepted'&&item.project?._id&&<Button size="small" variant="contained" endIcon={<OpenInNewRounded/>} onClick={()=>navigate(`/app/survey-projects/${item.project._id}`)}>Open Project</Button>}
+                    {requestStatus==='accepted'&&!item.project?._id&&<Button size="small" variant="contained" onClick={()=>navigate('/app/survey-projects')}>Open Projects</Button>}
+                    {requestStatus==='rejected'&&<Button size="small" variant="outlined" onClick={()=>navigate('/surveyors')}>Request Another Surveyor</Button>}
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>;
+          })}</Grid>}
   </Box>;
 }
