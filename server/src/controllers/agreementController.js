@@ -176,7 +176,7 @@ function drawPartyMark(document, { title, name, mark, x, y, width = 485 }) {
   document.fillColor('#94A3B8').font('Times-Italic').fontSize(9).text(`${descriptor} not yet uploaded`, x + 14, y + 75, { width: width - 28, align: 'center' });
 }
 
-async function createStampPaperPdf({ title, body, stampPaper, agreementType, landlordName, tenantName, firstPartyMark, secondPartySignature, approvalStatus, approvedAt, durationMonths, startDate, endDate, cycleStartedAt, cycleEndsAt }) {
+async function createStampPaperPdf({ title, body, stampPaper, landlordName, tenantName, firstPartyMark, secondPartySignature }) {
   const [firstMark, secondMark] = await Promise.all([readPartyMark(firstPartyMark), readPartyMark(secondPartySignature)]);
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -231,62 +231,41 @@ async function createStampPaperPdf({ title, body, stampPaper, agreementType, lan
       paragraphGap: 8,
     });
 
-    document.moveDown(1.25).font('Times-Bold').fontSize(10.5).text('Parties', { lineGap: 2 });
-    document.font('Times-Roman').fontSize(10).text(
-      `First party (landlord-enabled tenant): ${landlordName || '____________________________'}`,
-      { lineGap: 5 },
-    );
-    document.text(
-      `Second party (applicant tenant): ${tenantName || '____________________________'}`,
-      { lineGap: 5 },
-    );
-    document.moveDown(.45).font('Times-Roman').fontSize(9).fillColor('#475569');
-    document.text(approvedAt
-      ? `First-party verification and approval: ${new Date(approvedAt).toLocaleString('en-IN')}`
-      : 'First-party verification and approval: pending', { lineGap: 4 });
+    // Finish the legal body with a compact two-party execution section.
+    // The old verification/term/cycle summary is intentionally omitted here:
+    // those values already belong to the agreement body/workflow, while this
+    // closing area is reserved only for the parties' names and signatures.
+    const signatureGap = 18;
+    const signatureHeight = 126;
+    const availableSignatureWidth = document.page.width - (legalMargin * 2);
+    const signatureColumnWidth = (availableSignatureWidth - signatureGap) / 2;
+    let signatureY = document.y + 22;
 
-    const termStart = startDate || cycleStartedAt;
-    const termEnd = endDate || cycleEndsAt;
-    if (Number(durationMonths || 0) > 0) {
-      document.text(`Agreement term: ${Number(durationMonths)} month${Number(durationMonths) === 1 ? '' : 's'}`, { lineGap: 4 });
-    }
-    if (termStart || termEnd) {
-      document.text(`Agreement dates: ${termStart ? formatAgreementDate(termStart) : '—'} to ${termEnd ? formatAgreementDate(termEnd) : '—'}`, { lineGap: 4 });
-      if (['rent', 'lease'].includes(agreementType)) {
-        document.text('Rent payment cycle: monthly, regardless of the agreement term.', { lineGap: 4 });
-      }
+    // Never split a signature box across pages. Subsequent agreement pages do
+    // not need the first-page e-Stamp certificate reserve.
+    if (signatureY + signatureHeight > document.page.height - legalMargin) {
+      document.addPage({ margin: legalMargin });
+      signatureY = legalMargin;
     }
 
-    document.addPage({ margin: legalMargin });
-    document.y = firstPageTopClearance;
-    document.fillColor('#111827').font('Times-Bold').fontSize(15).text('SIGNATURES / STAMP SEAL', {
-      align: 'center',
-      lineGap: 2,
-    });
-    document.moveDown(.5).fillColor('#64748B').font('Times-Roman').fontSize(9).text(
-      'Each mark is stored privately in SecureAsset and embedded in this agreement preview.',
-      { align: 'center', lineGap: 3 },
-    );
-
-    const signatureX = legalMargin;
-    const signatureWidth = document.page.width - (legalMargin * 2);
     drawPartyMark(document, {
-      title: 'FIRST PARTY · LANDLORD-ENABLED TENANT',
+      title: 'FIRST PARTY',
       name: landlordName,
       mark: firstMark,
-      x: signatureX,
-      y: 190,
-      width: signatureWidth,
+      x: legalMargin,
+      y: signatureY,
+      width: signatureColumnWidth,
     });
     drawPartyMark(document, {
-      title: 'SECOND PARTY · APPLICANT TENANT',
+      title: 'SECOND PARTY',
       name: tenantName,
       mark: secondMark,
-      x: signatureX,
-      y: 344,
-      width: signatureWidth,
+      x: legalMargin + signatureColumnWidth + signatureGap,
+      y: signatureY,
+      width: signatureColumnWidth,
     });
 
+    document.y = signatureY + signatureHeight;
     document.end();
   });
 }
@@ -1669,18 +1648,10 @@ export const previewAgreementRequest = asyncHandler(async (req, res) => {
     title: request.renderedTitle,
     body: request.renderedBody,
     stampPaper: normalizeStampPaper(request.stampPaper),
-    agreementType: request.agreementType,
     landlordName: request.landlordName,
     tenantName: request.tenantName,
     firstPartyMark: request.firstPartyMark,
     secondPartySignature: request.secondPartySignature,
-    approvalStatus: visibleRequestStatus(request),
-    approvedAt: request.firstPartyApprovalAt,
-    durationMonths: request.durationMonths || request.cycleTermMonths,
-    startDate: request.startDate,
-    endDate: request.endDate,
-    cycleStartedAt: request.cycleStartedAt,
-    cycleEndsAt: request.cycleEndsAt,
   });
   res.setHeader('Cache-Control', 'private, no-store');
   res.setHeader('Content-Type', 'application/pdf');

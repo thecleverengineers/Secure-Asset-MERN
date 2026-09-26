@@ -35,3 +35,16 @@ test('agreement papers use the modern A4 e-Stamp layout', () => {
   assert.match(models, /certificateSpaceMm/);
   assert.match(models, /enum: \['e_stamp'\]/);
 });
+
+
+test('agreement PDF closes with side-by-side first and second party signatures', () => {
+  const controller = read('server/src/controllers/agreementController.js');
+
+  assert.match(controller, /const signatureColumnWidth = \(availableSignatureWidth - signatureGap\) \/ 2/);
+  assert.match(controller, /title: 'FIRST PARTY'/);
+  assert.match(controller, /title: 'SECOND PARTY'/);
+  assert.match(controller, /x: legalMargin \+ signatureColumnWidth \+ signatureGap/);
+  assert.doesNotMatch(controller, /text\('Parties'/);
+  assert.doesNotMatch(controller, /First-party verification and approval:/);
+  assert.doesNotMatch(controller, /SIGNATURES \/ STAMP SEAL/);
+});
