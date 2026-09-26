@@ -116,7 +116,7 @@ const items: Record<string, MenuDef> = {
   'design-studio': { key: 'design-studio', label: 'Design Studio', icon: PaletteRounded },
   'role-permissions': { key: 'role-permissions', label: 'Role & Permissions', icon: AdminPanelSettingsRounded },
   'property-management': { key: 'property-management', label: 'Property Structure', icon: ApartmentRounded },
-  'agreement-templates': { key: 'agreement-templates', label: 'Manage Templates', icon: DescriptionRounded },
+  'agreement-templates': { key: 'agreement-templates', label: 'Agreement Papers', icon: DescriptionRounded },
   'tenant-profiles': { key: 'tenant-profiles', label: 'Tenant Profiles', icon: PersonRounded },
   'tenant-kyc': { key: 'tenant-kyc', label: 'Tenant KYC', icon: BadgeRounded },
   occupants: { key: 'occupants', label: 'Family & Occupants', icon: PeopleRounded },
@@ -218,6 +218,7 @@ const LANDLORD_SUBSCRIBER_WORKSPACE: Array<Pick<MenuDef, 'key' | 'label' | 'path
   { key: 'my-listings', label: 'My Listings', path: '/app/my-listings', icon: ApartmentRounded, section: 'general', sectionOrder: 10, sortOrder: 20 },
   { key: 'survey-jobs', label: 'My Survey Quotes', path: '/app/survey-jobs', icon: RequestQuoteRounded, section: 'general', sectionOrder: 10, sortOrder: 25 },
   { key: 'documents', label: 'Documents', path: '/app/documents', icon: FolderRounded, section: 'general', sectionOrder: 10, sortOrder: 30 },
+  { key: 'agreement-templates', label: 'Agreement Papers', path: '/app/agreement-templates', icon: DescriptionRounded, section: 'general', sectionOrder: 10, sortOrder: 40 },
   { key: 'applications', label: 'Tenant Applications', path: '/app/applications', icon: FactCheckRounded, section: 'tenancy', sectionOrder: 30, sortOrder: 10 },
   { key: 'tenants', label: 'Manage Tenants', path: '/app/tenants', icon: PeopleRounded, section: 'tenancy', sectionOrder: 30, sortOrder: 20 },
   { key: 'tenancies', label: 'Tenancies', path: '/app/tenancies', icon: HomeWorkRounded, section: 'tenancy', sectionOrder: 30, sortOrder: 30 },
@@ -306,7 +307,7 @@ function menuKeysFor(user: any) {
 export const moduleLabel = (key: string) => items[key]?.label || key.replaceAll('-', ' ').replace(/\b\w/g, (m) => m.toUpperCase());
 
 function configuredModuleLabel(module: Record<string, any>) {
-  const baseLabel = module.key === 'agreement-templates' ? 'Manage Templates' : module.label;
+  const baseLabel = module.key === 'agreement-templates' ? 'Agreement Papers' : module.label;
   return SURVEYOR_WORKFLOW_LABELS[module.key] || baseLabel;
 }
 
