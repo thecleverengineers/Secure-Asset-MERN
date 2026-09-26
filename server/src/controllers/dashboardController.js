@@ -269,8 +269,9 @@ function cycleTimeLeft(endsAt, now = new Date()) {
   return { milliseconds, days, label: days === 1 ? '1 day left' : `${days} days left`, expired: false };
 }
 
-function rentInvoicePayload(invoice) {
+function rentInvoicePayload(invoice, payment = null) {
   if (!invoice) return null;
+  const verification = payment?.paymentVerification || {};
   return {
     id: String(invoice._id),
     invoiceNumber: invoice.invoiceNumber,
@@ -282,6 +283,39 @@ function rentInvoicePayload(invoice) {
     paidAmount: Number(invoice.paidAmount || 0),
     balanceAmount: Number(invoice.balanceAmount ?? invoice.totalAmount ?? 0),
     status: invoice.status,
+    payment: payment ? {
+      id: String(payment._id),
+      invoiceNumber: payment.invoiceNumber || '',
+      amount: Number(payment.amount || 0),
+      paidAmount: Number(payment.paidAmount || 0),
+      status: payment.status,
+      method: payment.method || '',
+      transactionId: payment.transactionId || '',
+      proofUrl: payment.proofUrl || '',
+      submittedAt: verification.submittedAt || null,
+      submittedBy: verification.submittedBy || null,
+      verificationStatus: verification.status || 'awaiting_tenant',
+      approvedAt: verification.approvedAt || null,
+      rejectedAt: verification.rejectedAt || null,
+      rejectionReason: verification.rejectionReason || '',
+      submissionCount: Number(verification.submissionCount || 0),
+      paidAt: payment.paidAt || null,
+    } : {
+      id: '',
+      amount: Number(invoice.balanceAmount ?? invoice.totalAmount ?? 0),
+      paidAmount: 0,
+      status: invoice.status,
+      method: '',
+      transactionId: '',
+      proofUrl: '',
+      submittedAt: null,
+      verificationStatus: 'awaiting_tenant',
+      approvedAt: null,
+      rejectedAt: null,
+      rejectionReason: '',
+      submissionCount: 0,
+      paidAt: null,
+    },
   };
 }
 
@@ -318,6 +352,21 @@ export const myPropertyRentCycle = asyncHandler(async (req, res) => {
     }).sort({ cycleEndsAt: -1, updatedAt: -1 }).lean(),
     RentalInvoice.find({ tenancy: tenancy._id, tenant: req.user._id }).sort({ dueDate: -1, createdAt: -1 }).limit(12).lean(),
   ]);
+
+  const invoiceIds = invoices.map((invoice) => invoice._id).filter(Boolean);
+  const rentPayments = invoiceIds.length
+    ? await Payment.find({
+      rentalInvoice: { $in: invoiceIds },
+      payer: req.user._id,
+      type: 'rent',
+      'gateway.source': 'rental_invoice',
+    }).sort({ updatedAt: -1, createdAt: -1 }).lean()
+    : [];
+  const paymentByInvoice = new Map();
+  rentPayments.forEach((payment) => {
+    const key = String(payment.rentalInvoice || '');
+    if (key && !paymentByInvoice.has(key)) paymentByInvoice.set(key, payment);
+  });
 
   const monthlyInvoice = invoices.find((invoice) => String(invoice.billingMonth || '') === activeBillingMonth) || null;
   // An overdue invoice from an earlier month remains visible in the invoice
@@ -380,8 +429,8 @@ export const myPropertyRentCycle = asyncHandler(async (req, res) => {
         cancellationState: agreement.cancellationResolution || 'none',
         previewAvailable: true,
       } : null,
-      currentInvoice: rentInvoicePayload(currentInvoice),
-      invoices: invoices.map(rentInvoicePayload),
+      currentInvoice: rentInvoicePayload(currentInvoice, currentInvoice ? paymentByInvoice.get(String(currentInvoice._id)) : null),
+      invoices: invoices.map((item) => rentInvoicePayload(item, paymentByInvoice.get(String(item._id)) || null)),
     },
   });
 });

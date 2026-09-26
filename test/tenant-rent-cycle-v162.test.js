@@ -69,7 +69,7 @@ test('rent-cycle page and API remain tenant scoped, text-first, and tied to the 
   assert.match(dashboardController, /termMonths: 1/);
   assert.match(myPropertyPage, /data-secureasset-my-property-cycle-card="text-first-v164"/);
   assert.doesNotMatch(myPropertyPage, /OptimizedImage/);
-  assert.match(rentCyclePage, /data-secureasset-my-rent-cycle="tenant-secure-monthly-countdown-v164"/);
+  assert.match(rentCyclePage, /data-secureasset-my-rent-cycle="tenant-rent-payment-history-v221"/);
   assert.match(rentCyclePage, /Time left in this monthly rent cycle/);
   assert.doesNotMatch(rentCyclePage, /OptimizedImage/);
   assert.match(rentCyclePage, /fetchAgreementPreviewBlob/);
@@ -93,4 +93,19 @@ test('rental automation creates one protected invoice per tenancy/month and clai
   ]) assert.ok(reminderService.includes(phrase), `missing secured reminder control: ${phrase}`);
   for (const phrase of ['monthlyRentCycleBounds', 'ensureMonthlyRentalInvoice', 'cycleStartsAt', 'cycleEndsAt']) assert.ok(rentalBilling.includes(phrase), `missing recurring invoice control: ${phrase}`);
   for (const phrase of ['RentalInvoiceSchema.index({ tenancy: 1, billingMonth: 1 }, { unique: true })', 'rentCycleReminder:', "status: { type: String, enum: ['processing', 'queued', 'failed'] }"]) assert.ok(rentalModel.includes(phrase), `missing invoice reminder state: ${phrase}`);
+});
+
+
+test('tenant rent-cycle page exposes monthly payment submission and verification status', () => {
+  assert.match(dashboardController, /rentInvoicePayload\(invoice, payment = null\)/);
+  assert.match(dashboardController, /'gateway\.source': 'rental_invoice'/);
+  assert.match(dashboardController, /verificationStatus: verification\.status \|\| 'awaiting_tenant'/);
+  assert.match(dashboardController, /paymentByInvoice/);
+  assert.match(rentCyclePage, /data-secureasset-rent-payment="tenant-pay-and-status-v221"/);
+  assert.match(rentCyclePage, /submitRentalInvoicePayment/);
+  assert.match(rentCyclePage, /Pay Rent/);
+  assert.match(rentCyclePage, /Awaiting landlord approval/);
+  assert.match(rentCyclePage, /Payment rejected/);
+  assert.match(rentCyclePage, /Submit Rent Payment/);
+  assert.match(rentCyclePage, /monthText\(item\.billingMonth\)/);
 });
