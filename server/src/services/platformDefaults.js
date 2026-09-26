@@ -1,6 +1,6 @@
 import { RBAC_PLATFORM_MODULES } from './rbac.js';
 const SECTION_ORDER = Object.freeze({
-  main: 10, general: 10,
+  main: 10, general: 0,
   user_management: 20, property_management: 30, rent_management: 40, lease_management: 50, sales_management: 60,
   payments: 70, subscriptions: 80, surveyors: 90, landlords: 100, communications: 110, complaints: 120, tenant_management: 130,
   operations: 140, applications: 150, tenancy: 160, settings: 170,
