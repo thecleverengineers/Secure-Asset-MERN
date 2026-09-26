@@ -271,6 +271,7 @@ const TenantProfileSchema = new Schema({
 
 const TenantKycSchema = new Schema({
   user: { ...objectId('User', true), unique: true, index: true },
+  whatsappNumber: { type: String, trim: true, maxlength: 20 },
   status: { type: String, enum: ['not_started', 'incomplete', 'submitted', 'under_review', 'changes_required', 'verified', 'rejected', 'expired', 'suspended'], default: 'not_started', index: true },
   governmentIdentity: { documentType: String, documentId: String, frontFile: objectId('DriveFile'), backFile: objectId('DriveFile') },
   addressProofDetails: { documentType: String, documentId: String, frontFile: objectId('DriveFile'), backFile: objectId('DriveFile') },
