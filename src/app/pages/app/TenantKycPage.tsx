@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import CloudUploadRounded from '@mui/icons-material/CloudUploadRounded';
 import SaveRounded from '@mui/icons-material/SaveRounded';
-import { getResource, submitTenantKyc, uploadDocument } from '../../services/api';
+import { getResource, submitTenantKyc, updateTenantKycWhatsapp, uploadDocument } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/layout/PageHeader';
 import TenantKycDocumentPreview, { tenantKycFileId } from '../../components/kyc/TenantKycDocumentPreview';
@@ -32,18 +32,21 @@ const KYC_DOCUMENT_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.pdf']);
 const PASSPORT_PHOTO_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png']);
 
 type KycForm = {
+  whatsappNumber: string;
   governmentIdentityType: string; governmentIdentityNumber: string; governmentIdentityFrontFile: string; governmentIdentityBackFile: string;
   addressProofType: string; addressProofNumber: string; addressProofFrontFile: string; addressProofBackFile: string;
   passportPhotoFile: string;
 };
 
 const emptyForm: KycForm = {
+  whatsappNumber: '',
   governmentIdentityType: '', governmentIdentityNumber: '', governmentIdentityFrontFile: '', governmentIdentityBackFile: '',
   addressProofType: '', addressProofNumber: '', addressProofFrontFile: '', addressProofBackFile: '', passportPhotoFile: '',
 };
 
 function valueFromRecord(record: any): KycForm {
   return {
+    whatsappNumber: record?.whatsappNumber || '',
     governmentIdentityType: record?.governmentIdentity?.documentType || '',
     governmentIdentityNumber: record?.governmentIdentity?.documentId || '',
     governmentIdentityFrontFile: tenantKycFileId(record?.governmentIdentity?.frontFile || record?.governmentId),
@@ -54,6 +57,16 @@ function valueFromRecord(record: any): KycForm {
     addressProofBackFile: tenantKycFileId(record?.addressProofDetails?.backFile),
     passportPhotoFile: tenantKycFileId(record?.passportPhoto?.file || record?.profilePhoto),
   };
+}
+
+function normalizeWhatsAppInput(value: string) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.length === 12 && digits.startsWith('91')) return digits.slice(2);
+  if (digits.length === 11 && digits.startsWith('0')) return digits.slice(1);
+  return digits;
+}
+function validWhatsApp(value: string) {
+  return /^[6-9]\d{9}$/.test(normalizeWhatsAppInput(value));
 }
 
 function UploadDropZone({ label, helper, value, accept, onUpload, disabled }: { label: string; helper?: string; value?: string; accept?: string; disabled?: boolean; onUpload: (file: File) => Promise<void> }) {
@@ -99,7 +112,13 @@ export default function TenantKycPage() {
     try {
       const result = await getResource('tenant-kyc', { limit: 10 });
       const own = result.data.find((item: any) => String(item.user?._id || item.user) === user?._id) || result.data[0];
-      if (own) { setRecord(own); setForm(valueFromRecord(own)); }
+      if (own) {
+        setRecord(own);
+        const next = valueFromRecord(own);
+        setForm({ ...next, whatsappNumber: next.whatsappNumber || String((user as any)?.whatsappNumber || (user as any)?.phone || '') });
+      } else {
+        setForm((current) => ({ ...current, whatsappNumber: String((user as any)?.whatsappNumber || (user as any)?.phone || '') }));
+      }
     } catch (cause) { setError((cause as Error).message); }
     finally { setLoading(false); }
   }
@@ -108,7 +127,8 @@ export default function TenantKycPage() {
   const status = String(record?.status || user?.kycStatus || 'not_started');
   const verified = status === 'verified';
   const progress = STATUS_PROGRESS[status] || 10;
-  const complete = useMemo(() => Boolean(form.governmentIdentityType && form.governmentIdentityNumber && form.governmentIdentityFrontFile && form.addressProofType && form.addressProofNumber && form.addressProofFrontFile && form.addressProofBackFile && form.passportPhotoFile), [form]);
+  const whatsappValid = validWhatsApp(form.whatsappNumber);
+  const complete = useMemo(() => Boolean(whatsappValid && form.governmentIdentityType && form.governmentIdentityNumber && form.governmentIdentityFrontFile && form.addressProofType && form.addressProofNumber && form.addressProofFrontFile && form.addressProofBackFile && form.passportPhotoFile), [form, whatsappValid]);
   function setField(name: keyof KycForm, value: string) { setForm((current) => ({ ...current, [name]: value })); }
   async function uploadTo(field: keyof KycForm, file: File, category: string) {
     const extension = `.${file.name.split('.').pop()?.toLowerCase() || ''}`;
@@ -120,11 +140,25 @@ export default function TenantKycPage() {
     const result = await uploadDocument(file, { category, type: 'tenant_kyc', description: `${category.replaceAll('_', ' ')} uploaded for tenant KYC`, visibility: 'private' });
     setField(field, String((result.data as any).driveFile || result.data._id));
   }
+  async function saveWhatsAppNumber() {
+    setError(''); setNotice('');
+    if (!whatsappValid) { setError('Enter a valid 10-digit Indian WhatsApp number.'); return; }
+    setSaving(true);
+    try {
+      const result = await updateTenantKycWhatsapp(normalizeWhatsAppInput(form.whatsappNumber));
+      setRecord(result.data);
+      setNotice(result.message || 'WhatsApp number updated for rent reminders.');
+      await refreshUser();
+    } catch (cause) { setError((cause as Error).message); }
+    finally { setSaving(false); }
+  }
+
   async function submit() {
     setError(''); setNotice(''); setSaving(true);
     try {
-      if (!complete) throw new Error('Please complete Government Identity, Address Proof, and Passport-Size Photograph uploads before submitting.');
+      if (!complete) throw new Error('Please add a valid WhatsApp number and complete Government Identity, Address Proof, and Passport-Size Photograph before submitting.');
       const payload = {
+        whatsappNumber: normalizeWhatsAppInput(form.whatsappNumber),
         governmentIdentity: { documentType: form.governmentIdentityType, documentId: form.governmentIdentityNumber, frontFile: form.governmentIdentityFrontFile, ...(form.governmentIdentityBackFile ? { backFile: form.governmentIdentityBackFile } : {}) },
         addressProofDetails: { documentType: form.addressProofType, documentId: form.addressProofNumber, frontFile: form.addressProofFrontFile, backFile: form.addressProofBackFile },
         passportPhoto: { file: form.passportPhotoFile, requirementsAccepted: true },
@@ -143,9 +177,24 @@ export default function TenantKycPage() {
   return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 6, maxWidth: 1180 }}>
     <PageHeader eyebrow="Secure onboarding" title="Tenant KYC verification" description="Complete your identity, address and photograph checks to activate the tenant workspace and property workflows." meta={<Chip size="small" label={status.replaceAll('_', ' ')} color={verified ? 'success' : complete ? 'warning' : 'default'} />} />
     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}{notice && <Alert severity="success" sx={{ mb: 2 }}>{notice}</Alert>}{record?.reason && <Alert severity={verified ? 'success' : 'warning'} sx={{ mb: 2 }}>{record.reason}</Alert>}
-    <Card className="sa-surface-card" elevation={0} sx={{ mb: 3 }}><CardContent><Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={1} mb={1}><Typography fontWeight={850}>Verification progress</Typography><Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>{progress}% complete</Typography></Stack><LinearProgress variant="determinate" value={progress} sx={{ height: 9 }} /><Typography color="text.secondary" fontSize={12} mt={1}>{verified ? 'Your KYC is verified.' : complete ? 'All required fields are complete. Submit for review to unlock dashboard access.' : 'Fill all three steps below to complete your KYC.'}</Typography></CardContent></Card>
+    <Card className="sa-surface-card" elevation={0} sx={{ mb: 3 }}><CardContent><Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={1} mb={1}><Typography fontWeight={850}>Verification progress</Typography><Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>{progress}% complete</Typography></Stack><LinearProgress variant="determinate" value={progress} sx={{ height: 9 }} /><Typography color="text.secondary" fontSize={12} mt={1}>{verified ? 'Your KYC is verified.' : complete ? 'All required fields are complete. Submit for review to unlock dashboard access.' : 'Fill all required steps below, including your WhatsApp contact, to complete your KYC.'}</Typography></CardContent></Card>
 
     <Grid container spacing={2.5}>
+      <Grid size={{ xs: 12 }}><Card className="sa-surface-card" elevation={0}><CardContent>
+        <Typography variant="h6" fontWeight={950}>Step D — WhatsApp Contact</Typography>
+        <Typography color="text.secondary" fontSize={13} mb={2}>Required for SecureAsset rent reminders. Enter the WhatsApp number where monthly rent reminders must be delivered. Indian mobile numbers only.</Typography>
+        <Grid container spacing={2} alignItems="center">
+          <Grid size={{ xs: 12, md: 8 }}><TextField
+            fullWidth required label="WhatsApp number" placeholder="+91 98765 43210"
+            value={form.whatsappNumber}
+            onChange={(e) => setField('whatsappNumber', e.target.value)}
+            error={Boolean(form.whatsappNumber) && !whatsappValid}
+            helperText={Boolean(form.whatsappNumber) && !whatsappValid ? 'Enter a valid 10-digit Indian WhatsApp number.' : 'Rent reminders are sent to this number at 8:30 AM during the reminder period.'}
+            inputProps={{ inputMode: 'tel', maxLength: 16 }}
+          /></Grid>
+          {verified && <Grid size={{ xs: 12, md: 4 }}><Button fullWidth variant="outlined" size="large" onClick={() => void saveWhatsAppNumber()} disabled={saving || !whatsappValid}>{saving ? 'Saving…' : 'Update WhatsApp Number'}</Button></Grid>}
+        </Grid>
+      </CardContent></Card></Grid>
       <Grid size={{ xs: 12 }}><Card className="sa-surface-card" elevation={0}><CardContent>
         <Typography variant="h6" fontWeight={950}>Step A — Government Identity</Typography><Typography color="text.secondary" fontSize={13} mb={2}>Choose one government identity document and upload the front side. The back side is optional when your document has no reverse side.</Typography>
         <Grid container spacing={2}>
