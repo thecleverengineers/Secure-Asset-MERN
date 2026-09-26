@@ -252,7 +252,7 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
       const blob = await fetchAgreementPreviewBlob(requestId);
       const url = URL.createObjectURL(blob);
       const tab = window.open(url, '_blank', 'noopener,noreferrer');
-      if (!tab) onError?.('Allow pop-ups to preview the stamp-paper agreement');
+      if (!tab) onError?.('Allow pop-ups to preview the A4 e-Stamp agreement');
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
       if (tenantSide && request.status === 'sent') await reload();
     } catch (error) {
@@ -537,7 +537,7 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
             <DescriptionRounded color="primary" />
             <Box>
               <Typography sx={{ fontWeight: 850 }}>{typeLabel(type)} agreement</Typography>
-              <Typography variant="body2" color="text.secondary">Private stamp-paper agreement with two-party signing and first-party verification before a rent or lease cycle starts.</Typography>
+              <Typography variant="body2" color="text.secondary">Private A4 e-Stamp agreement with two-party signing and first-party verification before a rent or lease cycle starts.</Typography>
             </Box>
           </Stack>
           <Chip size="small" variant="outlined" label={statusLabel(application.status)} />
@@ -777,7 +777,7 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
                     : <>The applicant tenant’s signature is submitted and waiting for the landlord-enabled first party to verify and approve it. The {type === 'lease' ? 'lease' : type === 'rent' ? 'rent' : 'sale'} workflow has not started yet.</>}
                 </Alert>}
 
-                {status === 'approved' && !cycleEnabled && <Alert severity="success">The sale agreement is approved. Both parties can preview or download the completed stamp-paper paper.</Alert>}
+                {status === 'approved' && !cycleEnabled && <Alert severity="success">The sale agreement is approved. Both parties can preview or download the completed A4 e-Stamp agreement.</Alert>}
 
                 {cycleActive && <Paper variant="outlined" sx={{ p: { xs: 1.15, sm: 1.4 }, borderRadius: 2.2, bgcolor: 'background.paper' }} data-secureasset-agreement-cycle="approved-rent-lease-lifecycle-v86">
                   <Stack spacing={1.1}>

@@ -18,9 +18,16 @@ export const AGREEMENT_REQUEST_STATUSES = Object.freeze([
 
 const StampPaperSchema = new Schema({
   enabled: { type: Boolean, default: true },
+  // New Secure Asset agreements use the modern e-Stamp workflow. The
+  // certificate itself is issued externally by SHCIL/state portals; Secure
+  // Asset only preserves the legal-document layout beneath that certificate.
+  format: { type: String, enum: ['e_stamp'], default: 'e_stamp' },
   state: { type: String, trim: true, maxlength: 120, default: '' },
   denomination: { type: Number, min: 0, default: 0 },
   series: { type: String, trim: true, maxlength: 80, default: '' },
+  certificateSpaceMm: { type: Number, min: 55, max: 95, default: 70 },
+  // Keep historic values readable, while the controller normalises every new
+  // or updated agreement to A4.
   paperSize: { type: String, enum: ['A4', 'A3', 'Letter'], default: 'A4' },
 }, { _id: false });
 

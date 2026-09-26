@@ -24,12 +24,12 @@ type TemplateForm = {
   name: string;
   title: string;
   body: string;
-  stampPaper: { enabled: boolean; state: string; denomination: string; series: string; paperSize: 'A4' | 'A3' | 'Letter' };
+  stampPaper: { enabled: boolean; format: 'e_stamp'; state: string; denomination: string; series: string; certificateSpaceMm: string; paperSize: 'A4' };
 };
 
 const emptyForm = (): TemplateForm => ({
   agreementType: 'rent', name: '', title: '', body: '',
-  stampPaper: { enabled: true, state: '', denomination: '0', series: '', paperSize: 'A4' },
+  stampPaper: { enabled: true, format: 'e_stamp', state: '', denomination: '0', series: '', certificateSpaceMm: '70', paperSize: 'A4' },
 });
 
 function formFrom(template: any): TemplateForm {
@@ -40,10 +40,12 @@ function formFrom(template: any): TemplateForm {
     body: template.body || '',
     stampPaper: {
       enabled: template.stampPaper?.enabled !== false,
+      format: 'e_stamp',
       state: template.stampPaper?.state || '',
       denomination: String(template.stampPaper?.denomination || 0),
       series: template.stampPaper?.series || '',
-      paperSize: template.stampPaper?.paperSize || 'A4',
+      certificateSpaceMm: String(template.stampPaper?.certificateSpaceMm || 70),
+      paperSize: 'A4',
     },
   };
 }
@@ -93,7 +95,7 @@ export default function AgreementTemplatesPage() {
     try {
       const payload = {
         agreementType: form.agreementType, name: form.name, title: form.title, body: form.body,
-        stampPaper: { ...form.stampPaper, denomination: Number(form.stampPaper.denomination || 0) },
+        stampPaper: { ...form.stampPaper, format: 'e_stamp', paperSize: 'A4', denomination: Number(form.stampPaper.denomination || 0), certificateSpaceMm: Number(form.stampPaper.certificateSpaceMm || 70) },
       };
       if (editing?._id) await updateAgreementTemplate(editing._id, payload);
       else await createAgreementTemplate(payload);
@@ -123,15 +125,15 @@ export default function AgreementTemplatesPage() {
 
   const setStamp = (key: string, value: string | boolean) => setForm((current) => ({ ...current, stampPaper: { ...current.stampPaper, [key]: value } }));
 
-  return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }} data-secureasset-agreement-templates="landlord-agreement-papers-v226" data-secureasset-agreement-template-preview="clickable-preview-v77">
+  return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }} data-secureasset-agreement-templates="landlord-agreement-papers-v228" data-secureasset-agreement-template-preview="modern-estamp-a4-v1">
     <CompactPageToolbar
       marker="agreement-templates-toolbar-v153"
       title="Agreement Papers"
-      description="Create and update your own rent, lease and sale agreement papers for the two-party signature workflow."
+      description="Create and update modern A4 e-Stamp agreement papers for the Secure Asset two-party signature workflow."
       actions={<Button variant="contained" startIcon={<AddRounded />} onClick={() => openEditor()}>Add Agreement Paper</Button>}
     />
     {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>{error}</Alert>}
-    <Alert severity="info" sx={{ mb: 2 }}>Agreement papers are private to your landlord account. Property, tenant, landlord, room, rent and deposit details are filled automatically when the paper is used. Updating a paper creates a new version without changing already-rendered agreements.</Alert>
+    <Alert severity="info" sx={{ mb: 2 }}>Agreement papers are private to your landlord account. Secure Asset uses a modern A4 e-Stamp layout: the top certificate zone remains blank for the SHCIL/state-issued e-Stamp print, while the legal agreement begins below it. Property, tenant, landlord, room, rent and deposit details are filled automatically when the paper is used.</Alert>
     {loading ? <Box sx={{ py: 10, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box> : <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 1.7 }}>
       {agreementTypes.map((type) => {
         const records = templates.filter((template) => template.agreementType === type);
@@ -173,7 +175,7 @@ export default function AgreementTemplatesPage() {
       fullWidth
       maxWidth="md"
       professionalTitle={previewing ? `${labels[previewing.agreementType as AgreementType] || 'Agreement'} paper preview` : 'Agreement paper preview'}
-      professionalSubtitle="Review your agreement paper and stamp-paper settings before using it for an accepted application."
+      professionalSubtitle="Review the modern A4 e-Stamp layout before using it for an accepted application."
       enableMinimize={false}
     >
       <DialogContent dividers>
@@ -185,23 +187,44 @@ export default function AgreementTemplatesPage() {
             </Box>
             <Chip size="small" variant="outlined" label={previewing.active === false ? 'Inactive' : 'Active'} color={previewing.active === false ? 'default' : 'success'} />
           </Stack>
-          <Paper elevation={0} sx={{ p: { xs: 2, sm: 4 }, border: '1px solid', borderColor: 'divider', bgcolor: '#fffdf8', borderRadius: 2.5 }}>
-            <Typography align="center" sx={{ fontWeight: 900, letterSpacing: '.08em', fontSize: 11, color: 'text.secondary' }}>STAMP PAPER AGREEMENT</Typography>
-            <Typography align="center" sx={{ mt: .7, fontWeight: 900, fontSize: { xs: 17, sm: 22 }, color: 'text.primary' }}>{previewing.title}</Typography>
-            <Divider sx={{ my: 2 }} />
-            <Typography sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.85, fontSize: { xs: 13, sm: 14 } }}>{previewing.body}</Typography>
-            <Box sx={{ mt: 3, pt: 1.5, borderTop: '1px dashed', borderColor: 'divider' }}>
-              <Typography sx={{ fontWeight: 850, fontSize: 12 }}>Stamp-paper settings</Typography>
-              <Typography variant="caption" color="text.secondary">
-                {previewing.stampPaper?.enabled === false ? 'Stamp paper not specified' : 'Stamp paper enabled'}
-                {previewing.stampPaper?.state ? ` · State: ${previewing.stampPaper.state}` : ''}
-                {Number(previewing.stampPaper?.denomination || 0) > 0 ? ` · Denomination: INR ${Number(previewing.stampPaper.denomination).toLocaleString('en-IN')}` : ''}
-                {previewing.stampPaper?.series ? ` · Series: ${previewing.stampPaper.series}` : ''}
-                {previewing.stampPaper?.paperSize ? ` · ${previewing.stampPaper.paperSize}` : ''}
-              </Typography>
-            </Box>
-          </Paper>
-          <Alert severity="info">Placeholders such as tenant, landlord, property, room and amount are filled automatically when this agreement paper is selected for an accepted application.</Alert>
+          <Box sx={{ overflowX: 'auto', p: { xs: 1, sm: 2 }, bgcolor: '#f4f6f8', borderRadius: 2.5 }}>
+            <Paper
+              elevation={0}
+              data-secureasset-estamp-paper="a4-modern-estamp-v1"
+              sx={{
+                width: '210mm',
+                minHeight: '297mm',
+                mx: 'auto',
+                bgcolor: '#fff',
+                color: '#111',
+                border: '1px solid #e5e7eb',
+                borderRadius: 0,
+                boxShadow: '0 18px 55px rgba(15, 23, 42, 0.12)',
+                boxSizing: 'border-box',
+                overflow: 'hidden',
+              }}
+            >
+              <Box
+                aria-hidden
+                data-secureasset-estamp-reserved-space="certificate-zone"
+                sx={{ height: `${Math.min(95, Math.max(55, Number(previewing.stampPaper?.certificateSpaceMm || 70)))}mm` }}
+              />
+              <Box sx={{ mx: '31.75mm', pb: '31.75mm', fontFamily: '"Times New Roman", Times, serif' }}>
+                <Typography align="center" sx={{ fontFamily: 'inherit', fontWeight: 700, letterSpacing: '.18em', fontSize: 10, color: '#334155' }}>SECURE ASSET</Typography>
+                <Typography align="center" sx={{ mt: .7, fontFamily: 'inherit', fontWeight: 700, fontSize: 21, lineHeight: 1.25, color: '#111827' }}>{previewing.title}</Typography>
+                <Divider sx={{ my: 2, borderColor: '#cbd5e1' }} />
+                <Typography sx={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', lineHeight: 1.5, fontSize: 14, textAlign: 'justify', color: '#111827' }}>{previewing.body}</Typography>
+              </Box>
+            </Paper>
+          </Box>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={.8} flexWrap="wrap" useFlexGap>
+            <Chip size="small" variant="outlined" label="Modern e-Stamp · A4 (210 × 297 mm)" />
+            <Chip size="small" variant="outlined" label={`Reserved e-Stamp certificate space: ${Math.min(95, Math.max(55, Number(previewing.stampPaper?.certificateSpaceMm || 70)))} mm`} />
+            {previewing.stampPaper?.state && <Chip size="small" variant="outlined" label={`State: ${previewing.stampPaper.state}`} />}
+            {Number(previewing.stampPaper?.denomination || 0) > 0 && <Chip size="small" variant="outlined" label={`Denomination: INR ${Number(previewing.stampPaper.denomination).toLocaleString('en-IN')}`} />}
+            {previewing.stampPaper?.series && <Chip size="small" variant="outlined" label={`Series: ${previewing.stampPaper.series}`} />}
+          </Stack>
+          <Alert severity="info">The PDF keeps the top e-Stamp certificate area completely blank and pure white. The legal body uses Times New Roman-style typography, justified alignment, 1.5 line spacing and 1.25-inch working margins.</Alert>
         </Stack>}
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
@@ -210,7 +233,7 @@ export default function AgreementTemplatesPage() {
       </DialogActions>
     </ProfessionalDialog>
 
-    <ProfessionalDialog open={Boolean(editing)} onClose={closeEditor} fullWidth maxWidth="md" professionalTitle={editing?._id ? 'Update Agreement Paper' : 'Add Agreement Paper'} professionalSubtitle="This paper belongs to your landlord account and is rendered separately for each accepted application." enableMinimize={false}>
+    <ProfessionalDialog open={Boolean(editing)} onClose={closeEditor} fullWidth maxWidth="md" professionalTitle={editing?._id ? 'Update Agreement Paper' : 'Add Agreement Paper'} professionalSubtitle="This private landlord paper is rendered as a modern A4 e-Stamp agreement for each accepted application." enableMinimize={false}>
       <Box component="form" onSubmit={save}>
         <DialogContent dividers>
           <Stack spacing={1.7}>
@@ -222,12 +245,17 @@ export default function AgreementTemplatesPage() {
             </Stack>
             <TextField required label="Document title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
             <TextField required label="Agreement paper content" value={form.body} onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))} multiline minRows={12} helperText={'Supported placeholders: ' + placeholderHelp} />
-            <Typography sx={{ fontSize: 12, fontWeight: 850 }}>Stamp-paper settings</Typography>
+            <Typography sx={{ fontSize: 12, fontWeight: 850 }}>Modern e-Stamp settings</Typography>
+            <Alert severity="info" sx={{ py: .35 }}>Secure Asset uses standard A4 only. The e-Stamp certificate/header itself is not generated by Secure Asset; the reserved top area stays blank for the official SHCIL/state-portal certificate print.</Alert>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.3}>
               <TextField fullWidth label="State" value={form.stampPaper.state} onChange={(event) => setStamp('state', event.target.value)} />
               <TextField fullWidth type="number" inputProps={{ min: 0 }} label="Denomination (INR)" value={form.stampPaper.denomination} onChange={(event) => setStamp('denomination', event.target.value)} />
-              <TextField fullWidth label="Series" value={form.stampPaper.series} onChange={(event) => setStamp('series', event.target.value)} />
-              <TextField select fullWidth label="Paper size" value={form.stampPaper.paperSize} onChange={(event) => setStamp('paperSize', event.target.value)}>{['A4', 'A3', 'Letter'].map((size) => <MenuItem key={size} value={size}>{size}</MenuItem>)}</TextField>
+              <TextField fullWidth label="Certificate / series reference" value={form.stampPaper.series} onChange={(event) => setStamp('series', event.target.value)} />
+            </Stack>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.3}>
+              <TextField fullWidth disabled label="e-Stamp format" value="Modern e-Stamp" />
+              <TextField fullWidth disabled label="Paper standard" value="A4 · 210 × 297 mm" />
+              <TextField fullWidth type="number" inputProps={{ min: 55, max: 95, step: 1 }} label="Reserved certificate space (mm)" value={form.stampPaper.certificateSpaceMm} onChange={(event) => setStamp('certificateSpaceMm', event.target.value)} helperText="Top blank zone; recommended default 70 mm." />
             </Stack>
           </Stack>
         </DialogContent>

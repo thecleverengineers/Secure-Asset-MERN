@@ -19,3 +19,19 @@ test('landlord sidebar exposes Agreement Papers and UI supports add/update', () 
   assert.match(page, /Update Agreement Paper/);
   assert.match(page, /Private to your landlord account/);
 });
+
+test('agreement papers use the modern A4 e-Stamp layout', () => {
+  const page = read('src/app/pages/app/AgreementTemplatesPage.tsx');
+  const controller = read('server/src/controllers/agreementController.js');
+  const models = read('server/src/models/agreements.js');
+
+  assert.match(page, /Modern e-Stamp · A4 \(210 × 297 mm\)/);
+  assert.match(page, /Times New Roman/);
+  assert.match(page, /certificateSpaceMm/);
+  assert.match(controller, /size: 'A4'/);
+  assert.match(controller, /format: 'e_stamp'/);
+  assert.match(controller, /firstPageTopClearance = legalMargin \+ \(eStampCertificateSpaceMm \* millimetresToPoints\)/);
+  assert.doesNotMatch(controller, /text\('STAMP PAPER AGREEMENT'/);
+  assert.match(models, /certificateSpaceMm/);
+  assert.match(models, /enum: \['e_stamp'\]/);
+});

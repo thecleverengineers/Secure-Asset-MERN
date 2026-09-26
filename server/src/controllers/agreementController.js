@@ -83,12 +83,19 @@ function cleanText(value, fallback = '') {
 
 function normalizeStampPaper(value = {}) {
   const denomination = Number(value.denomination || 0);
+  const requestedCertificateSpace = Number(value.certificateSpaceMm ?? 70);
+  const certificateSpaceMm = Number.isFinite(requestedCertificateSpace)
+    ? Math.min(95, Math.max(55, requestedCertificateSpace))
+    : 70;
   return {
     enabled: value.enabled !== false,
+    format: 'e_stamp',
     state: cleanText(value.state),
     denomination: Number.isFinite(denomination) && denomination >= 0 ? denomination : 0,
     series: cleanText(value.series),
-    paperSize: ['A4', 'A3', 'Letter'].includes(String(value.paperSize)) ? String(value.paperSize) : 'A4',
+    certificateSpaceMm,
+    // Modern e-Stamps used by Secure Asset are always laid out on standard A4.
+    paperSize: 'A4',
   };
 }
 
@@ -173,15 +180,18 @@ async function createStampPaperPdf({ title, body, stampPaper, agreementType, lan
   const [firstMark, secondMark] = await Promise.all([readPartyMark(firstPartyMark), readPartyMark(secondPartySignature)]);
   return new Promise((resolve, reject) => {
     const chunks = [];
-    // Legal stamp papers typically contain treasury/serial information near
-    // the edges. Keep a generous 1.25-inch working margin on every side.
+    // Modern e-Stamp certificates are issued outside Secure Asset and are
+    // printed on A4. Leave the first-page certificate/header zone completely
+    // blank, then start the agreement below it with a 1.25-inch working margin.
     const legalMargin = 90;
-    const firstPageTopClearance = 108; // 1.5 inches
+    const eStampCertificateSpaceMm = Math.min(95, Math.max(55, Number(stampPaper.certificateSpaceMm || 70)));
+    const millimetresToPoints = 72 / 25.4;
+    const firstPageTopClearance = legalMargin + (eStampCertificateSpaceMm * millimetresToPoints);
     const bodyFontSize = 11;
     const oneAndHalfLineGap = 5.5;
 
     const document = new PDFDocument({
-      size: stampPaper.paperSize === 'Letter' ? 'LETTER' : stampPaper.paperSize,
+      size: 'A4',
       margin: legalMargin,
       info: { Title: title, Author: 'SecureAsset' },
     });
@@ -191,27 +201,27 @@ async function createStampPaperPdf({ title, body, stampPaper, agreementType, lan
 
     // PDFKit's standard Times family provides the formal Times New Roman-style
     // legal appearance without relying on an external font file at runtime.
+    // Nothing is drawn above firstPageTopClearance: that pure-white area is
+    // reserved for the official e-Stamp certificate/header and serial data.
     document.y = firstPageTopClearance;
-    document.fillColor('#111827').font('Times-Bold').fontSize(16).text('STAMP PAPER AGREEMENT', {
+    document.fillColor('#334155').font('Times-Bold').fontSize(9).text('SECURE ASSET', {
+      align: 'center',
+      characterSpacing: 1.4,
+      lineGap: 2,
+    });
+    document.moveDown(.35).fillColor('#111827').font('Times-Bold').fontSize(15).text(title, {
       align: 'center',
       lineGap: 2,
     });
-    document.moveDown(.35).font('Times-Bold').fontSize(13).text(title, {
-      align: 'center',
-      lineGap: 2,
-    });
-    document.moveDown(.7).font('Times-Roman').fontSize(9).fillColor('#4B5563');
-    const stampLine = [
-      stampPaper.enabled ? 'Stamp paper: enabled' : 'Stamp paper: not specified',
-      stampPaper.state && `State: ${stampPaper.state}`,
-      stampPaper.denomination > 0 && `Denomination: INR ${stampPaper.denomination.toLocaleString('en-IN')}`,
-      stampPaper.series && `Series: ${stampPaper.series}`,
-      `Agreement type: ${agreementType}`,
-      `Workflow status: ${cleanText(approvalStatus, 'draft').replaceAll('_', ' ')}`,
-    ].filter(Boolean).join('  ·  ');
-    document.text(stampLine, { align: 'center', lineGap: 2 });
+    const titleRuleY = document.y + 8;
+    document.moveTo(legalMargin, titleRuleY)
+      .lineTo(document.page.width - legalMargin, titleRuleY)
+      .lineWidth(.6)
+      .strokeColor('#CBD5E1')
+      .stroke();
+    document.y = titleRuleY + 12;
 
-    document.moveDown(1.15).fillColor('#111827').font('Times-Roman').fontSize(bodyFontSize);
+    document.fillColor('#111827').font('Times-Roman').fontSize(bodyFontSize);
     // 11pt body + 5.5pt gap approximates 1.5-line legal-document spacing.
     // Justification keeps both edges clean and gives the agreement a formal,
     // uniform legal-document appearance.
@@ -290,7 +300,7 @@ async function ensureDefaultTemplates(ownerId) {
     try {
       await AgreementTemplate.create({
         owner: ownerId, key: `default-${type}`, agreementType: type, name: defaults.name, title: defaults.title,
-        body: defaults.body, stampPaper: { enabled: true, paperSize: 'A4' }, active: true, version: 1,
+        body: defaults.body, stampPaper: { enabled: true, format: 'e_stamp', paperSize: 'A4', certificateSpaceMm: 70 }, active: true, version: 1,
         createdBy: ownerId, updatedBy: ownerId,
       });
     } catch (error) {
