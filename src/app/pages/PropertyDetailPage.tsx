@@ -595,8 +595,8 @@ export default function PropertyDetailPage() {
       <Paper elevation={0} sx={{ ...sectionCard, mt: 1.5, px: { xs: .5, sm: 1 }, py: .35, overflowX: 'auto' }}>
         <Stack direction="row" alignItems="center" spacing={.3} sx={{ minWidth: 'max-content' }}>
           {[
-            ['overview','Overview',HomeWorkRounded],
             ['rooms','Rooms & Floor Plan',GridViewRounded],
+            ['overview','Overview',HomeWorkRounded],
             ['amenities','Amenities',CheckCircleRounded],
             ['location','Location',LocationOnRounded],
             ['rules','Rules',RuleRounded],
@@ -614,37 +614,6 @@ export default function PropertyDetailPage() {
       <Grid container spacing={1.5} sx={{ mt: .2 }}>
         <Grid size={{ xs: 12, lg: 8 }}>
           <Stack spacing={1.5}>
-            <Paper id="overview" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
-              <Typography sx={{ color: '#102a43', fontSize: 16, fontWeight: 800 }}>About This Property</Typography>
-              <Typography sx={{ mt: .75, color: '#5f7285', fontSize: 12.5, lineHeight: 1.65 }}>{active.description || property.description || 'A premium property presented through Secure Asset with verified details, transparent room information and secure application workflows.'}</Typography>
-              <Button size="small" sx={{ mt: .55, px: 0, color: '#1473e6', textTransform: 'none', fontSize: 10.5, fontWeight: 700 }}>Read More</Button>
-
-              <Typography sx={{ mt: 1.65, color: '#102a43', fontSize: 14, fontWeight: 800 }}>Property Highlights</Typography>
-              <Grid container spacing={.9} sx={{ mt: .25 }}>
-                {overviewHighlights.map(([titleText,desc], index) => <Grid key={titleText} size={{ xs: 12, sm: 6, md: 4 }}>
-                  <Stack direction="row" spacing={.9} alignItems="center" sx={{ p: 1, borderRadius: 2, bgcolor: '#fbfcfd', border: '1px solid #edf1f4', height: '100%' }}>
-                    <Box sx={{ width: 36, height: 36, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: index % 3 === 0 ? '#e8faf2' : index % 3 === 1 ? '#eef5ff' : '#fff5e9', color: index % 3 === 0 ? '#079455' : index % 3 === 1 ? '#3478da' : '#df7b13', flexShrink: 0 }}><CheckCircleRounded sx={{ fontSize: 18 }} /></Box>
-                    <Box><Typography sx={{ fontSize: 11.5, fontWeight: 800, color: '#183a55' }}>{titleText}</Typography><Typography sx={{ mt: .15, fontSize: 9.5, color: '#8492a0' }}>{desc}</Typography></Box>
-                  </Stack>
-                </Grid>)}
-              </Grid>
-            </Paper>
-
-            <Paper id="amenities" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography sx={{ color: '#102a43', fontSize: 15, fontWeight: 800 }}>Amenities</Typography>
-                <Button size="small" sx={{ textTransform: 'none', fontSize: 10.5 }}>View All Amenities →</Button>
-              </Stack>
-              <Grid container spacing={1} sx={{ mt: .25 }}>
-                {premiumAmenityItems.slice(0,10).map(([name,icon]) => <Grid key={name} size={{ xs: 4, sm: 3, md: 2.4 }}>
-                  <Stack alignItems="center" spacing={.55} sx={{ py: .8 }}>
-                    <Box sx={{ width: 38, height: 38, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: '#eaf8f3', color: '#079455', '& svg': { fontSize: 19 } }}>{icon}</Box>
-                    <Typography sx={{ fontSize: 10.5, color: '#304d64', textAlign: 'center' }}>{name}</Typography>
-                  </Stack>
-                </Grid>)}
-              </Grid>
-            </Paper>
-
             <Paper id="rooms" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography sx={{ color: '#102a43', fontSize: 15, fontWeight: 800 }}>Rooms & Floor Plan</Typography>
@@ -840,6 +809,37 @@ export default function PropertyDetailPage() {
                   </Box>
                 </Stack>
               </Paper>
+            </Paper>
+
+            <Paper id="overview" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
+              <Typography sx={{ color: '#102a43', fontSize: 16, fontWeight: 800 }}>About This Property</Typography>
+              <Typography sx={{ mt: .75, color: '#5f7285', fontSize: 12.5, lineHeight: 1.65 }}>{active.description || property.description || 'A premium property presented through Secure Asset with verified details, transparent room information and secure application workflows.'}</Typography>
+              <Button size="small" sx={{ mt: .55, px: 0, color: '#1473e6', textTransform: 'none', fontSize: 10.5, fontWeight: 700 }}>Read More</Button>
+
+              <Typography sx={{ mt: 1.65, color: '#102a43', fontSize: 14, fontWeight: 800 }}>Property Highlights</Typography>
+              <Grid container spacing={.9} sx={{ mt: .25 }}>
+                {overviewHighlights.map(([titleText,desc], index) => <Grid key={titleText} size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Stack direction="row" spacing={.9} alignItems="center" sx={{ p: 1, borderRadius: 2, bgcolor: '#fbfcfd', border: '1px solid #edf1f4', height: '100%' }}>
+                    <Box sx={{ width: 36, height: 36, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: index % 3 === 0 ? '#e8faf2' : index % 3 === 1 ? '#eef5ff' : '#fff5e9', color: index % 3 === 0 ? '#079455' : index % 3 === 1 ? '#3478da' : '#df7b13', flexShrink: 0 }}><CheckCircleRounded sx={{ fontSize: 18 }} /></Box>
+                    <Box><Typography sx={{ fontSize: 11.5, fontWeight: 800, color: '#183a55' }}>{titleText}</Typography><Typography sx={{ mt: .15, fontSize: 9.5, color: '#8492a0' }}>{desc}</Typography></Box>
+                  </Stack>
+                </Grid>)}
+              </Grid>
+            </Paper>
+
+            <Paper id="amenities" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography sx={{ color: '#102a43', fontSize: 15, fontWeight: 800 }}>Amenities</Typography>
+                <Button size="small" sx={{ textTransform: 'none', fontSize: 10.5 }}>View All Amenities →</Button>
+              </Stack>
+              <Grid container spacing={1} sx={{ mt: .25 }}>
+                {premiumAmenityItems.slice(0,10).map(([name,icon]) => <Grid key={name} size={{ xs: 4, sm: 3, md: 2.4 }}>
+                  <Stack alignItems="center" spacing={.55} sx={{ py: .8 }}>
+                    <Box sx={{ width: 38, height: 38, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: '#eaf8f3', color: '#079455', '& svg': { fontSize: 19 } }}>{icon}</Box>
+                    <Typography sx={{ fontSize: 10.5, color: '#304d64', textAlign: 'center' }}>{name}</Typography>
+                  </Stack>
+                </Grid>)}
+              </Grid>
             </Paper>
 
             <Paper id="nearby" elevation={0} sx={{ ...sectionCard, p: { xs: 1.35, md: 1.7 } }}>
