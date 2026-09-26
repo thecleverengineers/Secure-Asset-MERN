@@ -34,6 +34,21 @@ import ViewInArRounded from '@mui/icons-material/ViewInArRounded';
 import PlayCircleFilledRounded from '@mui/icons-material/PlayCircleFilledRounded';
 import StarRounded from '@mui/icons-material/StarRounded';
 import RuleRounded from '@mui/icons-material/RuleRounded';
+import DescriptionRounded from '@mui/icons-material/DescriptionRounded';
+import AnalyticsRounded from '@mui/icons-material/AnalyticsRounded';
+import SquareFootRounded from '@mui/icons-material/SquareFootRounded';
+import LayersRounded from '@mui/icons-material/LayersRounded';
+import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded';
+import LocalParkingRounded from '@mui/icons-material/LocalParkingRounded';
+import PaymentsRounded from '@mui/icons-material/PaymentsRounded';
+import AccountBalanceRounded from '@mui/icons-material/AccountBalanceRounded';
+import ArticleRounded from '@mui/icons-material/ArticleRounded';
+import ExploreRounded from '@mui/icons-material/ExploreRounded';
+import KeyRounded from '@mui/icons-material/KeyRounded';
+import VerifiedRounded from '@mui/icons-material/VerifiedRounded';
+import SettingsRounded from '@mui/icons-material/SettingsRounded';
+import AppsRounded from '@mui/icons-material/AppsRounded';
+import ChairRounded from '@mui/icons-material/ChairRounded';
 import { publicPropertyQueryOptions } from '../queries/propertyQueries';
 import { useSite } from '../context/SiteContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -391,6 +406,106 @@ export default function PropertyDetailPage() {
     boxShadow: '0 8px 24px rgba(20,49,72,.035)',
   } as const;
 
+  const additionalValue = (value: unknown, fallbackValue = 'Not specified') => {
+    if (value === true) return 'Yes';
+    if (value === false) return 'No';
+    if (value === undefined || value === null || value === '') return fallbackValue;
+    return String(value);
+  };
+  const totalAreaLabel = heroAreaValue ? `${Number(heroAreaValue).toLocaleString()} ${heroAreaUnit === 'sqft' ? 'sq.ft' : heroAreaUnit}` : 'Not specified';
+  const carpetAreaLabel = property.areas?.carpetSqft
+    ? `${Number(property.areas.carpetSqft).toLocaleString()} sq.ft`
+    : property.areas?.carpet ? `${Number(property.areas.carpet).toLocaleString()} ${property.areas?.unit || 'sqft'}` : 'Not specified';
+  const configurationLabel = heroBedrooms ? `${heroBedrooms} BHK` : 'Not specified';
+  const parkingLabel = parking.carSpaces !== undefined && parking.carSpaces !== null
+    ? `${parking.carSpaces}${Number(parking.carSpaces) > 0 ? ' (Covered/Assigned)' : ''}`
+    : 'Not specified';
+  const possessionLabel = specifications.availableFrom
+    ? new Date(String(specifications.availableFrom)).toLocaleDateString('en-IN')
+    : /ready|available/i.test(String(heroAvailability || '')) ? 'Immediate' : additionalValue(heroAvailability);
+  const securityDepositLabel = heroDeposit
+    ? `${money(heroDeposit)}${price > 0 ? ` (${Math.max(1, Math.round(heroDeposit / price))} Months)` : ''}`
+    : 'Not specified';
+
+  const additionalSnapshot = [
+    { label: 'Property Type', value: sentence(selected?.level || property.type || 'Residential Apartment'), Icon: HomeWorkRounded, bg: '#EAF9F1', color: '#0A9A67' },
+    { label: 'Total Area', value: totalAreaLabel, Icon: SquareFootRounded, bg: '#FFF4E7', color: '#F08B19' },
+    { label: 'Configuration', value: configurationLabel, Icon: WeekendRounded, bg: '#F5EDFF', color: '#7C3AED' },
+    { label: isRentListing ? 'Expected Rent' : 'Property Value', value: price > 0 ? money(price) : 'On request', Icon: PaymentsRounded, bg: '#EAF9F1', color: '#0A9A67' },
+  ];
+
+  const additionalSpecificationCards = [
+    { label: 'Property Type', value: sentence(selected?.level || property.type || 'Residential Apartment'), Icon: HomeWorkRounded },
+    { label: 'Configuration (BHK)', value: configurationLabel, Icon: BedRounded },
+    { label: 'Furnishing', value: heroFurnishing ? sentence(heroFurnishing) : 'Not specified', Icon: ChairRounded },
+    { label: 'Total Area', value: totalAreaLabel, Icon: SquareFootRounded },
+    { label: 'Carpet Area', value: carpetAreaLabel, Icon: SquareFootRounded },
+    { label: 'Floor', value: specifications.floorNumber !== undefined ? sentence(String(specifications.floorNumber)) : 'Not specified', Icon: LayersRounded },
+    { label: 'Total Floors', value: additionalValue(specifications.totalFloorsInBuilding ?? specifications.numberOfFloors), Icon: ApartmentRounded },
+    { label: 'Age of Property', value: specifications.propertyAge !== undefined ? `${specifications.propertyAge} Years` : 'Not specified', Icon: CalendarMonthRounded },
+    { label: 'Availability', value: heroAvailability || 'Not specified', Icon: CalendarMonthRounded },
+    { label: 'Parking Spaces', value: parkingLabel, Icon: LocalParkingRounded },
+    { label: isRentListing ? 'Monthly Rent' : 'Price', value: price > 0 ? money(price) : 'On request', Icon: PaymentsRounded },
+    { label: 'Security Deposit', value: securityDepositLabel, Icon: SecurityRounded },
+    { label: 'Water Supply', value: additionalValue(utilities.waterSupply), Icon: WaterDropRounded },
+    { label: 'Power Backup', value: additionalValue(utilities.powerBackup), Icon: BoltRounded },
+    { label: 'RERA Number', value: additionalValue(legal.reraNumber), Icon: ArticleRounded },
+    { label: 'Title Clear', value: additionalValue(legal.titleClear), Icon: VerifiedRounded },
+    { label: 'Facing', value: additionalValue(specifications.facing), Icon: ExploreRounded },
+    { label: 'Property Ownership', value: additionalValue(specifications.ownershipType), Icon: KeyRounded },
+    { label: 'Approved By', value: legal.reraNumber ? 'RERA Registered' : additionalValue(legal.loanApproved ? 'Approved' : undefined), Icon: AccountBalanceRounded },
+    { label: 'Possession Date', value: possessionLabel, Icon: CalendarMonthRounded },
+  ];
+
+  const additionalParkingCards = [
+    { label: 'Car Parking Spaces', value: additionalValue(parking.carSpaces), Icon: LocalParkingRounded },
+    { label: 'Two-Wheeler Spaces', value: additionalValue(parking.twoWheelerSpaces), Icon: LocalParkingRounded },
+    { label: 'Visitor Parking', value: additionalValue(parking.visitorParking), Icon: DirectionsCarRounded },
+    { label: 'Monthly Rent', value: property.pricing?.monthlyRent ? money(Number(property.pricing.monthlyRent)) : (isRentListing && price > 0 ? money(price) : 'Not specified'), Icon: PaymentsRounded },
+    { label: 'Security Deposit', value: securityDepositLabel, Icon: SecurityRounded },
+    { label: 'Maintenance Charges', value: property.pricing?.maintenanceCharge ? money(Number(property.pricing.maintenanceCharge)) : 'Not specified', Icon: PaymentsRounded },
+    { label: 'Sale Price', value: property.pricing?.salePrice ? money(Number(property.pricing.salePrice)) : 'Not specified', Icon: PaymentsRounded },
+    { label: 'Lease Amount', value: property.pricing?.leaseAmount ? money(Number(property.pricing.leaseAmount)) : 'Not specified', Icon: PaymentsRounded },
+    { label: 'Price / sq.ft', value: property.pricing?.pricePerUnitArea ? money(Number(property.pricing.pricePerUnitArea)) : 'Not specified', Icon: SquareFootRounded },
+    { label: 'Property Tax', value: property.pricing?.tax || property.pricing?.propertyTax ? money(Number(property.pricing.tax ?? property.pricing.propertyTax)) : 'Not specified', Icon: AccountBalanceRounded },
+  ];
+
+  const additionalUtilityCards = [
+    { label: 'Water Supply', value: additionalValue(utilities.waterSupply), Icon: WaterDropRounded },
+    { label: 'Electricity Connection', value: additionalValue(utilities.electricityConnection), Icon: BoltRounded },
+    { label: 'Power Backup', value: additionalValue(utilities.powerBackup), Icon: BoltRounded },
+    { label: 'Internet Availability', value: additionalValue(utilities.internetAvailability), Icon: WifiRounded },
+    { label: 'Gas Connection', value: additionalValue(utilities.gasConnection), Icon: SettingsRounded },
+    { label: 'Sewage Connection', value: additionalValue(utilities.sewageConnection), Icon: SettingsRounded },
+    { label: 'RERA Number', value: additionalValue(legal.reraNumber), Icon: ArticleRounded },
+    { label: 'Title Clear', value: additionalValue(legal.titleClear), Icon: VerifiedRounded },
+    { label: 'Loan Approved', value: additionalValue(legal.loanApproved), Icon: AccountBalanceRounded },
+    { label: 'Occupancy Certificate', value: additionalValue(legal.occupancyCertificate), Icon: DescriptionRounded },
+    { label: 'Completion Certificate', value: additionalValue(legal.completionCertificate), Icon: DescriptionRounded },
+  ];
+
+  const additionalCustomCards = property.customAttributes && Object.keys(property.customAttributes).length
+    ? Object.entries(property.customAttributes).map(([key, value], index) => ({
+        label: sentence(key),
+        value: Array.isArray(value) ? value.join(', ') : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : additionalValue(value),
+        Icon: index % 2 ? AppsRounded : SettingsRounded,
+      }))
+    : [{ label: 'Property-Specific Details', value: 'No additional custom attributes have been added.', Icon: AppsRounded }];
+
+  const additionalPanels = [
+    { title: 'Property Specifications', subtitle: 'Core details and specifications of this property.', cards: additionalSpecificationCards },
+    { title: 'Parking & Pricing', subtitle: 'Parking availability, rent, deposits, charges, and property pricing.', cards: additionalParkingCards },
+    { title: 'Utilities & Legal Details', subtitle: 'Essential services, utilities, registrations, and legal property records.', cards: additionalUtilityCards },
+    { title: 'Property-Specific Details', subtitle: 'Additional information supplied specifically for this listing.', cards: additionalCustomCards },
+  ];
+  const additionalPanel = additionalPanels[detailsTab] || additionalPanels[0];
+  const additionalTones = [
+    { bg: '#EAF3FF', color: '#2878E8' },
+    { bg: '#EAF9F1', color: '#0A9A67' },
+    { bg: '#FFF4E7', color: '#F08B19' },
+    { bg: '#F5EDFF', color: '#7C3AED' },
+  ];
+
   return <Box data-secureasset-property-overview="approved-premium-v214" sx={{
     bgcolor: '#f7fafc', minHeight: '100vh', pb: { xs: 7, md: 5 },
     fontFamily: '"Open Sans", Arial, sans-serif',
@@ -525,16 +640,100 @@ export default function PropertyDetailPage() {
 
       {tourExpanded && hasInteractiveRoomTour && <Box id="full-tour" sx={{mt:1.5}}><InteractivePropertyTour property={property} units={rentalUnits} onBack={() => setTourExpanded(false)} onView={(unit) => navigate(`/room_details/${unit._id}`)} onBook={(unit) => navigate(`/app/apply_property/${property._id}?rentalUnit=${unit._id}`)} onShare={() => void sharePublicListing({ title: shareTitle, imageUrl: shareImage, url: publicUrl })} saved={saved} onToggleSaved={() => void wishlist.toggle(wishlistListing)} /></Box>}
 
-      <Paper variant="outlined" data-secureasset-property-additional-details="preserved-v214" sx={{ ...sectionCard, p:{xs:1.6,md:2}, mt:1.5 }}>
-        <Typography sx={{fontSize:15,fontWeight:800,color:'#102a43'}}>Additional Property Information</Typography>
-        <Tabs value={detailsTab} onChange={(_,value)=>setDetailsTab(value)} variant="scrollable" scrollButtons="auto" sx={{mt:.7,minHeight:38,borderBottom:'1px solid #e8edf1','& .MuiTab-root':{minHeight:38,textTransform:'none',fontSize:10.5},'& .MuiTabs-indicator':{bgcolor:'#087f5b'}}}>
-          <Tab label="Specifications" /><Tab label="Parking & Pricing" /><Tab label="Utilities & Legal" /><Tab label="Property-specific" />
+      <Paper
+        elevation={0}
+        data-secureasset-property-additional-details="approved-premium-v215"
+        sx={{
+          mt: 1.5, p: { xs: 1.35, sm: 1.8, md: 2.6 }, overflow: 'hidden',
+          border: '1px solid #E4EBF2', borderRadius: { xs: '18px', md: '24px' },
+          bgcolor: '#FFFFFF', boxShadow: '0 18px 54px rgba(36,72,110,.07)',
+        }}
+      >
+        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'flex-start' }} spacing={1.2}>
+          <Box>
+            <Typography sx={{ color: '#10234A', fontSize: { xs: 24, md: 31 }, lineHeight: 1.08, letterSpacing: '-.025em', fontWeight: 800 }}>Additional Property Information</Typography>
+            <Typography sx={{ mt: .55, color: '#607594', fontSize: { xs: 12.5, md: 15 }, lineHeight: 1.45 }}>Detailed specifications, pricing, utilities, legal details, and listing attributes.</Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            startIcon={<DescriptionRounded />}
+            onClick={() => floorPlanMedia[0]?.url ? window.open(floorPlanMedia[0].url, '_blank', 'noopener,noreferrer') : scrollToSection('rooms')}
+            sx={{ minHeight: 44, px: 1.8, borderColor: '#D8E5F1', color: '#174A91', borderRadius: 2.5, textTransform: 'none', fontWeight: 750, alignSelf: { xs: 'stretch', sm: 'auto' } }}
+          >
+            View Property Brochure
+          </Button>
+        </Stack>
+
+        <Box sx={{
+          mt: { xs: 1.6, md: 2.2 }, p: { xs: 1.2, md: 1.7 }, border: '1px solid #E2EAF2', borderRadius: 3,
+          display: 'grid', gridTemplateColumns: { xs: 'repeat(2,minmax(0,1fr))', md: 'minmax(225px,1.25fr) repeat(4,minmax(145px,1fr))' },
+          bgcolor: '#FFFFFF', boxShadow: '0 7px 24px rgba(31,72,114,.035)',
+        }}>
+          <Stack direction="row" spacing={1.15} alignItems="center" sx={{ px: { xs: .4, md: .7 }, py: { xs: .65, md: .25 }, gridColumn: { xs: '1 / -1', md: 'auto' }, borderRight: { md: '1px solid #E4EBF2' } }}>
+            <Box sx={{ width: 48, height: 48, borderRadius: 2.5, display: 'grid', placeItems: 'center', bgcolor: '#EAF3FF', color: '#2878E8', flexShrink: 0 }}><AnalyticsRounded sx={{ fontSize: 26 }} /></Box>
+            <Box><Typography sx={{ color: '#10234A', fontSize: 14.5, fontWeight: 800 }}>Quick Snapshot</Typography><Typography sx={{ mt: .2, color: '#667B98', fontSize: 11.5 }}>Key highlights at a glance</Typography></Box>
+          </Stack>
+          {additionalSnapshot.map(({ label, value, Icon, bg, color }, index) => <Stack key={label} direction="row" spacing={1} alignItems="center" sx={{
+            minWidth: 0, px: { xs: .4, md: 1.2 }, py: { xs: 1, md: .25 },
+            borderRight: { md: index < additionalSnapshot.length - 1 ? '1px solid #E4EBF2' : 'none' },
+          }}>
+            <Box sx={{ width: 44, height: 44, borderRadius: 2.4, display: 'grid', placeItems: 'center', bgcolor: bg, color, flexShrink: 0 }}><Icon sx={{ fontSize: 23 }} /></Box>
+            <Box sx={{ minWidth: 0 }}><Typography noWrap title={value} sx={{ color: '#10234A', fontSize: { xs: 12, md: 14 }, fontWeight: 800 }}>{value}</Typography><Typography sx={{ mt: .25, color: '#667B98', fontSize: { xs: 9.5, md: 10.5 } }}>{label}</Typography></Box>
+          </Stack>)}
+        </Box>
+
+        <Tabs
+          value={detailsTab}
+          onChange={(_, value) => setDetailsTab(value)}
+          variant="scrollable"
+          scrollButtons={false}
+          aria-label="Additional property information categories"
+          sx={{
+            mt: { xs: 1.6, md: 2.2 }, minHeight: 62, borderBottom: '1px solid #E2EAF2',
+            '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0', bgcolor: '#16A36F' },
+            '& .MuiTab-root': { minHeight: 62, minWidth: { xs: 54, sm: 150, md: 190 }, px: { xs: 1, md: 2.2 }, textTransform: 'none', color: '#415D82', fontWeight: 700 },
+            '& .Mui-selected': { color: '#07874F !important' },
+          }}
+        >
+          {[
+            ['Specifications', DescriptionRounded],
+            ['Parking & Pricing', LocalParkingRounded],
+            ['Utilities & Legal', SettingsRounded],
+            ['Property-Specific', AppsRounded],
+          ].map(([labelText, Icon]: any, index) => <Tab
+            key={labelText}
+            icon={<Icon sx={{ fontSize: 24 }} />}
+            iconPosition="start"
+            label={<Typography sx={{ display: { xs: detailsTab === index ? 'block' : 'none', sm: 'block' }, fontSize: { xs: 11.5, md: 14 }, fontWeight: detailsTab === index ? 800 : 700, whiteSpace: 'nowrap' }}>{labelText}</Typography>}
+            sx={{ minWidth: { xs: detailsTab === index ? 145 : 54, sm: 150, md: 190 }, transition: 'min-width .2s ease' }}
+          />)}
         </Tabs>
-        <Box sx={{pt:1.2}}>
-          {detailsTab===0 && <Grid container spacing={.8}>{renderRows(specificationRows)}</Grid>}
-          {detailsTab===1 && <Grid container spacing={.8}>{renderRows(parkingPricingRows)}</Grid>}
-          {detailsTab===2 && <Grid container spacing={.8}>{renderRows([...utilityRows,...legalRows])}</Grid>}
-          {detailsTab===3 && (property.customAttributes && Object.keys(property.customAttributes).length ? <Grid container spacing={.8}>{Object.entries(property.customAttributes).map(([key,value])=><Grid key={key} size={{xs:12,sm:6}}><Stack direction="row" justifyContent="space-between" sx={detailTileSx}><Typography sx={{fontSize:11,color:'#6f8191'}}>{sentence(key)}</Typography><Typography sx={{fontSize:11,fontWeight:800}}>{Array.isArray(value)?value.join(', '):typeof value==='boolean'?(value?'Yes':'No'):String(value ?? '—')}</Typography></Stack></Grid>)}</Grid> : <Typography sx={{fontSize:11,color:'#758698'}}>No additional custom details have been added.</Typography>)}
+
+        <Box sx={{ pt: { xs: 1.6, md: 2.1 } }}>
+          <Typography sx={{ color: '#10234A', fontSize: { xs: 18, md: 20 }, fontWeight: 800 }}>{additionalPanel.title}</Typography>
+          <Typography sx={{ mt: .3, color: '#667B98', fontSize: { xs: 11.5, md: 12.5 } }}>{additionalPanel.subtitle}</Typography>
+
+          <Grid container spacing={{ xs: .85, sm: 1.05, md: 1.2 }} sx={{ mt: .8 }}>
+            {additionalPanel.cards.map((item: any, index: number) => {
+              const tone = additionalTones[index % additionalTones.length];
+              const Icon = item.Icon || DescriptionRounded;
+              return <Grid key={`${item.label}-${index}`} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                <Stack direction="row" spacing={1.1} alignItems="center" sx={{
+                  minHeight: { xs: 70, md: 78 }, px: { xs: 1.1, md: 1.3 }, py: 1,
+                  border: '1px solid #DFE8F1', borderRadius: 2.5, bgcolor: '#FFFFFF',
+                  boxShadow: '0 5px 16px rgba(35,74,112,.025)',
+                  transition: 'transform .18s ease, box-shadow .18s ease, border-color .18s ease',
+                  '&:hover': { transform: 'translateY(-1px)', borderColor: '#CDDCE9', boxShadow: '0 9px 22px rgba(35,74,112,.07)' },
+                }}>
+                  <Box sx={{ width: 46, height: 46, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: tone.bg, color: tone.color, flexShrink: 0 }}><Icon sx={{ fontSize: 23 }} /></Box>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ color: '#667B98', fontSize: { xs: 10.5, md: 11 }, lineHeight: 1.15 }}>{item.label}</Typography>
+                    <Typography title={String(item.value)} sx={{ mt: .35, color: '#10234A', fontSize: { xs: 13, md: 13.5 }, lineHeight: 1.25, fontWeight: 800, overflowWrap: 'anywhere' }}>{item.value}</Typography>
+                  </Box>
+                </Stack>
+              </Grid>;
+            })}
+          </Grid>
         </Box>
       </Paper>
 
