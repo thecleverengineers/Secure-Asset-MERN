@@ -6,9 +6,9 @@ import { secureMultipartLimits } from '../middleware/uploadSecurity.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import {
   approveAgreementRequest, cancelAgreementCycle, closeAgreementCycle, createAgreementTemplate,
-  deleteAgreementTemplate, getAgreementPartyMark, listAgreementRequests, listAgreementTemplates,
-  prepareAgreementRequest, previewAgreementRequest, rejectAgreementCancellation,
-  renewAgreementCycle, requestAgreementCancellation, sendInternalAgreementRequest,
+  deleteAgreementTemplate, getAgreementPartyMark, getAgreementSecurityDepositProof, listAgreementRequests, listAgreementTemplates,
+  prepareAgreementRequest, previewAgreementRequest, rejectAgreementCancellation, rejectAgreementSecurityDeposit,
+  renewAgreementCycle, requestAgreementCancellation, sendInternalAgreementRequest, submitAgreementSecurityDeposit,
   updateAgreementTemplate, uploadFirstPartyMark, uploadSecondPartySignature,
 } from '../controllers/agreementController.js';
 
@@ -20,6 +20,15 @@ const landlordPermission = (action = 'view') => asyncHandler(async (req, res, ne
 });
 
 const router = Router();
+const depositProofUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: secureMultipartLimits({ fileSize: 8 * 1024 * 1024, fields: 5 }),
+  fileFilter: (_req, file, callback) => {
+    const accepted = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'].includes(String(file.mimetype || '').toLowerCase());
+    callback(accepted ? null : new Error('Payment proof must be a PNG, JPEG, WebP or PDF file'), accepted);
+  },
+});
+
 const agreementMarkUpload = multer({
   storage: multer.memoryStorage(),
   limits: secureMultipartLimits({ fileSize: 5 * 1024 * 1024, fields: 4 }),
@@ -38,6 +47,9 @@ router.post('/requests', landlordPermission('create'), prepareAgreementRequest);
 router.post('/requests/:id/first-party-mark', landlordPermission('edit'), agreementMarkUpload.single('file'), uploadFirstPartyMark);
 router.post('/requests/:id/send', landlordPermission('create'), sendInternalAgreementRequest);
 router.post('/requests/:id/second-party-signature', agreementMarkUpload.single('file'), uploadSecondPartySignature);
+router.post('/requests/:id/security-deposit', depositProofUpload.single('file'), submitAgreementSecurityDeposit);
+router.get('/requests/:id/security-deposit-proof', getAgreementSecurityDepositProof);
+router.post('/requests/:id/security-deposit/reject', landlordPermission('edit'), rejectAgreementSecurityDeposit);
 router.post('/requests/:id/approve', landlordPermission('edit'), approveAgreementRequest);
 router.post('/requests/:id/renew', renewAgreementCycle);
 router.post('/requests/:id/cancellation-request', requestAgreementCancellation);

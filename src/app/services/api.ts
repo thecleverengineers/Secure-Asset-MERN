@@ -600,6 +600,15 @@ export async function uploadSecondPartyAgreementSignature(id: string, file: File
   form.append('accepted', 'true');
   return request<ApiResponse<Record<string, any>>>(`/agreements/requests/${encodeURIComponent(id)}/second-party-signature`, { method: 'POST', body: form });
 }
+export async function submitAgreementSecurityDeposit(id: string, transactionId: string, file: File) {
+  const form = new FormData();
+  form.append('transactionId', transactionId);
+  form.append('file', file);
+  return request<ApiResponse<Record<string, any>>>(`/agreements/requests/${encodeURIComponent(id)}/security-deposit`, { method: 'POST', body: form });
+}
+export async function rejectAgreementSecurityDeposit(id: string, reason: string) {
+  return request<ApiResponse<Record<string, any>>>(`/agreements/requests/${encodeURIComponent(id)}/security-deposit/reject`, { method: 'POST', body: JSON.stringify({ reason }) });
+}
 export async function approveAgreementRequest(id: string, note = '') {
   return request<ApiResponse<Record<string, any>>>(`/agreements/requests/${encodeURIComponent(id)}/approve`, { method: 'POST', body: JSON.stringify({ note }) });
 }
@@ -637,6 +646,9 @@ export async function fetchAgreementPreviewBlob(id: string) {
 }
 export async function fetchAgreementPartyMarkBlob(id: string, party: 'first-party' | 'second-party') {
   return fetchAgreementBlob(`/agreements/requests/${encodeURIComponent(id)}/marks/${party}`, 'Could not load the signature or stamp/seal');
+}
+export async function fetchAgreementSecurityDepositProofBlob(id: string) {
+  return fetchAgreementBlob(`/agreements/requests/${encodeURIComponent(id)}/security-deposit-proof`, 'Could not load the security deposit payment proof');
 }
 export type RentalPaymentSubmission = {
   method: 'upi' | 'card' | 'bank_transfer' | 'cash' | 'cheque' | 'gateway' | 'offline';

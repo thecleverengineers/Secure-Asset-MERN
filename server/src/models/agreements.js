@@ -102,6 +102,9 @@ const AgreementRequestSchema = new Schema({
   // Rent/lease lifecycle. Sale agreements retain the completed paper but do
   // not create a tenancy or recurring rental cycle.
   tenancy: { ...objectId('Tenancy'), index: true },
+  // Required initial security deposit is submitted and verified before the
+  // first rent/lease workflow can be activated.
+  securityDepositPayment: { ...objectId('Payment'), index: true },
   renewalOf: { ...objectId('AgreementRequest'), index: true },
   durationMonths: { type: Number, min: 1 },
   startDate: Date,

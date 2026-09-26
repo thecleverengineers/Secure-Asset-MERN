@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import PDFDocument from 'pdfkit';
 import { fileTypeFromBuffer } from 'file-type';
 import {
-  AgreementRequest, AgreementTemplate, Application, DriveFile, DriveFileVersion, Property, PropertySpace, RentalUnit, Tenancy, User,
+  AgreementRequest, AgreementTemplate, Application, DriveFile, DriveFileVersion, Payment, Property, PropertySpace, RentalUnit, Tenancy, User,
 } from '../models/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
@@ -29,6 +29,8 @@ const TENANT_VISIBLE_REQUEST_STATUSES = new Set([
 const FIRST_PARTY_MARK_TYPES = new Set(['signature', 'stamp_seal']);
 const INTERNAL_MARK_MIME = 'image/png';
 const MAX_MARK_BYTES = 5 * 1024 * 1024;
+const MAX_DEPOSIT_PROOF_BYTES = 8 * 1024 * 1024;
+const DEPOSIT_PROOF_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'application/pdf']);
 const ACTIVE_CYCLE_AGREEMENT_TYPES = new Set(['rent', 'lease']);
 const CYCLE_TERMINAL_STATUSES = new Set(['cancelled', 'closed', 'declined', 'voided', 'expired']);
 
@@ -249,7 +251,7 @@ async function loadApplication(applicationId) {
 
 async function requestForParticipant(id, user) {
   if (!mongoose.isValidObjectId(id)) throw new ApiError(404, 'Agreement request not found');
-  const request = await AgreementRequest.findById(id).populate('application property space rentalUnit template landlord tenant');
+  const request = await AgreementRequest.findById(id).populate('application property space rentalUnit template landlord tenant securityDepositPayment');
   if (!request) throw new ApiError(404, 'Agreement request not found');
   const administrator = String(user?.role || '').toLowerCase() === 'admin';
   const firstParty = sameId(request.landlord, user?._id);
@@ -358,7 +360,150 @@ function requestPayload(request, tenancy, now = new Date()) {
   const data = request?.toObject ? request.toObject() : { ...request };
   data.status = visibleRequestStatus(data);
   data.lifecycle = agreementLifecycle(data, tenancy, now);
+
+  const amount = securityDepositAmount(data);
+  const payment = data.securityDepositPayment && data.securityDepositPayment.paymentVerification
+    ? data.securityDepositPayment
+    : null;
+  data.securityDeposit = {
+    required: amount > 0,
+    amount,
+    status: amount > 0 ? (payment?.paymentVerification?.status || 'awaiting_tenant') : 'not_required',
+    payment,
+  };
   return data;
+}
+
+function securityDepositAmount(request) {
+  if (!ACTIVE_CYCLE_AGREEMENT_TYPES.has(normalizeType(request?.agreementType)) || request?.renewalOf) return 0;
+  const raw = request?.rentalUnit?.pricing?.securityDeposit ?? request?.property?.pricing?.securityDeposit ?? 0;
+  const amount = Number(raw || 0);
+  return Number.isFinite(amount) && amount > 0 ? amount : 0;
+}
+
+function depositVerificationStatus(payment) {
+  return String(payment?.paymentVerification?.status || (payment ? 'awaiting_tenant' : 'not_required'));
+}
+
+async function ensureSecurityDepositPayment(request, actorId) {
+  const amount = securityDepositAmount(request);
+  if (amount <= 0) return null;
+
+  const applicationId = request?.application?._id || request?.application;
+  const payer = request?.tenant?._id || request?.tenant;
+  const payee = request?.landlord?._id || request?.landlord;
+  let payment = null;
+
+  const linkedId = request?.securityDepositPayment?._id || request?.securityDepositPayment;
+  if (mongoose.isValidObjectId(linkedId)) payment = await Payment.findById(linkedId);
+
+  if (!payment && mongoose.isValidObjectId(applicationId)) {
+    payment = await Payment.findOne({
+      application: applicationId,
+      type: 'deposit',
+      payer,
+      payee,
+      status: { $nin: ['cancelled', 'refunded'] },
+    }).sort({ createdAt: -1 });
+  }
+
+  if (!payment) {
+    payment = await Payment.create({
+      invoiceNumber: `DEP-${String(request._id).slice(-8).toUpperCase()}-${Date.now().toString().slice(-6)}`,
+      payer,
+      payee,
+      property: request?.property?._id || request?.property,
+      rentalUnit: request?.rentalUnit?._id || request?.rentalUnit,
+      application: applicationId,
+      type: 'deposit',
+      amount,
+      paidAmount: 0,
+      status: 'pending',
+      method: 'bank_transfer',
+      gateway: { source: 'security_deposit', agreementRequest: String(request._id), approvalRequired: 'landlord' },
+      paymentVerification: { status: 'awaiting_tenant', submissionCount: 0 },
+      createdBy: actorId,
+      updatedBy: actorId,
+    });
+  } else if (Number(payment.amount || 0) !== amount && depositVerificationStatus(payment) !== 'approved') {
+    payment.amount = amount;
+    payment.updatedBy = actorId;
+    await payment.save();
+  }
+
+  request.securityDepositPayment = payment._id;
+  return payment;
+}
+
+async function persistSecurityDepositProof(req, request) {
+  if (!req.file?.buffer?.length) throw new ApiError(422, 'Upload the security deposit payment proof');
+  if (Number(req.file.size || req.file.buffer.length) > MAX_DEPOSIT_PROOF_BYTES) {
+    throw new ApiError(413, 'Payment proof must be 8 MB or smaller');
+  }
+
+  const detected = await fileTypeFromBuffer(req.file.buffer);
+  const mimeType = String(detected?.mime || '').toLowerCase();
+  if (!DEPOSIT_PROOF_MIME_TYPES.has(mimeType)) {
+    throw new ApiError(422, 'Payment proof must be a PNG, JPEG, WebP or PDF file');
+  }
+
+  await assertStorageAvailable(req.user._id, req.file.size);
+  const checksum = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+  const extension = `.${detected.ext === 'jpg' ? 'jpg' : detected.ext}`;
+  const filename = `security-deposit-${String(request._id).slice(-8)}-${Date.now()}${extension}`;
+  const category = mimeType.startsWith('image/') ? 'image' : 'document';
+  const storageKey = buildStorageKey(req.user._id, filename, 'security-deposit-payments');
+  const stored = await saveBuffer(req.file.buffer, storageKey, mimeType);
+
+  const driveFile = await DriveFile.create({
+    owner: req.user._id,
+    name: filename,
+    originalName: req.file.originalname || filename,
+    description: `Security deposit payment proof for agreement ${request._id}`,
+    extension,
+    mimeType,
+    category,
+    documentType: 'security_deposit_payment_proof',
+    storageDriver: stored.driver,
+    storageKey: stored.key,
+    sizeBytes: req.file.size,
+    checksum,
+    visibility: 'private',
+    confidentiality: 'financial_document',
+    immutable: true,
+    tags: ['security-deposit', 'payment-proof', 'agreement'],
+    relations: { property: request.property?._id || request.property, user: req.user._id },
+    legalMetadata: {
+      documentType: 'security_deposit_payment_proof',
+      verificationStatus: 'submitted',
+      relatedParties: [String(request.landlord?._id || request.landlord), String(request.tenant?._id || request.tenant)],
+    },
+    preview: { status: 'ready' },
+    createdBy: req.user._id,
+    updatedBy: req.user._id,
+  });
+
+  await DriveFileVersion.create({
+    file: driveFile._id,
+    owner: req.user._id,
+    version: 1,
+    storageDriver: stored.driver,
+    storageKey: stored.key,
+    sizeBytes: req.file.size,
+    checksum,
+    mimeType,
+    changeDescription: 'Uploaded security deposit payment proof',
+    approvalStatus: 'submitted',
+    immutable: true,
+    uploadedBy: req.user._id,
+  });
+
+  await changeUsage(req.user._id, req.file.size, category);
+  await logDriveActivity(req, driveFile, 'file_uploaded', {
+    agreementRequest: request._id,
+    purpose: 'security_deposit_payment_proof',
+  });
+  return driveFile;
 }
 
 async function tenancyForAgreement(request) {
@@ -419,7 +564,7 @@ async function releaseCycleProperty(request, actorId) {
   }
 }
 
-async function startAgreementCycle(req, request) {
+async function startAgreementCycle(req, request, { securityDepositPaid = false } = {}) {
   if (!ACTIVE_CYCLE_AGREEMENT_TYPES.has(request.agreementType)) return { tenancy: null, startsAt: null, endsAt: null, dueAt: null, termMonths: 0 };
   const application = request.application;
   const property = request.property;
@@ -521,7 +666,7 @@ async function startAgreementCycle(req, request) {
       actorId: req.user._id,
       reason: 'Agreement approved; required initial payment is pending',
     });
-    ({ invoice: initialInvoice } = await ensureInitialRentalInvoice(tenancy, rentalUnit, now));
+    ({ invoice: initialInvoice } = await ensureInitialRentalInvoice(tenancy, rentalUnit, now, { securityDepositPaid }));
     await syncPropertyRentalSummary(property._id, req.user._id);
   } else {
     await markCyclePropertyOccupied(request, req.user._id);
@@ -782,6 +927,7 @@ export const prepareAgreementRequest = asyncHandler(async (req, res) => {
     firstPartyApprovedBy: undefined,
     firstPartyVerificationNote: '',
     tenancy: undefined,
+    securityDepositPayment: undefined,
     cycleStartedAt: undefined,
     cycleEndsAt: undefined,
     nextDueAt: undefined,
@@ -894,16 +1040,224 @@ export const uploadSecondPartySignature = asyncHandler(async (req, res) => {
   request.lastError = '';
   request.updatedBy = req.user._id;
   await request.save();
+
+  const securityDepositPayment = await ensureSecurityDepositPayment(request, req.user._id);
+  if (securityDepositPayment) {
+    request.securityDepositPayment = securityDepositPayment._id;
+    await request.save();
+    if (request.application?.save) {
+      request.application.status = 'deposit_pending';
+      request.application.updatedBy = req.user._id;
+      await request.application.save();
+    }
+    await createNotification({
+      user: request.tenant?._id || request.tenant,
+      title: 'Security deposit payment required',
+      message: `Your agreement is signed. Pay the security deposit of INR ${Number(securityDepositPayment.amount || 0).toLocaleString('en-IN')}, enter the transaction ID and upload payment proof before the landlord can start the ${request.agreementType === 'lease' ? 'lease' : 'rent'} workflow.`,
+      category: 'payment',
+      actionUrl: `/app/my-applications?record=${request.application?._id || request.application}`,
+      metadata: { agreementRequest: request._id, paymentId: securityDepositPayment._id, event: 'security_deposit_required' },
+    });
+  }
+
   await createNotification({
     user: request.landlord?._id || request.landlord,
-    title: 'Agreement signature awaiting your approval',
-    message: `${request.tenantName || 'The applicant tenant'} uploaded their signature for the ${request.agreementType} agreement. Verify it and approve the agreement to start the ${request.agreementType === 'lease' ? 'lease' : request.agreementType === 'rent' ? 'rent' : 'sale'} workflow.`,
-    category: 'lease',
+    title: securityDepositPayment ? 'Agreement signed · security deposit pending' : 'Agreement signature awaiting your approval',
+    message: securityDepositPayment
+      ? `${request.tenantName || 'The applicant tenant'} signed the agreement. Wait for the security deposit payment and proof before verifying and starting the ${request.agreementType === 'lease' ? 'lease' : 'rent'} workflow.`
+      : `${request.tenantName || 'The applicant tenant'} uploaded their signature for the ${request.agreementType} agreement. Verify it and approve the agreement to start the ${request.agreementType === 'lease' ? 'lease' : request.agreementType === 'rent' ? 'rent' : 'sale'} workflow.`,
+    category: securityDepositPayment ? 'payment' : 'lease',
     actionUrl: `/app/applications?record=${request.application?._id || request.application}`,
-    metadata: { agreementRequest: request._id, agreementType: request.agreementType, workflow: 'internal_two_party_signature', awaitingFirstPartyApproval: true },
+    metadata: {
+      agreementRequest: request._id,
+      agreementType: request.agreementType,
+      workflow: 'internal_two_party_signature',
+      awaitingFirstPartyApproval: true,
+      securityDepositPending: Boolean(securityDepositPayment),
+    },
   });
+
+  if (securityDepositPayment) await request.populate('securityDepositPayment');
   await writeAudit(req, { action: 'second-party-signature-uploaded', module: 'agreement-requests', recordId: request._id, previousValue, updatedValue: request.toObject() });
-  res.json({ success: true, data: requestPayload(request, null), message: 'Your signature was submitted. It is now waiting for the landlord-enabled first party to verify and approve it.' });
+  res.json({
+    success: true,
+    data: requestPayload(request, null),
+    message: securityDepositPayment
+      ? 'Your signature was submitted. Pay the required security deposit and submit the transaction ID with payment proof for landlord review.'
+      : 'Your signature was submitted. It is now waiting for the landlord-enabled first party to verify and approve it.',
+  });
+});
+
+export const submitAgreementSecurityDeposit = asyncHandler(async (req, res) => {
+  const request = await requestForParticipant(req.params.id, req.user);
+  if (!sameId(request.tenant, req.user._id)) throw new ApiError(403, 'Only the applicant tenant can submit this security deposit');
+  if (visibleRequestStatus(request) !== 'awaiting_first_party_approval') {
+    throw new ApiError(409, 'Complete the agreement signatures before submitting the security deposit');
+  }
+
+  const amount = securityDepositAmount(request);
+  if (amount <= 0) throw new ApiError(409, 'This agreement does not require a security deposit payment');
+
+  const transactionId = cleanText(req.body?.transactionId).slice(0, 120);
+  if (!transactionId) throw new ApiError(422, 'Enter the security deposit transaction ID');
+  if (!req.file?.buffer?.length) throw new ApiError(422, 'Upload payment proof before submitting');
+
+  const payment = await ensureSecurityDepositPayment(request, req.user._id);
+  const stage = depositVerificationStatus(payment);
+  if (!['awaiting_tenant', 'rejected'].includes(stage)) {
+    throw new ApiError(409, stage === 'approved'
+      ? 'The security deposit is already verified'
+      : 'The security deposit is already waiting for landlord review');
+  }
+
+  if (await Payment.exists({ _id: { $ne: payment._id }, transactionId })) {
+    throw new ApiError(409, 'This transaction ID is already attached to another payment');
+  }
+
+  const previousValue = payment.toObject();
+  const proof = await persistSecurityDepositProof(req, request);
+  const now = new Date();
+
+  payment.amount = amount;
+  payment.paidAmount = 0;
+  payment.status = 'pending';
+  payment.method = 'bank_transfer';
+  payment.transactionId = transactionId;
+  payment.proofFile = proof._id;
+  payment.proofUrl = `/api/v1/agreements/requests/${request._id}/security-deposit-proof`;
+  payment.gateway = {
+    ...(payment.gateway || {}),
+    source: 'security_deposit',
+    agreementRequest: String(request._id),
+    approvalRequired: 'landlord',
+    submittedAt: now,
+  };
+  payment.paymentVerification = {
+    ...(payment.paymentVerification?.toObject?.() || payment.paymentVerification || {}),
+    status: 'submitted',
+    submittedAt: now,
+    submittedBy: req.user._id,
+    approvedAt: undefined,
+    approvedBy: undefined,
+    rejectedAt: undefined,
+    rejectedBy: undefined,
+    rejectionReason: undefined,
+    submissionCount: Number(payment.paymentVerification?.submissionCount || 0) + 1,
+  };
+  payment.updatedBy = req.user._id;
+  await payment.save();
+
+  request.securityDepositPayment = payment._id;
+  request.updatedBy = req.user._id;
+  await request.save();
+
+  if (request.application?.save) {
+    request.application.status = 'deposit_pending';
+    request.application.updatedBy = req.user._id;
+    request.application.activity ||= [];
+    request.application.activity.push({
+      kind: 'security_deposit_submitted',
+      title: 'Security deposit payment submitted',
+      detail: `Transaction ID: ${transactionId}`,
+      actor: req.user._id,
+      audience: 'all',
+      at: now,
+    });
+    await request.application.save();
+  }
+
+  await createNotification({
+    user: request.landlord?._id || request.landlord,
+    title: 'Security deposit awaiting verification',
+    message: `${request.tenantName || 'The applicant tenant'} submitted INR ${amount.toLocaleString('en-IN')} with transaction ID ${transactionId}. Review the payment proof, then verify and start the ${request.agreementType === 'lease' ? 'lease' : 'rent'} workflow.`,
+    category: 'payment',
+    actionUrl: `/app/application_details/${request.application?._id || request.application}`,
+    metadata: { agreementRequest: request._id, paymentId: payment._id, event: 'security_deposit_submitted' },
+  });
+
+  await writeAudit(req, {
+    action: 'security-deposit:submitted',
+    module: 'payments',
+    recordId: payment._id,
+    previousValue,
+    updatedValue: payment.toObject(),
+  });
+  await request.populate('securityDepositPayment');
+  res.status(201).json({
+    success: true,
+    data: requestPayload(request, null),
+    message: 'Security deposit payment submitted for landlord review.',
+  });
+});
+
+export const rejectAgreementSecurityDeposit = asyncHandler(async (req, res) => {
+  const request = await requestForParticipant(req.params.id, req.user);
+  assertFirstParty(request, req.user, 'Only the receiving landlord can review this security deposit');
+
+  const paymentId = request.securityDepositPayment?._id || request.securityDepositPayment;
+  const payment = mongoose.isValidObjectId(paymentId) ? await Payment.findById(paymentId) : null;
+  if (!payment || depositVerificationStatus(payment) !== 'submitted') {
+    throw new ApiError(409, 'Only a submitted security deposit can be rejected');
+  }
+
+  const reason = cleanText(req.body?.reason).slice(0, 1000);
+  if (!reason) throw new ApiError(422, 'Provide a rejection reason for the tenant');
+
+  const previousValue = payment.toObject();
+  const now = new Date();
+  payment.status = 'pending';
+  payment.paidAmount = 0;
+  payment.paidAt = undefined;
+  payment.paymentVerification = {
+    ...(payment.paymentVerification?.toObject?.() || payment.paymentVerification || {}),
+    status: 'rejected',
+    rejectedAt: now,
+    rejectedBy: req.user._id,
+    rejectionReason: reason,
+    approvedAt: undefined,
+    approvedBy: undefined,
+  };
+  payment.updatedBy = req.user._id;
+  await payment.save();
+
+  await createNotification({
+    user: request.tenant?._id || request.tenant,
+    title: 'Security deposit payment needs attention',
+    message: `Your security deposit payment was not verified: ${reason}. Submit the transaction ID and corrected payment proof again.`,
+    category: 'payment',
+    actionUrl: `/app/my-applications?record=${request.application?._id || request.application}`,
+    metadata: { agreementRequest: request._id, paymentId: payment._id, event: 'security_deposit_rejected' },
+  });
+
+  await writeAudit(req, {
+    action: 'security-deposit:rejected',
+    module: 'payments',
+    recordId: payment._id,
+    previousValue,
+    updatedValue: payment.toObject(),
+  });
+  await request.populate('securityDepositPayment');
+  res.json({
+    success: true,
+    data: requestPayload(request, null),
+    message: 'Security deposit payment rejected. The tenant can resubmit it.',
+  });
+});
+
+export const getAgreementSecurityDepositProof = asyncHandler(async (req, res) => {
+  const request = await requestForParticipant(req.params.id, req.user);
+  const paymentId = request.securityDepositPayment?._id || request.securityDepositPayment;
+  const payment = mongoose.isValidObjectId(paymentId) ? await Payment.findById(paymentId) : null;
+  if (!payment?.proofFile) throw new ApiError(404, 'Security deposit payment proof has not been uploaded');
+
+  const file = await DriveFile.findOne({ _id: payment.proofFile, status: { $ne: 'trashed' } }).select('+storageKey');
+  if (!file?.storageKey) throw new ApiError(404, 'Security deposit payment proof not found');
+
+  const buffer = await readBuffer(file.storageDriver, file.storageKey);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+  res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(file.originalName || file.name || 'security-deposit-proof')}`);
+  res.send(buffer);
 });
 
 export const approveAgreementRequest = asyncHandler(async (req, res) => {
@@ -917,9 +1271,54 @@ export const approveAgreementRequest = asyncHandler(async (req, res) => {
     throw new ApiError(409, 'Both private party marks are required before approval');
   }
 
+  const requiredDepositAmount = securityDepositAmount(request);
+  let securityDepositPayment = null;
+  if (requiredDepositAmount > 0) {
+    const paymentId = request.securityDepositPayment?._id || request.securityDepositPayment;
+    securityDepositPayment = mongoose.isValidObjectId(paymentId) ? await Payment.findById(paymentId) : null;
+    const depositStage = depositVerificationStatus(securityDepositPayment);
+    if (!securityDepositPayment || !['submitted', 'approved'].includes(depositStage)) {
+      throw new ApiError(409, 'The tenant must submit the required security deposit transaction ID and payment proof before you can start the rent workflow');
+    }
+    if (!securityDepositPayment.transactionId || !securityDepositPayment.proofFile) {
+      throw new ApiError(409, 'Reviewable security deposit transaction details and payment proof are required before approval');
+    }
+  }
+
   const previousValue = request.toObject();
-  const { tenancy, startsAt, endsAt, dueAt, termMonths } = await startAgreementCycle(req, request);
+  const depositPreviousValue = securityDepositPayment?.toObject?.();
+  const { tenancy, startsAt, endsAt, dueAt, termMonths } = await startAgreementCycle(
+    req,
+    request,
+    { securityDepositPaid: requiredDepositAmount > 0 },
+  );
   const now = new Date();
+
+  if (securityDepositPayment) {
+    securityDepositPayment.amount = requiredDepositAmount;
+    securityDepositPayment.paidAmount = requiredDepositAmount;
+    securityDepositPayment.status = 'paid';
+    securityDepositPayment.paidAt = now;
+    if (tenancy?._id) securityDepositPayment.tenancy = tenancy._id;
+    securityDepositPayment.paymentVerification = {
+      ...(securityDepositPayment.paymentVerification?.toObject?.() || securityDepositPayment.paymentVerification || {}),
+      status: 'approved',
+      approvedAt: now,
+      approvedBy: req.user._id,
+      rejectedAt: undefined,
+      rejectedBy: undefined,
+      rejectionReason: undefined,
+    };
+    securityDepositPayment.updatedBy = req.user._id;
+    await securityDepositPayment.save();
+    await writeAudit(req, {
+      action: 'security-deposit:verified',
+      module: 'payments',
+      recordId: securityDepositPayment._id,
+      previousValue: depositPreviousValue,
+      updatedValue: securityDepositPayment.toObject(),
+    });
+  }
   request.status = 'approved';
   request.firstPartyVerificationAt = now;
   request.firstPartyVerifiedBy = req.user._id;
@@ -932,7 +1331,7 @@ export const approveAgreementRequest = asyncHandler(async (req, res) => {
   await request.save();
 
   if (request.application?.save) {
-    request.application.status = request.rentalUnit ? 'deposit_pending' : 'completed';
+    request.application.status = 'completed';
     request.application.updatedBy = req.user._id;
     await request.application.save();
   }
@@ -954,7 +1353,7 @@ export const approveAgreementRequest = asyncHandler(async (req, res) => {
     }
   }
   const cycleMessage = request.rentalUnit
-    ? `Agreement approved. The initial room invoice is due ${dueAt.toLocaleDateString('en-IN', { dateStyle: 'long' })}. Occupancy starts only after payment is completed and the landlord verifies and starts the rent workflow.`
+    ? `${requiredDepositAmount > 0 ? 'Security deposit verified and agreement approved.' : 'Agreement approved.'} The rent workflow is now started. The initial room rent invoice is due ${dueAt.toLocaleDateString('en-IN', { dateStyle: 'long' })}.`
     : ACTIVE_CYCLE_AGREEMENT_TYPES.has(request.agreementType)
       ? `${request.agreementType === 'lease' ? 'Lease' : 'Rent'} cycle started. Due date: ${dueAt.toLocaleDateString('en-IN', { dateStyle: 'long' })}; term: ${termMonths} month${termMonths === 1 ? '' : 's'}.`
     : 'Sale agreement approved. The completed stamp-paper agreement is ready to download.';
@@ -1144,8 +1543,10 @@ export const listAgreementRequests = asyncHandler(async (req, res) => {
   if (req.query.status) filter.status = { $in: String(req.query.status).split(',').filter((item) => REQUEST_ACCESS_STATUSES.has(item)) };
   const rows = await AgreementRequest.find(filter)
     .populate('application', 'applicationNumber status')
-    .populate('property', 'title purpose listingType address')
+    .populate('property', 'title purpose listingType address pricing')
     .populate('space', 'name roomNumber flatNumber apartmentNumber')
+    .populate('rentalUnit', 'name roomNumber pricing')
+    .populate('securityDepositPayment')
     .populate('template', 'name title agreementType version')
     .populate('landlord', 'name email')
     .populate('tenant', 'name email')

@@ -75,12 +75,12 @@ function paymentStatusFor(invoice, now) {
   return new Date(invoice.dueDate) < now ? 'overdue' : 'pending';
 }
 
-async function createInvoiceSafely(tenancy, month, now, rentalUnit = null, { initial = false } = {}) {
+async function createInvoiceSafely(tenancy, month, now, rentalUnit = null, { initial = false, securityDepositPaid = false } = {}) {
   const cycle = monthlyRentCycleBoundsForBillingMonth(month, now);
   const dueDate = monthlyDueAt(cycle.startsAt, tenancy.dueDay || 1, tenancy.dueTime || '09:00');
   const baseRent = Math.max(0, Number(tenancy.monthlyRent || rentalUnit?.pricing?.monthlyRent || 0));
   const maintenance = Math.max(0, Number(tenancy.maintenanceCharge || rentalUnit?.pricing?.maintenanceCharge || 0));
-  const securityDeposit = initial ? Math.max(0, Number(tenancy.securityDeposit || rentalUnit?.pricing?.securityDeposit || 0)) : 0;
+  const securityDeposit = initial && !securityDepositPaid ? Math.max(0, Number(tenancy.securityDeposit || rentalUnit?.pricing?.securityDeposit || 0)) : 0;
   const bookingAmount = initial ? Math.max(0, Number(tenancy.bookingAmount || rentalUnit?.pricing?.bookingAmount || 0)) : 0;
   const totalAmount = baseRent + maintenance + securityDeposit + bookingAmount;
   const payload = {
@@ -179,11 +179,11 @@ export async function ensureMonthlyRentalInvoice(tenancy, now = new Date()) {
   return { invoice, rentCycle, created };
 }
 
-export async function ensureInitialRentalInvoice(tenancy, rentalUnit, now = new Date()) {
+export async function ensureInitialRentalInvoice(tenancy, rentalUnit, now = new Date(), { securityDepositPaid = false } = {}) {
   const month = billingMonthKey(now);
   let invoice = await RentalInvoice.findOne({ tenancy: tenancy._id, billingMonth: month });
   let created = false;
-  if (!invoice) ({ invoice, created } = await createInvoiceSafely(tenancy, month, now, rentalUnit, { initial: true }));
+  if (!invoice) ({ invoice, created } = await createInvoiceSafely(tenancy, month, now, rentalUnit, { initial: true, securityDepositPaid }));
   const rentCycle = await ensureRentCycle(invoice, tenancy, now);
   await ensureRentalInvoicePayment(invoice, tenancy, now);
   return { invoice, rentCycle, created };

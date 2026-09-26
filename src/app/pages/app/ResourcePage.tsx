@@ -1301,7 +1301,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
       <Button size="small" variant="outlined" startIcon={<FileDownloadRounded />} onClick={() => downloadReport(module, 'pdf').catch((e) => setError(e.message))}>PDF</Button>
     </>}
     <Button size="small" variant="outlined" startIcon={<RefreshRounded />} onClick={() => load()}>Refresh</Button>
-    {canCreate && <Button size="small" className={module === 'properties' ? undefined : 'sa-submit-button'} variant="contained" startIcon={module === 'documents' ? <UploadFileRounded /> : <AddRounded />} onClick={() => module === 'properties' ? navigate('/app/add_property') : openDialog('create')}>{module === 'documents' ? 'Upload' : module === 'tenancies' ? 'Add tenant' : `Add ${config.singular}`}</Button>}
+    {canCreate && module !== 'applications' && <Button size="small" className={module === 'properties' ? undefined : 'sa-submit-button'} variant="contained" startIcon={module === 'documents' ? <UploadFileRounded /> : <AddRounded />} onClick={() => module === 'properties' ? navigate('/app/add_property') : openDialog('create')}>{module === 'documents' ? 'Upload' : module === 'tenancies' ? 'Add tenant' : `Add ${config.singular}`}</Button>}
     {module === 'tenancies' && <Tooltip title="Export records">
       <IconButton
         size="small"

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
-  Alert, Box, Button, Chip, CircularProgress, Divider, MenuItem, Paper, Select, Stack, TextField, Typography,
+  Alert, Box, Button, Chip, CircularProgress, Divider, Grid, MenuItem, Paper, Select, Stack, TextField, Typography,
 } from '@mui/material';
 import ChatRounded from '@mui/icons-material/ChatRounded';
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
@@ -18,9 +18,9 @@ import TaskAltRounded from '@mui/icons-material/TaskAltRounded';
 import UploadFileRounded from '@mui/icons-material/UploadFileRounded';
 import {
   approveAgreementRequest, cancelAgreementCycle, closeAgreementCycle, createConversation, fetchAgreementPreviewBlob,
-  getAgreementRequests, getAgreementTemplates, prepareAgreementRequest, rejectAgreementCancellation,
-  renewAgreementCycle, requestAgreementCancellation, sendInternalAgreementRequest,
-  uploadFirstPartyAgreementMark, uploadSecondPartyAgreementSignature,
+  fetchAgreementSecurityDepositProofBlob, getAgreementRequests, getAgreementTemplates, prepareAgreementRequest,
+  rejectAgreementCancellation, rejectAgreementSecurityDeposit, renewAgreementCycle, requestAgreementCancellation,
+  sendInternalAgreementRequest, submitAgreementSecurityDeposit, uploadFirstPartyAgreementMark, uploadSecondPartyAgreementSignature,
 } from '../../services/api';
 import type { AgreementType } from '../../services/api';
 import { makeSignatureBackgroundTransparent } from '../../utils/signatureImage';
@@ -71,6 +71,11 @@ function requestStatus(request: any) {
     : status;
 }
 
+function money(value: unknown) {
+  const amount = Number(value || 0);
+  return amount > 0 ? `₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}` : '₹0';
+}
+
 function dateText(value?: string | Date | null) {
   if (!value) return '—';
   const date = new Date(value);
@@ -105,6 +110,8 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
   const [firstPartyMarkType, setFirstPartyMarkType] = useState<FirstPartyMarkType>('signature');
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState('');
+  const [depositTransactionIds, setDepositTransactionIds] = useState<Record<string, string>>({});
+  const [depositProofFiles, setDepositProofFiles] = useState<Record<string, File | null>>({});
 
   const durationMonths = termChoice === 'custom' ? Number(customTerm) : Number(termChoice);
   const agreementEndDate = type === 'sale' ? '' : calendarMonthEndDate(agreementStartDate, durationMonths);
@@ -275,11 +282,90 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
     }
   }
 
+  async function previewSelectedDepositProof(requestId: string) {
+    const file = depositProofFiles[requestId];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const opened = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!opened) onError?.('Allow pop-ups to preview the selected payment proof');
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
+  async function openSecurityDepositProof(request: any) {
+    const requestId = idOf(request);
+    setBusy(`deposit-proof-${requestId}`);
+    try {
+      const blob = await fetchAgreementSecurityDepositProofBlob(requestId);
+      const url = URL.createObjectURL(blob);
+      const opened = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!opened) onError?.('Allow pop-ups to preview the security deposit payment proof');
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (error) {
+      onError?.((error as Error).message || 'Could not preview security deposit payment proof');
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function submitSecurityDeposit(request: any) {
+    const requestId = idOf(request);
+    const transactionId = String(depositTransactionIds[requestId] || '').trim();
+    const file = depositProofFiles[requestId];
+    const amount = Number(request?.securityDeposit?.amount || 0);
+
+    if (!transactionId) { onError?.('Enter the security deposit transaction ID'); return; }
+    if (!file) { onError?.('Upload the security deposit payment proof'); return; }
+    if (file.size > 8 * 1024 * 1024) { onError?.('Payment proof must be 8 MB or smaller'); return; }
+
+    const confirmed = await actions.askConfirmation(
+      `Submit security deposit payment of ${money(amount)} with transaction ID “${transactionId}” for landlord verification?`,
+      { title: 'Submit security deposit payment' },
+    );
+    if (!confirmed) return;
+
+    setBusy(`deposit-submit-${requestId}`);
+    try {
+      const result = await submitAgreementSecurityDeposit(requestId, transactionId, file);
+      setDepositTransactionIds((current) => ({ ...current, [requestId]: '' }));
+      setDepositProofFiles((current) => ({ ...current, [requestId]: null }));
+      onNotice?.(result.message || 'Security deposit payment submitted');
+      await reload();
+    } catch (error) {
+      onError?.((error as Error).message || 'Could not submit the security deposit payment');
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function rejectSecurityDeposit(request: any) {
+    const requestId = idOf(request);
+    const reason = await actions.askText(
+      'Explain why this security deposit payment cannot be verified. The tenant will be able to resubmit it.',
+      { title: 'Reject security deposit payment', label: 'Rejection reason' },
+    );
+    if (!String(reason || '').trim()) return;
+
+    setBusy(`deposit-reject-${requestId}`);
+    try {
+      const result = await rejectAgreementSecurityDeposit(requestId, String(reason).trim());
+      onNotice?.(result.message || 'Security deposit payment rejected');
+      await reload();
+    } catch (error) {
+      onError?.((error as Error).message || 'Could not reject the security deposit payment');
+    } finally {
+      setBusy('');
+    }
+  }
+
   async function approveAgreement(request: any) {
     const requestId = idOf(request);
+    const depositRequired = Boolean(request?.securityDeposit?.required);
+    const depositAmount = Number(request?.securityDeposit?.amount || 0);
     const confirmed = await actions.askConfirmation(
-      `Verify the applicant tenant's uploaded signature and approve this ${typeLabel(type).toLowerCase()} agreement? ${type === 'sale' ? 'The signed paper will be completed.' : `This will start the ${typeLabel(type).toLowerCase()} cycle and show its due date to both parties.`}`,
-      { title: 'Verify and approve agreement' },
+      depositRequired
+        ? `Review and verify the submitted security deposit of ${money(depositAmount)}, approve the signed agreement, and start the ${typeLabel(type).toLowerCase()} workflow?`
+        : `Verify the applicant tenant's uploaded signature and approve this ${typeLabel(type).toLowerCase()} agreement? ${type === 'sale' ? 'The signed paper will be completed.' : `This will start the ${typeLabel(type).toLowerCase()} cycle and show its due date to both parties.`}`,
+      { title: depositRequired ? 'Verify deposit & start workflow' : 'Verify and approve agreement' },
     );
     if (!confirmed) return;
     setBusy(`approve-${requestId}`);
@@ -430,7 +516,7 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
 
   const inProgress = requests.some((request) => ACTIVE_REQUEST_STATUSES.includes(requestStatus(request)));
 
-  return <Stack spacing={1.7} sx={{ mt: 2 }} data-secureasset-application-agreements="application-agreements-v86">
+  return <Stack spacing={1.7} sx={{ mt: 2 }} data-secureasset-application-agreements="application-agreements-deposit-gate-v219">
     {reviewPending && landlordCanManage && <Paper variant="outlined" sx={{ p: 2, borderRadius: 3, borderColor: 'divider' }} data-secureasset-application-decision="accepted-only-v85">
       <Stack spacing={1.25}>
         <Box>
@@ -494,7 +580,13 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
             const canFirstPartyUpload = firstPartySide && ['draft', 'first_party_signed', 'configuration_required'].includes(status);
             const canSend = firstPartySide && status === 'first_party_signed' && firstMarked;
             const canSecondPartySign = tenantSide && ['sent', 'viewed'].includes(status) && !secondSigned;
-            const canApprove = firstPartySide && awaitingFirstPartyApproval && firstMarked && secondSigned;
+            const securityDeposit = request.securityDeposit || {};
+            const depositRequired = Boolean(securityDeposit.required && Number(securityDeposit.amount || 0) > 0);
+            const depositPayment = securityDeposit.payment || request.securityDepositPayment || {};
+            const depositStage = String(securityDeposit.status || depositPayment?.paymentVerification?.status || (depositRequired ? 'awaiting_tenant' : 'not_required'));
+            const depositSubmitted = depositStage === 'submitted';
+            const depositApproved = depositStage === 'approved';
+            const canApprove = firstPartySide && awaitingFirstPartyApproval && firstMarked && secondSigned && (!depositRequired || depositSubmitted || depositApproved);
             const canTenantRequestCancellation = tenantSide && cycleActive && cancellation.state !== 'requested';
             return <Paper key={requestId} sx={{ p: { xs: 1.35, sm: 1.6 }, borderRadius: 2.5, bgcolor: 'action.hover' }} elevation={0} data-secureasset-two-party-request={requestId}>
               <Stack spacing={1.15}>
@@ -527,7 +619,7 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
                         </Button>
                       </>}
                       {canSend && <Button size="small" variant="contained" startIcon={<SendRounded />} disabled={Boolean(busy)} onClick={() => void sendToSecondParty(request)}>{busy === `send-${requestId}` ? 'Sending…' : 'Send to second party'}</Button>}
-                      {canApprove && <Button size="small" variant="contained" color="success" startIcon={<CheckCircleRounded />} disabled={Boolean(busy)} onClick={() => void approveAgreement(request)}>{busy === `approve-${requestId}` ? 'Approving…' : `Verify & start ${type === 'lease' ? 'lease' : type === 'rent' ? 'rent' : 'sale'} workflow`}</Button>}
+                      {canApprove && !depositRequired && <Button size="small" variant="contained" color="success" startIcon={<CheckCircleRounded />} disabled={Boolean(busy)} onClick={() => void approveAgreement(request)}>{busy === `approve-${requestId}` ? 'Approving…' : `Verify & start ${type === 'lease' ? 'lease' : type === 'rent' ? 'rent' : 'sale'} workflow`}</Button>}
                     </Stack>
                   </Box>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -543,8 +635,145 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
                   </Box>
                 </Stack>
 
+                {awaitingFirstPartyApproval && depositRequired && <Paper
+                  variant="outlined"
+                  sx={{
+                    p: { xs: 1.2, sm: 1.45 },
+                    borderRadius: 2.3,
+                    bgcolor: '#fff',
+                    borderColor: depositStage === 'approved' ? 'success.light' : depositStage === 'rejected' ? 'error.light' : 'divider',
+                  }}
+                  data-secureasset-security-deposit-gate="tenant-payment-before-rent-v1"
+                >
+                  <Stack spacing={1.05}>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={.8}>
+                      <Box>
+                        <Typography sx={{ fontSize: 12.5, fontWeight: 850 }}>Security deposit payment</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Required before the landlord can verify and start the {type === 'lease' ? 'lease' : 'rent'} workflow.
+                        </Typography>
+                      </Box>
+                      <Stack direction="row" spacing={.55} alignItems="center">
+                        <Chip
+                          size="small"
+                          color={depositApproved ? 'success' : depositStage === 'rejected' ? 'error' : depositSubmitted ? 'info' : 'warning'}
+                          label={statusLabel(depositStage)}
+                        />
+                        <Chip size="small" variant="outlined" label={money(securityDeposit.amount)} sx={{ fontWeight: 850 }} />
+                      </Stack>
+                    </Stack>
+
+                    {tenantSide && ['awaiting_tenant', 'rejected'].includes(depositStage) && <Stack spacing={.8}>
+                      {depositStage === 'rejected' && <Alert severity="error" sx={{ py: .2 }}>
+                        The landlord did not verify the previous payment{depositPayment?.paymentVerification?.rejectionReason ? `: ${depositPayment.paymentVerification.rejectionReason}` : '.'} Submit corrected details and proof.
+                      </Alert>}
+                      <TextField
+                        size="small"
+                        fullWidth
+                        required
+                        label="Transaction ID"
+                        placeholder="Enter bank / UPI transaction reference"
+                        value={depositTransactionIds[requestId] || ''}
+                        onChange={(event) => setDepositTransactionIds((current) => ({ ...current, [requestId]: event.target.value }))}
+                        inputProps={{ maxLength: 120 }}
+                      />
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={.7}>
+                        <Button component="label" size="small" variant="outlined" startIcon={<UploadFileRounded />} disabled={Boolean(busy)}>
+                          {depositProofFiles[requestId] ? 'Replace payment proof' : 'Upload payment proof'}
+                          <input
+                            hidden
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,application/pdf"
+                            onChange={(event) => {
+                              const file = event.target.files?.[0] || null;
+                              event.currentTarget.value = '';
+                              if (file && file.size > 8 * 1024 * 1024) { onError?.('Payment proof must be 8 MB or smaller'); return; }
+                              setDepositProofFiles((current) => ({ ...current, [requestId]: file }));
+                            }}
+                          />
+                        </Button>
+                        {depositProofFiles[requestId] && <Button size="small" variant="text" startIcon={<OpenInNewRounded />} onClick={() => void previewSelectedDepositProof(requestId)}>
+                          Preview selected proof
+                        </Button>}
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="success"
+                          startIcon={<SendRounded />}
+                          disabled={Boolean(busy) || !String(depositTransactionIds[requestId] || '').trim() || !depositProofFiles[requestId]}
+                          onClick={() => void submitSecurityDeposit(request)}
+                        >
+                          {busy === `deposit-submit-${requestId}` ? 'Submitting…' : 'Submit security deposit'}
+                        </Button>
+                      </Stack>
+                      {depositProofFiles[requestId] && <Typography variant="caption" color="text.secondary">
+                        Selected: {depositProofFiles[requestId]?.name}
+                      </Typography>}
+                    </Stack>}
+
+                    {tenantSide && depositSubmitted && <Stack spacing={.65}>
+                      <Alert severity="info" sx={{ py: .25 }}>
+                        Payment submitted with transaction ID <strong>{depositPayment?.transactionId || '—'}</strong>. The landlord will review the proof before starting the rent workflow.
+                      </Alert>
+                      <Button size="small" variant="outlined" startIcon={<OpenInNewRounded />} disabled={busy === `deposit-proof-${requestId}`} onClick={() => void openSecurityDepositProof(request)} sx={{ alignSelf: 'flex-start' }}>
+                        {busy === `deposit-proof-${requestId}` ? 'Opening proof…' : 'Preview submitted proof'}
+                      </Button>
+                    </Stack>}
+                    {tenantSide && depositApproved && <Alert severity="success" sx={{ py: .25 }}>
+                      Security deposit verified. The landlord can now complete verification and start the {type === 'lease' ? 'lease' : 'rent'} workflow.
+                    </Alert>}
+
+                    {firstPartySide && ['awaiting_tenant', 'rejected'].includes(depositStage) && <Alert severity="warning" sx={{ py: .25 }}>
+                      Waiting for the tenant to submit {money(securityDeposit.amount)}, transaction ID and payment proof.
+                    </Alert>}
+
+                    {firstPartySide && (depositSubmitted || depositApproved) && <Stack spacing={.8}>
+                      <Grid container spacing={.7}>
+                        <Grid size={{ xs: 12, sm: 4 }}>
+                          <Box sx={{ p: .85, borderRadius: 1.8, bgcolor: 'action.hover' }}>
+                            <Typography variant="caption" color="text.secondary">Deposit amount</Typography>
+                            <Typography sx={{ fontSize: 12, fontWeight: 850 }}>{money(securityDeposit.amount)}</Typography>
+                          </Box>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 4 }}>
+                          <Box sx={{ p: .85, borderRadius: 1.8, bgcolor: 'action.hover' }}>
+                            <Typography variant="caption" color="text.secondary">Transaction ID</Typography>
+                            <Typography sx={{ fontSize: 12, fontWeight: 850, overflowWrap: 'anywhere' }}>{depositPayment?.transactionId || '—'}</Typography>
+                          </Box>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 4 }}>
+                          <Box sx={{ p: .85, borderRadius: 1.8, bgcolor: 'action.hover' }}>
+                            <Typography variant="caption" color="text.secondary">Submitted</Typography>
+                            <Typography sx={{ fontSize: 12, fontWeight: 850 }}>{dateText(depositPayment?.paymentVerification?.submittedAt)}</Typography>
+                          </Box>
+                        </Grid>
+                      </Grid>
+
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={.7} flexWrap="wrap" useFlexGap>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<OpenInNewRounded />}
+                          disabled={busy === `deposit-proof-${requestId}`}
+                          onClick={() => void openSecurityDepositProof(request)}
+                        >
+                          {busy === `deposit-proof-${requestId}` ? 'Opening proof…' : 'Review payment proof'}
+                        </Button>
+                        {depositSubmitted && <Button size="small" variant="outlined" color="error" disabled={Boolean(busy)} onClick={() => void rejectSecurityDeposit(request)}>
+                          {busy === `deposit-reject-${requestId}` ? 'Rejecting…' : 'Reject payment'}
+                        </Button>}
+                        {canApprove && <Button size="small" variant="contained" color="success" startIcon={<CheckCircleRounded />} disabled={Boolean(busy)} onClick={() => void approveAgreement(request)}>
+                          {busy === `approve-${requestId}` ? 'Verifying & starting…' : `Verify deposit & start ${type === 'lease' ? 'lease' : 'rent'} workflow`}
+                        </Button>}
+                      </Stack>
+                    </Stack>}
+                  </Stack>
+                </Paper>}
+
                 {awaitingFirstPartyApproval && <Alert severity="warning" icon={<HourglassTopRounded />} data-secureasset-agreement-first-party-approval="awaiting-verification-v86">
-                  The applicant tenant’s signature is submitted and waiting for the landlord-enabled first party to verify and approve it. The {type === 'lease' ? 'lease' : type === 'rent' ? 'rent' : 'sale'} workflow has not started yet.
+                  {depositRequired
+                    ? <>The agreement is signed, but the {type === 'lease' ? 'lease' : 'rent'} workflow stays locked until the required security deposit is submitted and reviewed.</>
+                    : <>The applicant tenant’s signature is submitted and waiting for the landlord-enabled first party to verify and approve it. The {type === 'lease' ? 'lease' : type === 'rent' ? 'rent' : 'sale'} workflow has not started yet.</>}
                 </Alert>}
 
                 {status === 'approved' && !cycleEnabled && <Alert severity="success">The sale agreement is approved. Both parties can preview or download the completed stamp-paper paper.</Alert>}
