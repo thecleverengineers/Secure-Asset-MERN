@@ -22,6 +22,18 @@ import HomeWorkRounded from '@mui/icons-material/HomeWorkRounded';
 import LocationOnRounded from '@mui/icons-material/LocationOnRounded';
 import SecurityRounded from '@mui/icons-material/SecurityRounded';
 import TuneRounded from '@mui/icons-material/TuneRounded';
+import BedRounded from '@mui/icons-material/BedRounded';
+import BathtubRounded from '@mui/icons-material/BathtubRounded';
+import WeekendRounded from '@mui/icons-material/WeekendRounded';
+import GridViewRounded from '@mui/icons-material/GridViewRounded';
+import WifiRounded from '@mui/icons-material/WifiRounded';
+import WaterDropRounded from '@mui/icons-material/WaterDropRounded';
+import BoltRounded from '@mui/icons-material/BoltRounded';
+import DirectionsCarRounded from '@mui/icons-material/DirectionsCarRounded';
+import ViewInArRounded from '@mui/icons-material/ViewInArRounded';
+import PlayCircleFilledRounded from '@mui/icons-material/PlayCircleFilledRounded';
+import StarRounded from '@mui/icons-material/StarRounded';
+import RuleRounded from '@mui/icons-material/RuleRounded';
 import { publicPropertyQueryOptions } from '../queries/propertyQueries';
 import { useSite } from '../context/SiteContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -42,6 +54,7 @@ export default function PropertyDetailPage() {
   const { data: siteData } = useSite();
   const wishlist = useWishlist();
   const [detailsTab, setDetailsTab] = useState(0);
+  const [tourExpanded, setTourExpanded] = useState(false);
   const propertyQuery = useQuery(publicPropertyQueryOptions(slug || id));
   const listing = propertyQuery.data?.listing || null;
   const structure = propertyQuery.data?.structure || null;
@@ -291,11 +304,22 @@ export default function PropertyDetailPage() {
     </Card>;
   };
 
+  const amenityNames = [...new Set([...(active.amenities || []), ...(property.amenities || [])].filter(Boolean).map((item: any) => String(item)))];
+  const heroFacts = [
+    { label: 'Bedrooms', value: String(heroBedrooms ?? '—'), kind: 'bed' as const },
+    { label: 'Bathrooms', value: String(heroBathrooms ?? '—'), kind: 'bath' as const },
+    { label: 'Living Room', value: String(active.specifications?.livingRoomCount ?? specifications.livingRooms ?? (heroRooms ? 1 : '—')), kind: 'living' as const },
+    { label: 'Kitchen', value: specifications.kitchenAttached === false ? 'No' : '1', kind: 'kitchen' as const },
+    { label: 'Balcony', value: String(specifications.balconies ?? active.specifications?.balconyCount ?? '—'), kind: 'balcony' as const },
+    { label: 'Car Parking', value: String(parking.carSpaces ?? (amenityNames.some((item) => /parking/i.test(item)) ? 1 : '—')), kind: 'parking' as const },
+    { label: 'Lift Available', value: amenityNames.some((item) => /lift|elevator/i.test(item)) ? 'Yes' : '—', kind: 'lift' as const },
+  ];
+
   const premiumHero = <PremiumPropertyHero
     title={sentence(shareTitle)}
     purpose={sentence(purpose)}
-    propertyType={sentence(selected?.level || property.type)}
-    address={address || `${property.address?.city || 'Location'} — exact address available according to owner privacy settings`}
+    propertyType={sentence(selected?.level || property.type || 'Residential Apartment')}
+    address={locationSummary || address || 'Location shared according to owner privacy settings'}
     images={displayImages}
     tourMedia={tourMedia}
     floorPlanMedia={floorPlanMedia}
@@ -303,7 +327,7 @@ export default function PropertyDetailPage() {
     priceLabel={heroPriceLabel}
     priceSuffix={isRentListing ? '/ month' : undefined}
     deposit={heroDeposit || undefined}
-    availableLabel={heroAvailability}
+    availableLabel={isRentListing ? 'Available for Rent' : heroAvailability}
     verified={Boolean(property.isVerified)}
     urgentLabel={property.promotion?.urgentType && property.promotion.urgentType !== 'none' ? sentence(property.promotion.urgentType) : undefined}
     bedrooms={heroBedrooms !== undefined && heroBedrooms !== null ? String(heroBedrooms) : undefined}
@@ -311,206 +335,212 @@ export default function PropertyDetailPage() {
     area={heroAreaValue ? `${Number(heroAreaValue).toLocaleString()} ${heroAreaUnit}` : undefined}
     roomCount={heroRooms !== undefined && heroRooms !== null ? String(heroRooms) : undefined}
     furnishing={heroFurnishing ? sentence(heroFurnishing) : undefined}
-    amenities={[...(active.amenities || []), ...(property.amenities || [])].filter((value, index, array) => Boolean(value) && array.indexOf(value) === index)}
+    amenities={amenityNames}
+    facts={heroFacts}
+    contactName={publicContact.agentName || publicContact.ownerName || undefined}
     saved={saved}
     onShare={() => void sharePublicListing({ title: shareTitle, imageUrl: shareImage, url: publicUrl })}
-    shareAction={<Button data-secureasset-public-property-share="public-listing-share-v200" variant="outlined" size="small" onClick={() => void sharePublicListing({ title: shareTitle, imageUrl: shareImage, url: publicUrl })} aria-label={`Share ${shareTitle}`} sx={{ minHeight: 38, borderColor: '#C9D9E2', color: '#163A54', fontWeight: 850, textTransform: 'none' }}>Share</Button>}
+    shareAction={<Button data-secureasset-public-property-share="public-listing-share-v214" variant="outlined" size="small" onClick={() => void sharePublicListing({ title: shareTitle, imageUrl: shareImage, url: publicUrl })} aria-label={`Share ${shareTitle}`} sx={{ minHeight: 34, borderColor: '#D8E2EA', color: '#173B55', fontWeight: 700, textTransform: 'none', borderRadius: 2 }}>Share</Button>}
     onToggleSaved={() => void wishlist.toggle(wishlistListing)}
     onBook={() => navigate(`/app/apply_property/${property._id}${selected ? `?space=${selected._id}` : ''}`)}
-    bookingLabel="Book Now"
+    bookingLabel={isRentListing ? 'Book Room / Apply' : 'Apply Now'}
     onScheduleVisit={() => navigate(`/app/schedule_visit/${property._id}${selected ? `?space=${selected._id}` : ''}`)}
     onDirections={() => window.open(directions, '_blank')}
+    onEnquiry={() => navigate(`/app/schedule_visit/${property._id}${selected ? `?space=${selected._id}` : ''}`)}
   />;
 
-  return (
-    <Box
-      data-secureasset-rent-parent-surface={isRentListing ? 'rooms-only-v184' : 'full-property-v184'}
-      data-secureasset-property-experience={hasInteractiveRoomTour ? 'interactive-tour-v203' : 'premium-property-v203'}
-      sx={{
-        bgcolor: usePremiumPropertyDetails ? '#FFFFFF' : '#F4F8FA',
-        minHeight: '100vh',
-        pb: { xs: 5, md: 8 },
-      }}
-    >
-      <Container
-        maxWidth={hasInteractiveRoomTour ? false : 'xl'}
-        disableGutters={hasInteractiveRoomTour}
-        sx={{ pt: hasInteractiveRoomTour ? 0 : { xs: 1.5, md: 3 } }}
-      >
-        {!hasInteractiveRoomTour && <Button
-          data-secureasset-property-overview-back="marketplace-v201"
-          startIcon={<ArrowBackRounded />}
-          onClick={() => navigate('/marketplace')}
-          sx={{ mb: 1.25, px: .5, color: '#173B55', fontWeight: 900, textTransform: 'none' }}
-        >
-          Back to Marketplace
-        </Button>}
-        {hasInteractiveRoomTour && <InteractivePropertyTour
-          property={property}
-          units={rentalUnits}
-          onBack={() => navigate('/marketplace')}
-          onView={(unit) => navigate(`/room_details/${unit._id}`)}
-          onBook={(unit) => navigate(`/app/apply_property/${property._id}?rentalUnit=${unit._id}`)}
-          onShare={() => void sharePublicListing({ title: shareTitle, imageUrl: shareImage, url: publicUrl })}
-          saved={saved}
-          onToggleSaved={() => void wishlist.toggle(wishlistListing)}
-        />}
-        {hasInteractiveRoomTour && propertyLocationSection && <Box data-secureasset-property-location-priority="primary-content-following-v208" sx={{ width: '100%', px: { xs: 1.25, sm: 2, md: 3, lg: 4 } }}>{propertyLocationSection}</Box>}
-        {!isRentListing && <Grid container spacing={3} mt={1}>
-          <Grid size={{ xs: 12 }}>{premiumHero}</Grid>
-        </Grid>}
-        {isRentListing && !hasInteractiveRoomTour && premiumHero}
-        {!hasInteractiveRoomTour && propertyLocationSection}
+  const overviewHighlights = [
+    ['Modern Architecture', 'Stylish and contemporary design'],
+    ['Prime Location', 'Well connected area'],
+    ['Verified Property', property.isVerified ? 'Surveyor verified' : 'Verification available'],
+    ['Spacious Rooms', heroAreaValue ? `${Number(heroAreaValue).toLocaleString()} ${heroAreaUnit}` : 'Comfortable layouts'],
+    ['Quality Construction', 'Premium property presentation'],
+    ['Peaceful Neighborhood', 'Safe and secure locality'],
+  ];
 
-        {rentalUnits.length > 0 && !isRentListing && <Paper id="available-rooms" data-secureasset-public-rental-room-cards="marketplace-style-v184" variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 4, mt: 3 }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={1} mb={2}><Box><Typography variant="h5" fontWeight={950}>{structure?.rentalStructureMode === 'floor' ? 'Available Rooms by floor' : 'Available Rooms & room directory'}</Typography><Typography color="text.secondary">Room prices and features are shown here. Locked rooms stay visible for details but cannot be booked.</Typography></Box><Chip color="success" label={`${rentalUnits.length} room${rentalUnits.length === 1 ? '' : 's'} listed`} /></Stack>
-          {rentalFloorGroups.map((group) => <Box key={group.key} sx={{ mb: 2.5, '&:last-child': { mb: 0 } }}><Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} sx={{ mb: 1.2 }}><Typography variant="h6" fontWeight={900}>{group.floor ? `Floor ${group.floor.floorNumber} · ${group.floor.floorName}` : 'Rooms without a floor'}</Typography><Typography color="text.secondary" fontSize={13}>{group.units.length} room{group.units.length === 1 ? '' : 's'}</Typography></Stack><Grid container data-secureasset-room-grid="four-desktop-two-mobile-v199" spacing={{ xs: 1, sm: 1.5, md: 2 }}>{group.units.map((unit: any) => <Grid key={unit._id} size={{ xs: 6, sm: 6, md: 3 }}>{renderRentalRoomCard(unit)}</Grid>)}</Grid></Box>)}
-        </Paper>}
+  const premiumAmenityItems = [
+    utilities.internetAvailability ? ['Wi-Fi Internet', <WifiRounded />] : null,
+    utilities.powerBackup ? ['Power Backup', <BoltRounded />] : null,
+    amenityNames.some((item) => /lift|elevator/i.test(item)) ? ['Lift', <HomeWorkRounded />] : null,
+    (parking.carSpaces || amenityNames.some((item) => /parking/i.test(item))) ? ['Car Parking', <DirectionsCarRounded />] : null,
+    ['Security', <SecurityRounded />],
+    utilities.waterSupply ? ['Water Supply', <WaterDropRounded />] : null,
+    specifications.kitchenAttached !== false ? ['Modular Kitchen', <HomeWorkRounded />] : null,
+    amenityNames.some((item) => /ac|air condition/i.test(item)) ? ['AC Provision', <HomeWorkRounded />] : null,
+    Number(specifications.balconies || 0) > 0 ? ['Balcony', <HomeWorkRounded />] : null,
+    ['Fire Safety', <CheckCircleRounded />],
+  ].filter(Boolean) as Array<[string, any]>;
 
-        <Box
-          data-secureasset-property-detail-sections="full-width-premium-v205"
-          sx={usePremiumPropertyDetails ? { mt: { xs: 2, md: 3 }, width: '100%', px: { xs: 1.25, sm: 2, md: 3, lg: 4 }, py: { xs: 1.25, md: 2.25 }, borderTop: '1px solid rgba(17, 62, 83, .10)', borderBottom: '1px solid rgba(17, 62, 83, .10)' } : { mt: { xs: 2, md: 3 } }}
-        >
-        <Grid container spacing={usePremiumPropertyDetails ? { xs: 1.5, md: 2.5 } : 3}>
-          <Grid size={{ xs: 12, lg: 8 }}>
-            <Paper variant="outlined" sx={detailSectionSx}>
-              <DetailSectionHeader icon={HomeWorkRounded} title="About this listing" subtitle="A clear overview of the home, its character and included amenities." tag="Listing overview" />
-              <Box sx={usePremiumPropertyDetails ? { mt: 2, p: { xs: 1.35, md: 1.75 }, borderLeft: '3px solid #0B8B7E', bgcolor: '#F3FAF8' } : { mt: 1 }}>
-                <Typography color="text.secondary" lineHeight={1.82} sx={{ fontSize: { xs: 14, md: 14.5 } }}>{active.description || property.description || 'The owner has not added a description yet.'}</Typography>
-              </Box>
-              {(active.amenities || property.amenities || []).length > 0 && (
-                <>
-                  {usePremiumPropertyDetails ? <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1} mt={2.5}>
-                    <Typography fontWeight={950} sx={{ color: '#0D2D45' }}>Included amenities</Typography>
-                    <Typography color="text.secondary" fontSize={12}>Selected property highlights</Typography>
-                  </Stack> : <Typography variant="h6" fontWeight={900} mt={3}>Amenities</Typography>}
-                  <Stack direction="row" gap={usePremiumPropertyDetails ? .85 : 1} flexWrap="wrap" mt={usePremiumPropertyDetails ? 1.25 : 1.5}>
-                    {[...(active.amenities || []), ...(property.amenities || [])]
-                      .filter((value, index, array) => array.indexOf(value) === index)
-                      .map((item: string) => <Chip key={item} icon={<CheckCircleRounded />} label={item} variant={usePremiumPropertyDetails ? undefined : 'outlined'} sx={usePremiumPropertyDetails ? { color: '#12435B', bgcolor: '#F8FBFC', border: '1px solid rgba(17, 62, 83, .14)', fontWeight: 750, '& .MuiChip-icon': { color: '#0B8B7E' } } : undefined} />)}
+  const scrollToSection = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const roomPreviewUnits = rentalUnits.slice(0, 4);
+  const compactDetails: Array<[string, unknown]> = [
+    ['Property Type', sentence(selected?.level || property.type || 'Residential Apartment')],
+    ['BHK', heroBedrooms ? `${heroBedrooms} BHK` : undefined],
+    ['Furnishing', heroFurnishing ? sentence(heroFurnishing) : undefined],
+    ['Total Area', heroAreaValue ? `${Number(heroAreaValue).toLocaleString()} ${heroAreaUnit}` : undefined],
+    ['Floor', specifications.floorNumber !== undefined ? sentence(String(specifications.floorNumber)) : undefined],
+    ['Total Floors', specifications.totalFloorsInBuilding ?? specifications.numberOfFloors],
+    ['Age of Property', specifications.propertyAge !== undefined ? `${specifications.propertyAge} Years` : undefined],
+    ['Availability', heroAvailability],
+  ];
+
+  const sectionCard = {
+    border: '1px solid #e5ebf0',
+    borderRadius: '12px',
+    bgcolor: '#fff',
+    boxShadow: '0 8px 24px rgba(20,49,72,.035)',
+  } as const;
+
+  return <Box data-secureasset-property-overview="approved-premium-v214" sx={{
+    bgcolor: '#f7fafc', minHeight: '100vh', pb: { xs: 7, md: 5 },
+    fontFamily: '"Open Sans", Arial, sans-serif',
+    '& .MuiTypography-root, & .MuiButton-root, & .MuiChip-root, & .MuiTab-root': { fontFamily: '"Open Sans", Arial, sans-serif' },
+  }}>
+    <Container maxWidth={false} sx={{ maxWidth: '1880px', px: { xs: 1.25, sm: 2, md: 3.5, xl: 5 }, pt: { xs: 1.25, md: 2 } }}>
+      {premiumHero}
+
+      <Paper elevation={0} sx={{ ...sectionCard, mt: 1.5, px: { xs: .5, sm: 1 }, py: .35, overflowX: 'auto' }}>
+        <Stack direction="row" alignItems="center" spacing={.3} sx={{ minWidth: 'max-content' }}>
+          {[
+            ['overview','Overview',HomeWorkRounded],
+            ['rooms','Rooms & Floor Plan',GridViewRounded],
+            ['amenities','Amenities',CheckCircleRounded],
+            ['location','Location',LocationOnRounded],
+            ['rules','Rules',RuleRounded],
+            ['nearby','Nearby Places',LocationOnRounded],
+            ['tour','Property Tour',ViewInArRounded],
+            ['reviews','Reviews',StarRounded],
+          ].map(([id,labelText,Icon]: any, index) => <Button key={id} startIcon={<Icon sx={{ fontSize: '17px !important' }} />} onClick={() => scrollToSection(id)} sx={{
+            minHeight: 42, px: { xs: 1.15, md: 1.8 }, color: index === 0 ? '#087f5b' : '#405a70',
+            borderRadius: 0, borderBottom: index === 0 ? '2px solid #10a374' : '2px solid transparent',
+            textTransform: 'none', fontSize: 11.5, fontWeight: index === 0 ? 800 : 650,
+          }}>{labelText}</Button>)}
+        </Stack>
+      </Paper>
+
+      <Grid container spacing={1.5} sx={{ mt: .2 }}>
+        <Grid size={{ xs: 12, lg: 8 }}>
+          <Stack spacing={1.5}>
+            <Paper id="overview" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
+              <Typography sx={{ color: '#102a43', fontSize: 16, fontWeight: 800 }}>About This Property</Typography>
+              <Typography sx={{ mt: .75, color: '#5f7285', fontSize: 12.5, lineHeight: 1.65 }}>{active.description || property.description || 'A premium property presented through Secure Asset with verified details, transparent room information and secure application workflows.'}</Typography>
+              <Button size="small" sx={{ mt: .55, px: 0, color: '#1473e6', textTransform: 'none', fontSize: 10.5, fontWeight: 700 }}>Read More</Button>
+
+              <Typography sx={{ mt: 1.65, color: '#102a43', fontSize: 14, fontWeight: 800 }}>Property Highlights</Typography>
+              <Grid container spacing={.9} sx={{ mt: .25 }}>
+                {overviewHighlights.map(([titleText,desc], index) => <Grid key={titleText} size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Stack direction="row" spacing={.9} alignItems="center" sx={{ p: 1, borderRadius: 2, bgcolor: '#fbfcfd', border: '1px solid #edf1f4', height: '100%' }}>
+                    <Box sx={{ width: 36, height: 36, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: index % 3 === 0 ? '#e8faf2' : index % 3 === 1 ? '#eef5ff' : '#fff5e9', color: index % 3 === 0 ? '#079455' : index % 3 === 1 ? '#3478da' : '#df7b13', flexShrink: 0 }}><CheckCircleRounded sx={{ fontSize: 18 }} /></Box>
+                    <Box><Typography sx={{ fontSize: 11.5, fontWeight: 800, color: '#183a55' }}>{titleText}</Typography><Typography sx={{ mt: .15, fontSize: 9.5, color: '#8492a0' }}>{desc}</Typography></Box>
                   </Stack>
-                </>
-              )}
-            </Paper>
-
-            {!isRentListing && (tourMedia.length > 0 || floorPlanMedia.length > 0) && <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 4, mt: 3 }}>
-              <Typography variant="h6" fontWeight={900}>Property media</Typography>
-              {tourMedia.length > 0 && <Grid container spacing={2} mt={0.5}>
-                {tourMedia.map((item: any) => <Grid size={{ xs: 12, md: 6 }} key={item._id}>
-                  <Typography fontWeight={800} fontSize={13} mb={1}>{item.category === 'virtual_360_tour' ? '360° Virtual Tour' : 'Video Tour'}</Typography>
-                  {item.mediaType === 'image'
-                    ? <Box component="img" src={item.url} alt={item.altText || property.title} sx={{ width: '100%', height: 260, objectFit: 'cover', borderRadius: 3 }} />
-                    : <Box component="video" controls preload="metadata" src={item.url} sx={{ width: '100%', height: 260, bgcolor: 'black', borderRadius: 3 }} />}
                 </Grid>)}
-              </Grid>}
-              {floorPlanMedia.length > 0 && <>
-                <Typography fontWeight={900} mt={tourMedia.length ? 3 : 1}>Floor plans</Typography>
-                <Grid container spacing={2} mt={0.5}>
-                  {floorPlanMedia.map((item: any) => <Grid size={{ xs: 12, sm: 6 }} key={item._id}>
-                    {item.mediaType === 'image'
-                      ? <Box component="img" src={item.url} alt={item.altText || 'Floor plan'} sx={{ width: '100%', height: 260, objectFit: 'contain', bgcolor: 'background.default', borderRadius: 3 }} />
-                      : <Button variant="outlined" fullWidth onClick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}>Open {item.caption || 'floor plan'}</Button>}
-                  </Grid>)}
-                </Grid>
-              </>}
-            </Paper>}
-
-            <Paper variant="outlined" sx={{ ...detailSectionSx, mt: usePremiumPropertyDetails ? 2.5 : 3 }}>
-              <DetailSectionHeader icon={TuneRounded} title="Property specifications" subtitle="Layout, size and ownership information at a glance." />
-              <Grid container spacing={usePremiumPropertyDetails ? 1.15 : 1.5} mt={usePremiumPropertyDetails ? 1.5 : .5}>{renderRows(specificationRows)}</Grid>
+              </Grid>
             </Paper>
 
-            <Paper variant="outlined" data-secureasset-property-detail-tabs="post-specifications-v211" sx={{ ...detailSectionSx, mt: 2.5 }}>
-              <Tabs value={detailsTab} onChange={(_, value) => setDetailsTab(value)} variant="scrollable" scrollButtons="auto" aria-label="Additional property details" sx={{ minHeight: 42, borderBottom: '1px solid rgba(17, 62, 83, .14)', '& .MuiTabs-indicator': { height: 2, bgcolor: '#087A70' }, '& .MuiTab-root': { minHeight: 42, px: 1.25, color: '#577080', textTransform: 'none' }, '& .Mui-selected': { color: '#0D2D45 !important' } }}>
-                <Tab label="Parking & pricing" />
-                <Tab label="Utilities & legal details" />
-                <Tab label="Nearby facilities" />
-                <Tab label="Property-specific details" />
-              </Tabs>
+            <Paper id="amenities" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography sx={{ color: '#102a43', fontSize: 15, fontWeight: 800 }}>Amenities</Typography>
+                <Button size="small" sx={{ textTransform: 'none', fontSize: 10.5 }}>View All Amenities →</Button>
+              </Stack>
+              <Grid container spacing={1} sx={{ mt: .25 }}>
+                {premiumAmenityItems.slice(0,10).map(([name,icon]) => <Grid key={name} size={{ xs: 4, sm: 3, md: 2.4 }}>
+                  <Stack alignItems="center" spacing={.55} sx={{ py: .8 }}>
+                    <Box sx={{ width: 38, height: 38, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: '#eaf8f3', color: '#079455', '& svg': { fontSize: 19 } }}>{icon}</Box>
+                    <Typography sx={{ fontSize: 10.5, color: '#304d64', textAlign: 'center' }}>{name}</Typography>
+                  </Stack>
+                </Grid>)}
+              </Grid>
+            </Paper>
 
-              <Box role="tabpanel" sx={{ pt: 2 }}>
-                {detailsTab === 0 && <>
-                  <Typography color="text.secondary" fontSize={12.5}>Convenience and cost details for this property.</Typography>
-                  {parkingPricingRows.some(([, value]) => hasValue(value)) ? <Grid container spacing={1.15} mt={1.25}>{renderRows(parkingPricingRows)}</Grid> : <Typography color="text.secondary" fontSize={13} sx={{ mt: 1.25 }}>Parking and pricing details have not been added yet.</Typography>}
-                </>}
+            <Paper id="rooms" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography sx={{ color: '#102a43', fontSize: 15, fontWeight: 800 }}>Rooms & Floor Plan</Typography>
+                {rentalUnits.length > 0 && <Button size="small" onClick={() => roomPreviewUnits[0] && navigate(`/room_details/${roomPreviewUnits[0]._id}`)} sx={{ textTransform: 'none', fontSize: 10.5 }}>View All Rooms →</Button>}
+              </Stack>
+              <Stack direction="row" spacing={1} sx={{ mt: 1, overflowX: 'auto', pb: .5 }}>
+                {roomPreviewUnits.length ? roomPreviewUnits.map((unit: any) => {
+                  const roomImage = unit.primaryImage?.url || unit.gallery?.find((item: any) => item?.url)?.url || shareImage;
+                  return <Paper component="button" type="button" onClick={() => navigate(`/room_details/${unit._id}`)} key={unit._id} elevation={0} sx={{ p: 0, flex: '0 0 205px', textAlign: 'left', border: '1px solid #e8edf1', borderRadius: 2, overflow: 'hidden', bgcolor: '#fff', cursor: 'pointer' }}>
+                    <Box sx={{ height: 112, overflow: 'hidden' }}><OptimizedImage src={roomImage} alt={unit.name || `Room ${unit.roomNumber}`} width={460} height={260} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></Box>
+                    <Box sx={{ p: .9 }}><Typography sx={{ fontSize: 11.5, fontWeight: 800, color: '#173B55' }}>{unit.name || `Room ${unit.roomNumber}`}</Typography><Typography sx={{ mt: .15, fontSize: 9.5, color: '#8291a0' }}>{unit.specifications?.roomSize?.value ? `Approx. ${unit.specifications.roomSize.value} ${unit.specifications.roomSize.unit || 'sqft'}` : sentence(unit.specifications?.roomType || 'Private room')}</Typography><Typography sx={{ mt: .55, fontSize: 10.5, fontWeight: 800, color: '#087f5b' }}>{money(Number(unit.pricing?.monthlyRent || 0))} / month</Typography></Box>
+                  </Paper>;
+                }) : displayImages.slice(1,4).map((image:string,index:number) => <Paper key={image} elevation={0} sx={{ flex: '0 0 205px', border: '1px solid #e8edf1', borderRadius: 2, overflow: 'hidden' }}><Box sx={{ height: 112 }}><OptimizedImage src={image} alt={`Room ${index+1}`} width={460} height={260} style={{ width:'100%',height:'100%',objectFit:'cover' }} /></Box><Box sx={{ p:.9 }}><Typography sx={{ fontSize:11.5,fontWeight:800 }}>Room {index+1}</Typography><Typography sx={{ fontSize:9.5,color:'#8291a0' }}>Property interior</Typography></Box></Paper>)}
+                <Paper elevation={0} sx={{ flex: '0 0 225px', border: '1px solid #e8edf1', borderRadius: 2, overflow: 'hidden', p: 1, bgcolor: '#fbfcfd' }}>
+                  <Typography sx={{ fontSize: 11.5, fontWeight: 800, color: '#173B55' }}>{heroBedrooms ? `${heroBedrooms} BHK Floor Plan` : 'Floor Plan'}</Typography>
+                  <Box sx={{ height: 125, mt: .65, borderRadius: 1.5, overflow: 'hidden', bgcolor: '#f1f4f6', display: 'grid', placeItems: 'center' }}>
+                    {floorPlanMedia[0]?.url ? <OptimizedImage src={floorPlanMedia[0].url} alt="Floor plan" width={520} height={320} style={{ width:'100%',height:'100%',objectFit:'contain' }} /> : <GridViewRounded sx={{ fontSize: 44, color: '#9aabb9' }} />}
+                  </Box>
+                </Paper>
+              </Stack>
+            </Paper>
 
-                {detailsTab === 1 && <>
-                  <Typography color="text.secondary" fontSize={12.5}>Essential services and document-related facts, presented clearly.</Typography>
-                  {[...utilityRows, ...legalRows].some(([, value]) => hasValue(value)) ? <Grid container spacing={1.15} mt={1.25}>{renderRows([...utilityRows, ...legalRows])}</Grid> : <Typography color="text.secondary" fontSize={13} sx={{ mt: 1.25 }}>Utilities and legal details have not been added yet.</Typography>}
-                </>}
+            <Paper id="nearby" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography sx={{ color: '#102a43', fontSize: 15, fontWeight: 800 }}>Nearby Places</Typography><Button size="small" sx={{ textTransform:'none', fontSize:10.5 }}>View All →</Button></Stack>
+              <Stack direction="row" spacing={.8} sx={{ mt: 1, overflowX: 'auto', pb: .35 }}>
+                {(nearbyRows.length ? nearbyRows : [['Supermarket','Nearby'],['School','Nearby'],['Hospital','Nearby'],['Metro Station','Nearby'],['Restaurant','Nearby']]).slice(0,7).map(([name,value],index) => <Box key={String(name)} sx={{ flex:'0 0 145px', border:'1px solid #e8edf1', borderRadius:2, overflow:'hidden', bgcolor:'#fff' }}>
+                  <Box sx={{ height:58, bgcolor:'#eef3f5', overflow:'hidden' }}>{displayImages[index % Math.max(1,displayImages.length)] && <OptimizedImage src={displayImages[index % displayImages.length]} alt="" width={320} height={150} style={{width:'100%',height:'100%',objectFit:'cover'}} />}</Box>
+                  <Box sx={{ p:.7 }}><Typography sx={{ fontSize:10.5,fontWeight:800,color:'#183a55' }}>{String(name)}</Typography><Typography sx={{ fontSize:9.2,color:'#8190a0' }}>{String(value || 'Nearby')}</Typography></Box>
+                </Box>)}
+              </Stack>
+            </Paper>
 
-                {detailsTab === 2 && <>
-                  <Typography color="text.secondary" fontSize={12.5}>Useful places and local conveniences around the property.</Typography>
-                  {nearbyRows.some(([, value]) => hasValue(value)) ? <Grid container spacing={1.15} mt={1.25}>{renderRows(nearbyRows)}</Grid> : <Typography color="text.secondary" fontSize={13} sx={{ mt: 1.25 }}>Nearby facilities have not been added yet.</Typography>}
-                  {(publicContact.ownerName || publicContact.agentName) && <Alert severity="info" sx={{ mt: 2, border: '1px solid rgba(2, 132, 199, .18)', borderRadius: '1px', bgcolor: '#F1F8FD' }}>Listed by {publicContact.agentName || publicContact.ownerName}. Use the application or site-visit flow to share contact details securely.</Alert>}
-                </>}
+            <Paper id="reviews" elevation={0} sx={{ ...sectionCard, p: { xs:1.6, md:2 } }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography sx={{ color:'#102a43',fontSize:15,fontWeight:800 }}>Reviews</Typography><Stack direction="row" spacing={.25} alignItems="center"><StarRounded sx={{fontSize:17,color:'#f59e0b'}}/><Typography sx={{fontSize:12,fontWeight:800}}>Verified stays only</Typography></Stack></Stack>
+              <Typography sx={{mt:.8,fontSize:11.5,color:'#758698'}}>Tenant feedback appears here after completed and verified rental experiences.</Typography>
+            </Paper>
+          </Stack>
+        </Grid>
 
-                {detailsTab === 3 && <>
-                  <Typography color="text.secondary" fontSize={12.5}>Additional information supplied for this particular listing.</Typography>
-                  {property.customAttributes && Object.keys(property.customAttributes).length > 0 ? <Grid container spacing={1.15} mt={1.25}>
-                    {Object.entries(property.customAttributes).map(([key, value]) => <Grid size={{ xs: 12, sm: 6 }} key={key}>
-                      <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1.5} sx={detailTileSx}>
-                        <Stack direction="row" alignItems="center" gap={.8} sx={{ minWidth: 0 }}>
-                          <Box sx={{ width: 6, height: 6, flexShrink: 0, bgcolor: '#0B8B7E', borderRadius: '50%' }} />
-                          <Typography color="text.secondary" fontSize={13}>{sentence(key)}</Typography>
-                        </Stack>
-                        <Typography fontWeight={850} fontSize={13} textAlign="right" sx={{ color: '#153B54' }}>{Array.isArray(value) ? value.join(', ') : typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? '—')}</Typography>
-                      </Stack>
-                    </Grid>)}
-                  </Grid> : <Typography color="text.secondary" fontSize={13} sx={{ mt: 1.25 }}>No additional property-specific details have been added yet.</Typography>}
-                </>}
+        <Grid size={{ xs: 12, lg: 4 }}>
+          <Stack spacing={1.5}>
+            <Paper id="tour" elevation={0} sx={{ ...sectionCard, p: 1.4 }}>
+              <Stack direction="row" spacing={.65} alignItems="center"><ViewInArRounded sx={{ fontSize:18,color:'#087f5b' }}/><Typography sx={{fontSize:14,fontWeight:800,color:'#102a43'}}>Interactive Property Tour</Typography></Stack>
+              <Box sx={{ mt:1, position:'relative', height:210, borderRadius:2, overflow:'hidden', bgcolor:'#edf2f5' }}>
+                <OptimizedImage src={displayImages[1] || shareImage} alt="Interactive property tour" width={700} height={430} style={{width:'100%',height:'100%',objectFit:'cover'}} />
+                <Box sx={{position:'absolute',inset:0,display:'grid',placeItems:'center',bgcolor:'rgba(8,29,42,.08)'}}>
+                  <Button onClick={() => { setTourExpanded(true); setTimeout(() => scrollToSection('full-tour'), 50); }} variant="contained" startIcon={<PlayCircleFilledRounded />} sx={{bgcolor:'rgba(8,29,42,.82)',borderRadius:99,textTransform:'none',fontWeight:800,'&:hover':{bgcolor:'#0a2f49'}}}>Start 3D Tour</Button>
+                </Box>
               </Box>
             </Paper>
 
-            {spaces.length > 0 && (
-              <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 4, mt: 3 }}>
-                <Typography variant="h6" fontWeight={900}>Available buildings, apartments, rooms and beds</Typography>
-                <Typography color="text.secondary" fontSize={13} mb={2}>Select each public space to view its price, occupancy and room-wise gallery.</Typography>
-                <Grid container spacing={1.5}>
-                  {spaces.filter((space) => space.rentable || space.sellable).map((space) => (
-                    <Grid size={{ xs: 12, sm: 6 }} key={space._id}>
-                      <Card variant="outlined" onClick={() => navigate(`/marketplace/${space._id}`)} sx={{ cursor: 'pointer', borderRadius: 3, height: '100%' }}>
-                        <CardContent>
-                          <Stack direction="row" justifyContent="space-between">
-                            <Box>
-                              <Typography fontWeight={850}>{space.roomNumber ? `Room ${space.roomNumber}` : space.name}</Typography>
-                              <Typography color="text.secondary" fontSize={12}>{sentence(space.level)} · {sentence(space.purpose)}{space.apartmentNumber ? ` · Apartment ${space.apartmentNumber}` : ''}</Typography>
-                            </Box>
-                            <Typography color="primary" fontWeight={900}>{money(Number(space.price || 0))}</Typography>
-                          </Stack>
-                          <Stack direction="row" gap={0.7} mt={1.5}>
-                            <Chip size="small" label={`${space.occupancyRules?.maxTotal || '—'} max occupants`} />
-                            <Chip size="small" label={sentence(space.status)} />
-                          </Stack>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Paper>
-            )}
-          </Grid>
-
-          <Grid size={{ xs: 12, lg: 4 }}>
-            <Paper variant="outlined" sx={{ ...detailSectionSx, ...(usePremiumPropertyDetails ? { position: { lg: 'sticky' }, top: { lg: 88 } } : { p: 3 }) }}>
-              <DetailSectionHeader icon={SecurityRounded} title="Occupancy rules" subtitle="Clear living guidelines set by the property owner." />
-              <Stack spacing={usePremiumPropertyDetails ? 1 : 1.2} mt={2}>
-                {occupancyRows.map(([label, value]) => (
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1.25} key={label} sx={usePremiumPropertyDetails ? detailTileSx : undefined}>
-                    <Typography color="text.secondary" fontSize={13}>{label}</Typography>
-                    <Typography fontWeight={usePremiumPropertyDetails ? 850 : 800} fontSize={13} textAlign="right" sx={usePremiumPropertyDetails ? { color: '#153B54' } : undefined}>{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value ?? 'Not specified')}</Typography>
-                  </Stack>
-                ))}
-              </Stack>
-              {usePremiumPropertyDetails ? <Box sx={{ mt: 2, p: 1.45, color: '#FFFFFF', bgcolor: '#12364D', borderLeft: '3px solid #11A994' }}>
-                <Typography fontWeight={900} fontSize={12.5}>Privacy protected</Typography>
-                <Typography sx={{ mt: .4, color: 'rgba(255,255,255,.78)', fontSize: 12, lineHeight: 1.55 }}>Sensitive owner, tenant and exact-location information remains private until the configured application or site-visit stage.</Typography>
-              </Box> : <Alert severity="info" sx={{ mt: 2 }}>Sensitive owner, tenant and exact-location information remains private until the configured application or site-visit stage.</Alert>}
+            <Paper elevation={0} sx={{ ...sectionCard, p:1.6 }}>
+              <Typography sx={{fontSize:14,fontWeight:800,color:'#102a43'}}>Property Details</Typography>
+              <Stack sx={{mt:.8}}>{compactDetails.filter(([,value])=>hasValue(value)).map(([name,value]) => <Stack key={name} direction="row" justifyContent="space-between" spacing={2} sx={{py:.72,borderBottom:'1px solid #eef2f5','&:last-child':{borderBottom:0}}}><Typography sx={{fontSize:10.5,color:'#748597'}}>{name}</Typography><Typography sx={{fontSize:10.5,fontWeight:700,color:'#29465d',textAlign:'right'}}>{String(value)}</Typography></Stack>)}</Stack>
             </Paper>
-          </Grid>
+
+            <Paper id="location" elevation={0} sx={{ ...sectionCard, p:1.4 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography sx={{fontSize:14,fontWeight:800,color:'#102a43'}}>Location</Typography><Button size="small" onClick={() => window.open(directions,'_blank')} sx={{textTransform:'none',fontSize:10}}>View on Map →</Button></Stack>
+              {mapEmbedUrl ? <Box component="iframe" title={`${property.title} map`} src={mapEmbedUrl} loading="lazy" referrerPolicy="no-referrer-when-downgrade" sx={{mt:.85,border:0,width:'100%',height:235,display:'block',borderRadius:2}} /> : <Box sx={{mt:.85,height:190,borderRadius:2,bgcolor:'#eef3f5',display:'grid',placeItems:'center'}}><LocationOnRounded sx={{fontSize:46,color:'#10a374'}}/></Box>}
+              <Stack direction="row" spacing={.6} alignItems="flex-start" sx={{mt:.85}}><LocationOnRounded sx={{fontSize:16,color:'#5f7285',mt:.1}}/><Typography sx={{fontSize:10.5,color:'#61758a'}}>{locationSummary || 'Exact location is protected by owner privacy settings.'}</Typography></Stack>
+              <Button variant="outlined" fullWidth onClick={() => window.open(directions,'_blank')} sx={{mt:1,borderColor:'#d5dee6',color:'#173B55',borderRadius:2,textTransform:'none',fontSize:10.5,fontWeight:700}}>Get Directions</Button>
+            </Paper>
+
+            <Paper id="rules" elevation={0} sx={{ ...sectionCard, p:1.4 }}>
+              <Typography sx={{fontSize:14,fontWeight:800,color:'#102a43'}}>Property Rules</Typography>
+              <Grid container spacing={.7} sx={{mt:.45}}>{occupancyRows.slice(0,6).map(([name,value]) => <Grid key={name} size={{xs:4,sm:3,lg:4}}><Stack alignItems="center" spacing={.45} sx={{p:.65,borderRadius:2,bgcolor:'#f8fafc',height:'100%'}}><RuleRounded sx={{fontSize:18,color:'#566f84'}}/><Typography sx={{fontSize:8.8,color:'#687b8d',textAlign:'center',lineHeight:1.15}}>{name}</Typography><Typography sx={{fontSize:9.2,fontWeight:800,color:'#1c3a52',textAlign:'center'}}>{typeof value==='boolean'?(value?'Yes':'No'):String(value ?? 'Not specified')}</Typography></Stack></Grid>)}</Grid>
+            </Paper>
+          </Stack>
         </Grid>
+      </Grid>
+
+      {tourExpanded && hasInteractiveRoomTour && <Box id="full-tour" sx={{mt:1.5}}><InteractivePropertyTour property={property} units={rentalUnits} onBack={() => setTourExpanded(false)} onView={(unit) => navigate(`/room_details/${unit._id}`)} onBook={(unit) => navigate(`/app/apply_property/${property._id}?rentalUnit=${unit._id}`)} onShare={() => void sharePublicListing({ title: shareTitle, imageUrl: shareImage, url: publicUrl })} saved={saved} onToggleSaved={() => void wishlist.toggle(wishlistListing)} /></Box>}
+
+      <Paper variant="outlined" data-secureasset-property-additional-details="preserved-v214" sx={{ ...sectionCard, p:{xs:1.6,md:2}, mt:1.5 }}>
+        <Typography sx={{fontSize:15,fontWeight:800,color:'#102a43'}}>Additional Property Information</Typography>
+        <Tabs value={detailsTab} onChange={(_,value)=>setDetailsTab(value)} variant="scrollable" scrollButtons="auto" sx={{mt:.7,minHeight:38,borderBottom:'1px solid #e8edf1','& .MuiTab-root':{minHeight:38,textTransform:'none',fontSize:10.5},'& .MuiTabs-indicator':{bgcolor:'#087f5b'}}}>
+          <Tab label="Specifications" /><Tab label="Parking & Pricing" /><Tab label="Utilities & Legal" /><Tab label="Property-specific" />
+        </Tabs>
+        <Box sx={{pt:1.2}}>
+          {detailsTab===0 && <Grid container spacing={.8}>{renderRows(specificationRows)}</Grid>}
+          {detailsTab===1 && <Grid container spacing={.8}>{renderRows(parkingPricingRows)}</Grid>}
+          {detailsTab===2 && <Grid container spacing={.8}>{renderRows([...utilityRows,...legalRows])}</Grid>}
+          {detailsTab===3 && (property.customAttributes && Object.keys(property.customAttributes).length ? <Grid container spacing={.8}>{Object.entries(property.customAttributes).map(([key,value])=><Grid key={key} size={{xs:12,sm:6}}><Stack direction="row" justifyContent="space-between" sx={detailTileSx}><Typography sx={{fontSize:11,color:'#6f8191'}}>{sentence(key)}</Typography><Typography sx={{fontSize:11,fontWeight:800}}>{Array.isArray(value)?value.join(', '):typeof value==='boolean'?(value?'Yes':'No'):String(value ?? '—')}</Typography></Stack></Grid>)}</Grid> : <Typography sx={{fontSize:11,color:'#758698'}}>No additional custom details have been added.</Typography>)}
         </Box>
-      </Container>
-    </Box>
-  );
+      </Paper>
+
+      <Box sx={{display:{xs:'block',md:'none'},position:'fixed',left:0,right:0,bottom:0,zIndex:40,p:1,bgcolor:'rgba(255,255,255,.96)',borderTop:'1px solid #e3e9ee',backdropFilter:'blur(14px)'}}>
+        <Button fullWidth variant="contained" onClick={() => navigate(`/app/apply_property/${property._id}${selected ? `?space=${selected._id}` : ''}`)} sx={{minHeight:48,bgcolor:'#087f5b',borderRadius:2,textTransform:'none',fontWeight:800}}>Book Room / Apply</Button>
+      </Box>
+    </Container>
+  </Box>;
 }
