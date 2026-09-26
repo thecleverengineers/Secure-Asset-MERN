@@ -153,38 +153,54 @@ async function readPartyMark(mark) {
 function drawPartyMark(document, { title, name, mark, x, y, width = 485 }) {
   const height = 126;
   document.roundedRect(x, y, width, height, 8).lineWidth(1).strokeColor('#CBD5E1').stroke();
-  document.fillColor('#0F172A').font('Helvetica-Bold').fontSize(10).text(title, x + 14, y + 13, { width: width - 28 });
-  document.fillColor('#475569').font('Helvetica').fontSize(9).text(name || '—', x + 14, y + 30, { width: width - 28 });
+  document.fillColor('#0F172A').font('Times-Bold').fontSize(10).text(title, x + 14, y + 13, { width: width - 28 });
+  document.fillColor('#475569').font('Times-Roman').fontSize(9).text(name || '—', x + 14, y + 30, { width: width - 28 });
   const descriptor = mark?.mark?.kind === 'stamp_seal' ? 'Stamp / seal' : 'Signature';
   if (mark?.buffer) {
     try {
       document.image(mark.buffer, x + 14, y + 50, { fit: [width - 28, 52], align: 'center', valign: 'center' });
-      document.fillColor('#64748B').fontSize(8).text(`${descriptor} · background removed automatically`, x + 14, y + 108, { width: width - 28, align: 'right' });
+      document.fillColor('#64748B').font('Times-Roman').fontSize(8).text(`${descriptor} · background removed automatically`, x + 14, y + 108, { width: width - 28, align: 'right' });
       return;
     } catch {
       // A malformed historic image must never prevent an authorised party from
       // opening the agreement preview. The missing mark is shown below.
     }
   }
-  document.fillColor('#94A3B8').font('Helvetica-Oblique').fontSize(9).text(`${descriptor} not yet uploaded`, x + 14, y + 75, { width: width - 28, align: 'center' });
+  document.fillColor('#94A3B8').font('Times-Italic').fontSize(9).text(`${descriptor} not yet uploaded`, x + 14, y + 75, { width: width - 28, align: 'center' });
 }
 
 async function createStampPaperPdf({ title, body, stampPaper, agreementType, landlordName, tenantName, firstPartyMark, secondPartySignature, approvalStatus, approvedAt, durationMonths, startDate, endDate, cycleStartedAt, cycleEndsAt }) {
   const [firstMark, secondMark] = await Promise.all([readPartyMark(firstPartyMark), readPartyMark(secondPartySignature)]);
   return new Promise((resolve, reject) => {
     const chunks = [];
+    // Legal stamp papers typically contain treasury/serial information near
+    // the edges. Keep a generous 1.25-inch working margin on every side.
+    const legalMargin = 90;
+    const firstPageTopClearance = 108; // 1.5 inches
+    const bodyFontSize = 11;
+    const oneAndHalfLineGap = 5.5;
+
     const document = new PDFDocument({
       size: stampPaper.paperSize === 'Letter' ? 'LETTER' : stampPaper.paperSize,
-      margin: 54,
+      margin: legalMargin,
       info: { Title: title, Author: 'SecureAsset' },
     });
     document.on('data', (chunk) => chunks.push(chunk));
     document.on('error', reject);
     document.on('end', () => resolve(Buffer.concat(chunks)));
 
-    document.fillColor('#111827').fontSize(17).font('Helvetica-Bold').text('STAMP PAPER AGREEMENT', { align: 'center' });
-    document.moveDown(.35).fontSize(13).text(title, { align: 'center' });
-    document.moveDown(.7).font('Helvetica').fontSize(9).fillColor('#4B5563');
+    // PDFKit's standard Times family provides the formal Times New Roman-style
+    // legal appearance without relying on an external font file at runtime.
+    document.y = firstPageTopClearance;
+    document.fillColor('#111827').font('Times-Bold').fontSize(16).text('STAMP PAPER AGREEMENT', {
+      align: 'center',
+      lineGap: 2,
+    });
+    document.moveDown(.35).font('Times-Bold').fontSize(13).text(title, {
+      align: 'center',
+      lineGap: 2,
+    });
+    document.moveDown(.7).font('Times-Roman').fontSize(9).fillColor('#4B5563');
     const stampLine = [
       stampPaper.enabled ? 'Stamp paper: enabled' : 'Stamp paper: not specified',
       stampPaper.state && `State: ${stampPaper.state}`,
@@ -193,28 +209,74 @@ async function createStampPaperPdf({ title, body, stampPaper, agreementType, lan
       `Agreement type: ${agreementType}`,
       `Workflow status: ${cleanText(approvalStatus, 'draft').replaceAll('_', ' ')}`,
     ].filter(Boolean).join('  ·  ');
-    document.text(stampLine, { align: 'center' });
-    document.moveDown(1).fillColor('#111827').fontSize(11).font('Helvetica');
-    document.text(body, { align: 'justify', lineGap: 4 });
-    document.moveDown(1.2).fontSize(10).font('Helvetica-Bold').text('Parties');
-    document.font('Helvetica').fontSize(10).text(`First party (landlord-enabled tenant): ${landlordName || '____________________________'}`);
-    document.text(`Second party (applicant tenant): ${tenantName || '____________________________'}`);
-    document.moveDown(.35).fontSize(9).fillColor('#475569');
+    document.text(stampLine, { align: 'center', lineGap: 2 });
+
+    document.moveDown(1.15).fillColor('#111827').font('Times-Roman').fontSize(bodyFontSize);
+    // 11pt body + 5.5pt gap approximates 1.5-line legal-document spacing.
+    // Justification keeps both edges clean and gives the agreement a formal,
+    // uniform legal-document appearance.
+    document.text(body, {
+      align: 'justify',
+      lineGap: oneAndHalfLineGap,
+      paragraphGap: 8,
+    });
+
+    document.moveDown(1.25).font('Times-Bold').fontSize(10.5).text('Parties', { lineGap: 2 });
+    document.font('Times-Roman').fontSize(10).text(
+      `First party (landlord-enabled tenant): ${landlordName || '____________________________'}`,
+      { lineGap: 5 },
+    );
+    document.text(
+      `Second party (applicant tenant): ${tenantName || '____________________________'}`,
+      { lineGap: 5 },
+    );
+    document.moveDown(.45).font('Times-Roman').fontSize(9).fillColor('#475569');
     document.text(approvedAt
       ? `First-party verification and approval: ${new Date(approvedAt).toLocaleString('en-IN')}`
-      : 'First-party verification and approval: pending');
+      : 'First-party verification and approval: pending', { lineGap: 4 });
+
     const termStart = startDate || cycleStartedAt;
     const termEnd = endDate || cycleEndsAt;
-    if (Number(durationMonths || 0) > 0) document.text(`Agreement term: ${Number(durationMonths)} month${Number(durationMonths) === 1 ? '' : 's'}`);
-    if (termStart || termEnd) {
-      document.text(`Agreement dates: ${termStart ? formatAgreementDate(termStart) : '—'} to ${termEnd ? formatAgreementDate(termEnd) : '—'}`);
-      if (['rent', 'lease'].includes(agreementType)) document.text('Rent payment cycle: monthly, regardless of the agreement term.');
+    if (Number(durationMonths || 0) > 0) {
+      document.text(`Agreement term: ${Number(durationMonths)} month${Number(durationMonths) === 1 ? '' : 's'}`, { lineGap: 4 });
     }
-    document.addPage();
-    document.fillColor('#111827').font('Helvetica-Bold').fontSize(16).text('SIGNATURES / STAMP SEAL', { align: 'center' });
-    document.moveDown(.45).fillColor('#64748B').font('Helvetica').fontSize(9).text('Each mark is stored privately in SecureAsset and embedded in this agreement preview.', { align: 'center' });
-    drawPartyMark(document, { title: 'FIRST PARTY · LANDLORD-ENABLED TENANT', name: landlordName, mark: firstMark, x: 54, y: 150 });
-    drawPartyMark(document, { title: 'SECOND PARTY · APPLICANT TENANT', name: tenantName, mark: secondMark, x: 54, y: 304 });
+    if (termStart || termEnd) {
+      document.text(`Agreement dates: ${termStart ? formatAgreementDate(termStart) : '—'} to ${termEnd ? formatAgreementDate(termEnd) : '—'}`, { lineGap: 4 });
+      if (['rent', 'lease'].includes(agreementType)) {
+        document.text('Rent payment cycle: monthly, regardless of the agreement term.', { lineGap: 4 });
+      }
+    }
+
+    document.addPage({ margin: legalMargin });
+    document.y = firstPageTopClearance;
+    document.fillColor('#111827').font('Times-Bold').fontSize(15).text('SIGNATURES / STAMP SEAL', {
+      align: 'center',
+      lineGap: 2,
+    });
+    document.moveDown(.5).fillColor('#64748B').font('Times-Roman').fontSize(9).text(
+      'Each mark is stored privately in SecureAsset and embedded in this agreement preview.',
+      { align: 'center', lineGap: 3 },
+    );
+
+    const signatureX = legalMargin;
+    const signatureWidth = document.page.width - (legalMargin * 2);
+    drawPartyMark(document, {
+      title: 'FIRST PARTY · LANDLORD-ENABLED TENANT',
+      name: landlordName,
+      mark: firstMark,
+      x: signatureX,
+      y: 190,
+      width: signatureWidth,
+    });
+    drawPartyMark(document, {
+      title: 'SECOND PARTY · APPLICANT TENANT',
+      name: tenantName,
+      mark: secondMark,
+      x: signatureX,
+      y: 344,
+      width: signatureWidth,
+    });
+
     document.end();
   });
 }
