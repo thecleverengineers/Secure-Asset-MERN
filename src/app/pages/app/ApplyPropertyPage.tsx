@@ -11,6 +11,7 @@ import {
   Container,
   FormControlLabel,
   Grid,
+  LinearProgress,
   IconButton,
   MenuItem,
   Paper,
@@ -43,7 +44,7 @@ import {
   createRentalApplication,
   getPropertyById,
   getPublicPropertyStructure,
-  uploadDocument,
+  uploadDocumentWithProgress,
 } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import type { Property } from '../../services/types';
@@ -152,6 +153,15 @@ type FormState = {
 };
 
 type FileKey = 'idProof' | 'addressProof' | 'incomeProof' | 'profilePhoto';
+type UploadStatus = 'idle' | 'uploading' | 'complete' | 'error';
+type UploadState = { progress: number; status: UploadStatus; error?: string };
+
+const initialUploadProgress: Record<FileKey, UploadState> = {
+  idProof: { progress: 0, status: 'idle' },
+  addressProof: { progress: 0, status: 'idle' },
+  incomeProof: { progress: 0, status: 'idle' },
+  profilePhoto: { progress: 0, status: 'idle' },
+};
 
 const initialForm: FormState = {
   fullName: '',
@@ -200,18 +210,96 @@ function SectionTitle({ number, icon, title, subtitle }: { number: number; icon:
   </Stack>;
 }
 
-function UploadTile({ title, hint, file, onSelect, required = true }: { title: string; hint: string; file: File | null; onSelect: (file: File | null) => void; required?: boolean }) {
+function UploadTile({
+  title,
+  hint,
+  file,
+  onSelect,
+  progress,
+  status,
+  uploadError,
+  required = true,
+}: {
+  title: string;
+  hint: string;
+  file: File | null;
+  onSelect: (file: File | null) => void;
+  progress: number;
+  status: UploadStatus;
+  uploadError?: string;
+  required?: boolean;
+}) {
   const inputId = `application-upload-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-  return <Paper elevation={0} sx={{ p: 1, border: '1px solid #DDE7EE', borderRadius: 2, bgcolor: '#FFFFFF', minHeight: 67 }}>
+  const [previewUrl, setPreviewUrl] = useState('');
+
+  useEffect(() => {
+    if (!file) { setPreviewUrl(''); return; }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  const isImage = Boolean(file?.type?.startsWith('image/'));
+  const isPdf = file?.type === 'application/pdf';
+  const statusLabel = status === 'uploading'
+    ? `Uploading ${progress}%`
+    : status === 'complete'
+      ? 'Uploaded'
+      : status === 'error'
+        ? 'Upload failed'
+        : file
+          ? 'Ready to upload'
+          : 'Not selected';
+
+  return <Paper elevation={0} sx={{
+    p: 1, border: status === 'error' ? '1px solid #F4B7B5' : status === 'complete' ? '1px solid #BFE8D1' : '1px solid #DDE7EE',
+    borderRadius: 2, bgcolor: '#FFFFFF', minHeight: 92,
+  }}>
     <Stack direction="row" spacing={.8} alignItems="center">
-      <Box sx={{ width: 34, height: 34, borderRadius: 2, display: 'grid', placeItems: 'center', bgcolor: '#EEF6FF', color: '#3478DA', flexShrink: 0 }}><DescriptionRounded sx={{ fontSize: 17 }} /></Box>
-      <Box sx={{ minWidth: 0, flex: 1 }}>
-        <Typography sx={{ color: '#173B55', fontSize: 9.5, fontWeight: 800 }}>{title}{required ? <Box component="span" sx={{ color: '#E5484D' }}> *</Box> : null}</Typography>
-        <Typography noWrap sx={{ mt: .12, color: '#8190A0', fontSize: 7.7 }}>{file ? file.name : hint}</Typography>
+      <Box sx={{ width: 42, height: 42, borderRadius: '7px', display: 'grid', placeItems: 'center', bgcolor: '#EEF6FF', color: '#3478DA', flexShrink: 0, overflow: 'hidden', border: '1px solid #E2EAF1' }}>
+        {isImage && previewUrl
+          ? <Box component="img" src={previewUrl} alt={`${title} preview`} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <DescriptionRounded sx={{ fontSize: 18 }} />}
       </Box>
-      <Button component="label" htmlFor={inputId} startIcon={<UploadFileRounded sx={{ fontSize: '14px !important' }} />} sx={{ minWidth: 0, px: .6, textTransform: 'none', fontSize: 8.2, fontWeight: 800 }}>Upload
-        <input id={inputId} hidden type="file" accept={title === 'Profile Photo' ? 'image/jpeg,image/png,image/webp' : 'image/jpeg,image/png,application/pdf'} onChange={(event) => onSelect(event.target.files?.[0] || null)} />
-      </Button>
+
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={.6}>
+          <Typography sx={{ color: '#173B55', fontSize: 9.5, fontWeight: 800 }}>
+            {title}{required ? <Box component="span" sx={{ color: '#E5484D' }}> *</Box> : null}
+          </Typography>
+          <Typography sx={{
+            color: status === 'error' ? '#B42318' : status === 'complete' ? '#087443' : status === 'uploading' ? '#3478DA' : '#7B8D9E',
+            fontSize: 7.6, fontWeight: 800, flexShrink: 0,
+          }}>{statusLabel}</Typography>
+        </Stack>
+
+        <Typography noWrap sx={{ mt: .12, color: '#8190A0', fontSize: 7.7 }}>
+          {file ? `${file.name} · ${Math.max(1, Math.round(file.size / 1024))} KB` : hint}
+        </Typography>
+
+        {file && <LinearProgress
+          variant="determinate"
+          value={status === 'complete' ? 100 : progress}
+          sx={{
+            mt: .55, height: 4, borderRadius: 99, bgcolor: '#EDF2F5',
+            '& .MuiLinearProgress-bar': { borderRadius: 99, bgcolor: status === 'error' ? '#D92D20' : status === 'complete' ? '#0B9567' : '#3478DA' },
+          }}
+        />}
+
+        {uploadError && <Typography sx={{ mt: .3, color: '#B42318', fontSize: 7.4 }}>{uploadError}</Typography>}
+      </Box>
+
+      <Stack spacing={.35} alignItems="stretch">
+        {(isImage || isPdf) && previewUrl && <Button
+          size="small"
+          onClick={() => window.open(previewUrl, '_blank', 'noopener,noreferrer')}
+          sx={{ minWidth: 0, px: .65, textTransform: 'none', fontSize: 7.8, fontWeight: 800 }}
+        >Preview</Button>}
+        <Button component="label" htmlFor={inputId} startIcon={<UploadFileRounded sx={{ fontSize: '13px !important' }} />} sx={{ minWidth: 0, px: .6, textTransform: 'none', fontSize: 7.8, fontWeight: 800 }}>
+          {file ? 'Replace' : 'Upload'}
+          <input id={inputId} hidden type="file" accept={title === 'Profile Photo' ? 'image/jpeg,image/png,image/webp' : 'image/jpeg,image/png,application/pdf'} onChange={(event) => onSelect(event.target.files?.[0] || null)} />
+        </Button>
+      </Stack>
     </Stack>
   </Paper>;
 }
@@ -231,6 +319,7 @@ export default function ApplyPropertyPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [form, setForm] = useState<FormState>(initialForm);
   const [files, setFiles] = useState<Record<FileKey, File | null>>({ idProof: null, addressProof: null, incomeProof: null, profilePhoto: null });
+  const [uploadProgress, setUploadProgress] = useState<Record<FileKey, UploadState>>(initialUploadProgress);
   const [consent, setConsent] = useState({ truth: false, verification: false, privacy: false });
 
   const targetSpaceId = searchParams.get('space') || searchParams.get('targetSpace') || '';
@@ -301,7 +390,9 @@ export default function ApplyPropertyPage() {
   function setField(name: keyof FormState, value: string) { setForm((current) => ({ ...current, [name]: value })); }
   function setFile(name: FileKey, file: File | null) {
     if (file && file.size > 8 * 1024 * 1024) { setError('Each supporting document must be 8 MB or smaller.'); return; }
-    setFiles((current) => ({ ...current, [name]: file })); setError('');
+    setFiles((current) => ({ ...current, [name]: file }));
+    setUploadProgress((current) => ({ ...current, [name]: { progress: 0, status: 'idle' } }));
+    setError('');
   }
 
   function saveDraft() {
@@ -334,9 +425,21 @@ export default function ApplyPropertyPage() {
       const documentIds: string[] = [];
       for (const [key, file] of Object.entries(files) as Array<[FileKey, File | null]>) {
         if (!file) continue;
-        const uploaded = await uploadDocument(file, { property: String(property._id), applicationPurpose: key, visibility: 'private' });
-        const documentId = String((uploaded.data as any)?._id || '');
-        if (documentId) documentIds.push(documentId);
+        setUploadProgress((current) => ({ ...current, [key]: { progress: 0, status: 'uploading' } }));
+        try {
+          const uploaded = await uploadDocumentWithProgress(
+            file,
+            { property: String(property._id), applicationPurpose: key, visibility: 'private' },
+            (progress) => setUploadProgress((current) => ({ ...current, [key]: { progress, status: progress >= 100 ? 'complete' : 'uploading' } })),
+          );
+          const documentId = String((uploaded.data as any)?._id || '');
+          if (documentId) documentIds.push(documentId);
+          setUploadProgress((current) => ({ ...current, [key]: { progress: 100, status: 'complete' } }));
+        } catch (uploadError) {
+          const message = uploadError instanceof Error ? uploadError.message : 'Upload failed';
+          setUploadProgress((current) => ({ ...current, [key]: { ...current[key], status: 'error', error: message } }));
+          throw uploadError;
+        }
       }
       setUploading(false);
 
@@ -524,8 +627,8 @@ export default function ApplyPropertyPage() {
               <Grid size={{ xs: 12, sm: 3 }}><TextField {...inputProps} select required label="ID Type" value={form.idType} onChange={(e) => setField('idType', e.target.value)}>{['Aadhaar','Passport','Driving Licence','Voter ID','PAN Card'].map((value) => <MenuItem key={value} value={value}>{value}</MenuItem>)}</TextField></Grid>
               <Grid size={{ xs: 12, sm: 3 }}><TextField {...inputProps} required label="ID Number" value={form.idNumber} onChange={(e) => setField('idNumber', e.target.value)} /></Grid>
               <Grid size={{ xs: 12, sm: 6 }}><TextField {...inputProps} required label="Address (Current)" value={form.currentAddress} onChange={(e) => setField('currentAddress', e.target.value)} /></Grid>
-              <Grid size={{ xs: 12, sm: 6 }}><UploadTile title="ID Proof" hint="Aadhaar, Passport or Government ID · JPG, PNG or PDF (Max 8MB)" file={files.idProof} onSelect={(file) => setFile('idProof', file)} /></Grid>
-              <Grid size={{ xs: 12, sm: 6 }}><UploadTile title="Address Proof" hint="Utility bill, Bank statement etc. · JPG, PNG or PDF (Max 8MB)" file={files.addressProof} onSelect={(file) => setFile('addressProof', file)} /></Grid>
+              <Grid size={{ xs: 12, sm: 6 }}><UploadTile title="ID Proof" hint="Aadhaar, Passport or Government ID · JPG, PNG or PDF (Max 8MB)" file={files.idProof} onSelect={(file) => setFile('idProof', file)} progress={uploadProgress.idProof.progress} status={uploadProgress.idProof.status} uploadError={uploadProgress.idProof.error} /></Grid>
+              <Grid size={{ xs: 12, sm: 6 }}><UploadTile title="Address Proof" hint="Utility bill, Bank statement etc. · JPG, PNG or PDF (Max 8MB)" file={files.addressProof} onSelect={(file) => setFile('addressProof', file)} progress={uploadProgress.addressProof.progress} status={uploadProgress.addressProof.status} uploadError={uploadProgress.addressProof.error} /></Grid>
             </Grid>
 
             <Box sx={{ my: 1.35, borderTop: '1px solid #E8EEF3' }} />
@@ -568,9 +671,9 @@ export default function ApplyPropertyPage() {
               <Paper elevation={0} sx={{ ...sectionCard, mt: 1.25, p: { xs: 1.15, md: 1.35 } }}>
                 <SectionTitle number={7} icon={<UploadFileRounded sx={{ fontSize: 16 }} />} title="Supporting Documents" subtitle="Upload the following documents to complete your application" />
                 <Grid container spacing={.75}>
-                  <Grid size={{ xs: 12, sm: 4 }}><UploadTile title="ID Proof" hint="Government issued ID" file={files.idProof} onSelect={(file) => setFile('idProof', file)} /></Grid>
-                  <Grid size={{ xs: 12, sm: 4 }}><UploadTile title="Income Proof" hint="Payslip, bank statement or ITR" file={files.incomeProof} onSelect={(file) => setFile('incomeProof', file)} /></Grid>
-                  <Grid size={{ xs: 12, sm: 4 }}><UploadTile title="Profile Photo" hint="Recent clear profile photo" file={files.profilePhoto} onSelect={(file) => setFile('profilePhoto', file)} /></Grid>
+                  <Grid size={{ xs: 12, sm: 4 }}><UploadTile title="ID Proof" hint="Government issued ID" file={files.idProof} onSelect={(file) => setFile('idProof', file)} progress={uploadProgress.idProof.progress} status={uploadProgress.idProof.status} uploadError={uploadProgress.idProof.error} /></Grid>
+                  <Grid size={{ xs: 12, sm: 4 }}><UploadTile title="Income Proof" hint="Payslip, bank statement or ITR" file={files.incomeProof} onSelect={(file) => setFile('incomeProof', file)} progress={uploadProgress.incomeProof.progress} status={uploadProgress.incomeProof.status} uploadError={uploadProgress.incomeProof.error} /></Grid>
+                  <Grid size={{ xs: 12, sm: 4 }}><UploadTile title="Profile Photo" hint="Recent clear profile photo" file={files.profilePhoto} onSelect={(file) => setFile('profilePhoto', file)} progress={uploadProgress.profilePhoto.progress} status={uploadProgress.profilePhoto.status} uploadError={uploadProgress.profilePhoto.error} /></Grid>
                 </Grid>
               </Paper>
             </Grid>

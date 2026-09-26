@@ -664,6 +664,61 @@ export async function uploadDocument(file: File, metadata: Record<string, string
   const form = new FormData(); form.append('file', file); Object.entries(metadata).forEach(([key, value]) => form.append(key, value));
   return request<ApiResponse<Document>>('/uploads/document', { method: 'POST', body: form });
 }
+
+export async function uploadDocumentWithProgress(
+  file: File,
+  metadata: Record<string, string> = {},
+  onProgress?: (progress: number) => void,
+) {
+  const run = (retry = true): Promise<ApiResponse<Document>> => new Promise((resolve, reject) => {
+    const form = new FormData();
+    form.append('file', file);
+    Object.entries(metadata).forEach(([key, value]) => form.append(key, value));
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}/uploads/document`);
+    xhr.withCredentials = true;
+    xhr.timeout = UPLOAD_REQUEST_TIMEOUT_MS;
+
+    const token = getToken();
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    const csrf = readCookie('sa_csrf');
+    if (csrf) xhr.setRequestHeader('X-SecureAsset-CSRF', csrf);
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      onProgress?.(Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100))));
+    };
+
+    xhr.onerror = () => reject(new Error('Could not upload the document. Check your connection and try again.'));
+    xhr.ontimeout = () => reject(new Error('Document upload timed out. Please try again.'));
+    xhr.onabort = () => reject(new Error('Document upload was cancelled.'));
+    xhr.onload = async () => {
+      let payload: any = {};
+      try { payload = xhr.responseText ? JSON.parse(xhr.responseText) : {}; } catch { payload = {}; }
+
+      if (xhr.status === 401 && retry) {
+        if (await refreshSession()) {
+          run(false).then(resolve).catch(reject);
+          return;
+        }
+        clearSession();
+      }
+
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error(payload?.message || `Document upload failed (${xhr.status})`));
+        return;
+      }
+      onProgress?.(100);
+      resolve(payload as ApiResponse<Document>);
+    };
+
+    onProgress?.(0);
+    xhr.send(form);
+  });
+
+  return run(true);
+}
 export async function uploadSubscriptionPaymentProof(file: File, metadata: Record<string, string> = {}) {
   const form = new FormData(); form.append('file', file); Object.entries(metadata).forEach(([key, value]) => form.append(key, value));
   return request<ApiResponse<Document>>('/uploads/subscription-payment-proof', {
