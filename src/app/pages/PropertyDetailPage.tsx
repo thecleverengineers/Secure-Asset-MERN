@@ -619,7 +619,7 @@ export default function PropertyDetailPage() {
                     </Button>;
                   })}
                 </Stack>
-              </Box>
+              </Box>}
               <Box sx={{ mt: .65 }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1} sx={{ mb: .75 }}>
                   <Typography sx={{ fontSize: 10.5, color: '#7A8D9E' }}>
