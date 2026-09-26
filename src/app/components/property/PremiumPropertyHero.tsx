@@ -14,6 +14,8 @@ import LocationOnRounded from '@mui/icons-material/LocationOnRounded';
 import MailOutlineRounded from '@mui/icons-material/MailOutlineRounded';
 import ShareRounded from '@mui/icons-material/ShareRounded';
 import WeekendRounded from '@mui/icons-material/WeekendRounded';
+import ArrowBackIosNewRounded from '@mui/icons-material/ArrowBackIosNewRounded';
+import ArrowForwardIosRounded from '@mui/icons-material/ArrowForwardIosRounded';
 import OptimizedImage from '../shared/OptimizedImage';
 
 const fallback = 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1800&q=88';
@@ -120,12 +122,12 @@ export default function PremiumPropertyHero({
         <Button onClick={() => setActiveImage((activeImage + 1) % gallery.length)} startIcon={<GridViewRounded />} sx={{ position: 'absolute', left: 13, bottom: 13, color: '#fff', bgcolor: 'rgba(6,24,37,.78)', px: 1.25, borderRadius: 2, textTransform: 'none', fontWeight: 700, '&:hover': { bgcolor: 'rgba(6,24,37,.92)' } }}>View All Photos ({gallery.length})</Button>
       </Box>
 
-      <Stack spacing={1} sx={{ display: { xs: 'flex', md: 'grid', lg: 'flex' }, gridTemplateColumns: { md: 'repeat(3,1fr)' }, minWidth: 0 }}>
+      <Stack spacing={1} sx={{ display: { xs: 'none', md: 'grid', lg: 'flex' }, gridTemplateColumns: { md: 'repeat(3,1fr)' }, minWidth: 0 }}>
         {[1,2,3].map((offset, index) => {
           const source = gallery[(activeImage + offset) % gallery.length] || mainImage;
           const remaining = Math.max(0, gallery.length - 3);
           return <Box component="button" type="button" key={offset} onClick={() => setActiveImage((activeImage + offset) % gallery.length)} sx={{
-            position: 'relative', height: { xs: 92, md: 118, lg: index === 2 ? 116 : 126 }, p: 0, border: 0,
+            position: 'relative', height: { md: 118, lg: index === 2 ? 116 : 126 }, p: 0, border: 0,
             borderRadius: RADIUS, overflow: 'hidden', bgcolor: '#edf2f4', cursor: 'pointer',
           }}>
             <OptimizedImage src={source} alt="" width={500} height={300} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -133,6 +135,83 @@ export default function PremiumPropertyHero({
           </Box>;
         })}
       </Stack>
+
+      <Box sx={{ display: { xs: 'block', md: 'none' }, position: 'relative', mt: -.15, px: 4.4 }}>
+        <IconButton
+          aria-label="Previous property photo"
+          disabled={gallery.length <= 1}
+          onClick={() => setActiveImage((activeImage - 1 + gallery.length) % gallery.length)}
+          sx={{
+            position: 'absolute', left: 1, top: '50%', transform: 'translateY(-50%)', zIndex: 2,
+            width: 32, height: 32, bgcolor: 'rgba(255,255,255,.96)', color: '#173B55',
+            border: '1px solid #DCE5EC', boxShadow: '0 4px 14px rgba(15,42,64,.12)',
+            '&:hover': { bgcolor: '#fff' },
+          }}
+        >
+          <ArrowBackIosNewRounded sx={{ fontSize: 15 }} />
+        </IconButton>
+
+        <Stack direction="row" spacing={.65} sx={{ overflow: 'hidden' }}>
+          {[1,2,3].map((offset, index) => {
+            const imageIndex = gallery.length ? (activeImage + offset) % gallery.length : 0;
+            const source = gallery[imageIndex] || mainImage;
+            const remaining = Math.max(0, gallery.length - 4);
+            return <Box
+              component="button"
+              type="button"
+              key={`mobile-thumb-${offset}`}
+              aria-label={`Show property photo ${imageIndex + 1}`}
+              onClick={() => setActiveImage(imageIndex)}
+              sx={{
+                position: 'relative', flex: '1 1 0', minWidth: 0, height: 70, p: 0,
+                border: '1px solid #E2E9EF', borderRadius: '5px', overflow: 'hidden',
+                bgcolor: '#EDF2F5', cursor: 'pointer',
+              }}
+            >
+              <OptimizedImage
+                src={source}
+                alt=""
+                width={320}
+                height={180}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '5px', display: 'block' }}
+              />
+              {index === 2 && remaining > 0 && <Box sx={{
+                position: 'absolute', inset: 0, display: 'grid', placeItems: 'center',
+                bgcolor: 'rgba(7,27,43,.42)', color: '#fff', fontSize: 18, fontWeight: 800,
+              }}>+{remaining}</Box>}
+            </Box>;
+          })}
+        </Stack>
+
+        <IconButton
+          aria-label="Next property photo"
+          disabled={gallery.length <= 1}
+          onClick={() => setActiveImage((activeImage + 1) % gallery.length)}
+          sx={{
+            position: 'absolute', right: 1, top: '50%', transform: 'translateY(-50%)', zIndex: 2,
+            width: 32, height: 32, bgcolor: 'rgba(255,255,255,.96)', color: '#173B55',
+            border: '1px solid #DCE5EC', boxShadow: '0 4px 14px rgba(15,42,64,.12)',
+            '&:hover': { bgcolor: '#fff' },
+          }}
+        >
+          <ArrowForwardIosRounded sx={{ fontSize: 15 }} />
+        </IconButton>
+
+        {gallery.length > 1 && <Stack direction="row" justifyContent="center" spacing={.45} sx={{ mt: .6 }}>
+          {gallery.slice(0, Math.min(gallery.length, 8)).map((_, index) => <Box
+            key={`mobile-photo-indicator-${index}`}
+            component="button"
+            type="button"
+            aria-label={`Go to property photo ${index + 1}`}
+            onClick={() => setActiveImage(index)}
+            sx={{
+              width: index === activeImage ? 18 : 6, height: 3, p: 0, border: 0, borderRadius: 99,
+              bgcolor: index === activeImage ? '#087F5B' : '#D2DCE4', cursor: 'pointer',
+              transition: 'width .18s ease, background-color .18s ease',
+            }}
+          />)}
+        </Stack>}
+      </Box>
 
       <Box sx={{ p: { xs: .35, lg: .6 }, minWidth: 0 }}>
         <Chip label={availableLabel || sentenceCase(purpose)} size="small" sx={{ bgcolor: '#dcfce7', color: '#087443', height: 26, fontWeight: 700 }} />
