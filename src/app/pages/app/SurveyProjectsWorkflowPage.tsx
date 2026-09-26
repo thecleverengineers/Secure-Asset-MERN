@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import {
-  Alert, Box, Button, Card, CardActionArea, CardContent, Checkbox, Chip, CircularProgress, DialogActions, DialogContent,
+  Alert, Avatar, Box, Button, Card, CardActionArea, CardContent, Checkbox, Chip, CircularProgress, DialogActions, DialogContent,
   Divider, FormControlLabel, Grid, IconButton, LinearProgress, Menu, MenuItem, Paper, Stack, Step, StepLabel, Stepper, TextField, Typography,
 } from '@mui/material';
 import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded';
@@ -157,15 +157,15 @@ function EvidenceCard({ projectId, item, canDelete, onDelete }: { projectId: str
   };
   const isImage = mime.startsWith('image/');
   const isVideo = mime.startsWith('video/');
-  return <Card data-secureasset-survey-evidence-actions="three-dot-v164" elevation={0} sx={{ height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
-    <Box sx={{ height: 172, bgcolor: 'action.hover', display: 'grid', placeItems: 'center' }}>
+  return <Card data-secureasset-survey-evidence-actions="three-dot-v164" elevation={0} sx={{ height: '100%', border: '1px solid #e4e9f0', borderRadius: 2, overflow: 'hidden', boxShadow: 'none' }}>
+    <Box sx={{ height: { xs: 92, sm: 108 }, bgcolor: '#f2f4f7', display: 'grid', placeItems: 'center' }}>
       {!url && !failed && <CircularProgress size={26} />}
       {failed && <Stack alignItems="center" spacing={1}><DescriptionRounded color="disabled" /><Typography variant="caption" color="text.secondary">Preview unavailable</Typography></Stack>}
       {url && isImage && <Box component="img" src={url} alt={item.name || 'Survey evidence'} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
       {url && isVideo && <Box component="video" src={url} muted preload="metadata" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
       {url && !isImage && !isVideo && <Stack alignItems="center" spacing={1}><DescriptionRounded color="primary" sx={{ fontSize: 38 }} /><Typography variant="caption">Open document</Typography></Stack>}
     </Box>
-    <CardContent sx={{ p: 1.6, '&:last-child': { pb: 1.6 } }}>
+    <CardContent sx={{ p: 1, '&:last-child': { pb: 1 } }}>
       <Stack direction="row" spacing={.75} justifyContent="space-between" alignItems="flex-start"><Box sx={{ minWidth: 0 }}><Typography noWrap sx={{ fontWeight: 600 }}>{item.name || item.file?.name || 'Survey evidence'}</Typography>
       <Typography variant="caption" color="text.secondary">{label(item.kind)} · {date(item.capturedAt || item.createdAt)}</Typography>
       </Box><IconButton size="small" aria-label="Evidence actions" aria-controls={menuAnchor ? `evidence-actions-${fileId}` : undefined} aria-haspopup="menu" aria-expanded={Boolean(menuAnchor)} onClick={(event) => setMenuAnchor(event.currentTarget)}><MoreVertRounded fontSize="small" /></IconButton></Stack>
@@ -246,6 +246,18 @@ export default function SurveyProjectsWorkflowPage() {
   const mapProvider = String(siteData.settings?.map?.provider || 'google');
   const mapApiKey = siteData.settings?.map?.enabled === false || siteData.settings?.map?.navigationEnabled === false || mapProvider !== 'google' ? '' : String(siteData.settings?.map?.publicApiKey || '');
   const mapTravelMode = String(siteData.settings?.map?.travelMode || 'DRIVING').toUpperCase() as 'DRIVING' | 'WALKING' | 'BICYCLING' | 'TRANSIT';
+
+  const rawPropertyImage = project?.property?.coverImage || project?.property?.images?.[0] || project?.job?.image || project?.propertySite?.image || '';
+  const propertyImage = typeof rawPropertyImage === 'string' ? rawPropertyImage : String(rawPropertyImage?.url || rawPropertyImage?.path || rawPropertyImage?.src || '');
+  const rawLandlordAvatar = project?.client?.profileImage || project?.client?.avatar || project?.client?.photo || '';
+  const landlordAvatar = typeof rawLandlordAvatar === 'string' ? rawLandlordAvatar : String(rawLandlordAvatar?.url || rawLandlordAvatar?.path || '');
+  const rawSurveyorAvatar = project?.surveyor?.profileImage || project?.surveyor?.avatar || project?.surveyor?.photo || '';
+  const surveyorAvatar = typeof rawSurveyorAvatar === 'string' ? rawSurveyorAvatar : String(rawSurveyorAvatar?.url || rawSurveyorAvatar?.path || '');
+  const projectAddress = project?.property?.address?.fullAddress || project?.job?.addressApproximate || project?.propertySite?.fullAddress || 'Property location protected';
+  const quoteAmount = Number(project?.quotation?.amount || project?.paymentSummary?.total || 0);
+  const approvedAmount = Number(project?.paymentSummary?.total || project?.quotation?.amount || 0);
+  const scheduledDate = project?.job?.preferredVisitDate || project?.startDate || project?.activeVisit?.checkIn?.at || null;
+  const firstPaymentRecord = (project?.payments || [])[0] || null;
 
   async function load() {
     if (!projectId) return;
@@ -566,209 +578,287 @@ export default function SurveyProjectsWorkflowPage() {
   if (loading) return <Box sx={{ py: 12, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>;
   if (!project) return <Box sx={{ px: 3 }}><Alert severity="error">{error || 'Survey project not found'}</Alert></Box>;
 
-  return <Box data-secureasset-survey-workflow="field-review-payment-report-v164" data-secureasset-survey-version="premium-project-workspace-v211" sx={{
-    px: { xs: 1.5, sm: 2.5, lg: 3.5 }, pb: 8, pt: { xs: 1.5, md: 2.25 }, maxWidth: 1600, mx: 'auto',
-    fontFamily: '"Inter", "Open Sans", Arial, sans-serif',
-    '& .MuiTypography-root, & .MuiButton-root, & .MuiChip-root, & .MuiInputBase-root': { fontFamily: '"Inter", "Open Sans", Arial, sans-serif' },
-    '& .MuiButton-root': { textTransform: 'none', borderRadius: 2.2, fontWeight: 700, boxShadow: 'none' },
-    '& .MuiChip-root': { fontWeight: 700 },
+  return <Box data-secureasset-survey-workflow="field-review-payment-report-v164" data-secureasset-survey-version="approved-premium-project-details-v212" sx={{
+    px: { xs: 1.25, sm: 2.25, lg: 3 }, pb: 8, pt: { xs: 1.25, md: 2 }, maxWidth: 1540, mx: 'auto',
+    fontFamily: '"Open Sans", Arial, sans-serif',
+    color: '#0d2340',
+    '& .MuiTypography-root, & .MuiButton-root, & .MuiChip-root, & .MuiInputBase-root, & .MuiFormLabel-root': { fontFamily: '"Open Sans", Arial, sans-serif' },
+    '& .MuiButton-root': { textTransform: 'none', borderRadius: 2, fontWeight: 600, boxShadow: 'none' },
+    '& .MuiChip-root': { fontWeight: 600 },
   }}>
-    <Box data-secureasset-survey-premium-header="v211" sx={{
-      mb: 2.25, p: { xs: 2, sm: 2.4, md: 2.8 }, borderRadius: { xs: 3, md: 4 },
-      border: '1px solid rgba(15,23,42,.08)',
-      background: 'linear-gradient(135deg, rgba(255,255,255,.98) 0%, rgba(248,250,252,.98) 52%, rgba(239,246,255,.92) 100%)',
-      boxShadow: '0 14px 40px rgba(15,23,42,.07)',
-    }}>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ md: 'center' }}>
-        <Box sx={{ minWidth: 0 }}>
-          <Button size="small" startIcon={<ArrowBackRounded />} onClick={() => navigate('/app/survey-projects')} sx={{ px: 0, mb: .75, color: 'text.secondary', '&:hover': { bgcolor: 'transparent', color: 'primary.main' } }}>Survey Projects</Button>
-          <Stack direction="row" spacing={1.1} alignItems="center" flexWrap="wrap" useFlexGap>
-            <Typography variant="h4" sx={{ fontWeight: 850, color: '#0f2747', letterSpacing: '-.035em', fontSize: { xs: 27, sm: 32, md: 36 } }}>Property Survey Project</Typography>
-            <Chip size="small" label={journey.status} color={journey.activeStep === journeySteps.length - 1 ? 'success' : 'primary'} sx={{ borderRadius: 99, px: .35 }} />
-          </Stack>
-          <Stack direction="row" spacing={1.2} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mt: .8 }}>
-            <Typography variant="body2" color="text.secondary">Project ID: <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{project.projectNumber || project._id}</Box></Typography>
-            <Box sx={{ width: 4, height: 4, borderRadius: '50%', bgcolor: 'divider', display: { xs: 'none', sm: 'block' } }} />
-            <Typography variant="body2" color="text.secondary">{project.property?.address?.fullAddress || project.job?.addressApproximate || project.propertySite?.fullAddress || 'Property location protected'}</Typography>
-          </Stack>
-        </Box>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: { xs: '100%', md: 'auto' } }}>
-          <Button variant="outlined" startIcon={<ChatRounded />} onClick={chat} disabled={busy} sx={{ minHeight: 44, px: 2.2 }}>Message Surveyor</Button>
-          {project.permissions?.surveyor && surveyorCanEdit && <Button component="label" variant="contained" startIcon={<CloudUploadRounded />} disabled={busy} sx={{ minHeight: 44, px: 2.2, background: 'linear-gradient(135deg,#0b4aa2,#0a2f73)' }}>Upload Evidence<input hidden multiple type="file" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv" onChange={(event) => { void uploadEvidence(event.target.files); event.currentTarget.value = ''; }} /></Button>}
-        </Stack>
-      </Stack>
-    </Box>
-    {notice && <Alert severity="success" onClose={() => setNotice('')} sx={{ mt: 2 }}>{notice}</Alert>}
-    {error && <Alert severity="error" onClose={() => setError('')} sx={{ mt: 2 }}>{error}</Alert>}
+    <Stack direction="row" spacing={.65} alignItems="center" sx={{ mb: 1.2, color: '#667085' }}>
+      <Button size="small" startIcon={<ArrowBackRounded />} onClick={() => navigate('/app/survey-projects')} sx={{ minWidth: 0, px: 0, color: '#667085', '&:hover': { bgcolor: 'transparent', color: '#0b4a8b' } }}>Survey Projects</Button>
+      <Typography variant="caption">›</Typography>
+      <Typography variant="caption" sx={{ color: '#344054', fontWeight: 600 }}>Project Details</Typography>
+    </Stack>
 
-    <Paper data-secureasset-survey-journey="premium-guided-journey-v211" elevation={0} sx={{
-      p: { xs: 1.8, sm: 2.2, md: 2.7 }, mt: 2, border: '1px solid rgba(15,23,42,.08)', borderRadius: { xs: 3, md: 4 },
-      overflow: 'hidden', background: 'linear-gradient(180deg,#ffffff 0%,#fbfdff 100%)', boxShadow: '0 10px 32px rgba(15,23,42,.055)'
-    }}>
-      <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1.2} alignItems={{ md: 'center' }}>
-        <Box>
-          <Typography sx={{ fontSize: { xs: 16, md: 18 }, fontWeight: 800, color: '#102a4c' }}>{directProject ? 'Direct Surveyor Project Progress' : 'Survey Project Progress'}</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: .35 }}>{directProject ? 'Track the agreed milestones, site visit, evidence, payments, report and verification.' : 'Track field evidence, review, payment, final report and property verification.'}</Typography>
-        </Box>
-        <Chip size="small" color={journey.activeStep === journeySteps.length - 1 ? 'success' : 'primary'} label={`Current owner: ${journey.owner}`} sx={{ alignSelf: { xs: 'flex-start', md: 'center' }, borderRadius: 99 }} />
-      </Stack>
-      <Box sx={{ mt: 2, mx: { xs: -1.8, sm: -2.2, md: -2.7 }, px: { xs: 1.8, sm: 2.2, md: 2.7 }, overflowX: 'auto', pb: .7 }}>
-        <Stepper activeStep={journey.activeStep} alternativeLabel sx={{
-          minWidth: directProject ? 900 : 700,
-          '& .MuiStepConnector-line': { borderColor: 'rgba(20,65,120,.18)', borderTopWidth: 2 },
-          '& .MuiStepIcon-root': { color: '#d6e0ec' },
-          '& .MuiStepIcon-root.Mui-active': { color: '#0b4aa2' },
-          '& .MuiStepIcon-root.Mui-completed': { color: '#079455' },
-          '& .MuiStepLabel-label': { fontSize: 12, fontWeight: 700, color: '#667085', mt: .5 },
-          '& .MuiStepLabel-label.Mui-active': { color: '#0b4aa2', fontWeight: 800 },
-          '& .MuiStepLabel-label.Mui-completed': { color: '#344054' },
-        }}>
-          {journeySteps.map((step) => <Step key={step.title}><StepLabel optional={<Typography variant="caption" color="text.secondary">{step.owner}</Typography>}>{step.title}</StepLabel></Step>)}
-        </Stepper>
+    <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} justifyContent="space-between" alignItems={{ md: 'flex-start' }} sx={{ mb: 2 }}>
+      <Box sx={{ minWidth: 0 }}>
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+          <Typography sx={{ fontSize: { xs: 25, sm: 29, md: 31 }, lineHeight: 1.15, fontWeight: 700, letterSpacing: '-.025em', color: '#0b1f3a' }}>Survey Project Details</Typography>
+          <Chip size="small" label={journey.activeStep === journeySteps.length - 1 ? 'Completed' : label(project.workflowStage || project.status || 'In progress')} color={journey.activeStep === journeySteps.length - 1 ? 'success' : 'primary'} sx={{ borderRadius: 99, height: 25 }} />
+        </Stack>
+        <Typography variant="body2" sx={{ mt: .75, color: '#475467' }}>
+          Project ID: <Box component="span" sx={{ color: '#0f2747', fontWeight: 600 }}>{project.projectNumber || project._id}</Box>
+        </Typography>
+        <Typography variant="caption" sx={{ mt: .4, display: 'block', color: '#98a2b3' }}>
+          Created {date(project.createdAt)} · Last updated {date(project.updatedAt)}
+        </Typography>
       </Box>
-      <LinearProgress variant="determinate" value={journeyProgress} sx={{ mt: 1, height: 6, borderRadius: 99, bgcolor: '#e9eef5', '& .MuiLinearProgress-bar': { borderRadius: 99, background: 'linear-gradient(90deg,#0b4aa2,#079455)' } }} />
-      <Box sx={{ mt: 2, p: { xs: 1.6, sm: 1.9 }, borderRadius: 2.5, bgcolor: 'rgba(11,74,162,.045)', border: '1px solid rgba(11,74,162,.10)' }}>
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} justifyContent="space-between" alignItems={{ md: 'center' }}>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="caption" sx={{ fontWeight: 800, color: '#0b4aa2', letterSpacing: '.08em' }}>NEXT ACTION</Typography>
-            <Typography sx={{ mt: .3, fontWeight: 800, color: '#102a4c' }}>{journey.nextAction}</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: .35 }}>{journey.waiting}</Typography>
-          </Box>
-          <Box sx={{ flexShrink: 0 }}>{renderJourneyAction()}</Box>
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ width: { xs: '100%', md: 'auto' } }}>
+        <Button variant="outlined" startIcon={<ChatRounded />} onClick={chat} disabled={busy} sx={{ minHeight: 42, px: 2, flex: { xs: 1, sm: 'initial' }, borderColor: '#cfd8e5', color: '#102a4c' }}>Contact Surveyor</Button>
+        <Button variant="contained" startIcon={<TaskAltRounded />} onClick={() => {
+          if (project.permissions?.landlord && project.status === 'awaiting_landlord_review') setReviewOpen(true);
+          else document.getElementById('survey-evidence')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }} disabled={busy} sx={{ minHeight: 42, px: 2.1, flex: { xs: 1, sm: 'initial' }, bgcolor: '#082b52', '&:hover': { bgcolor: '#0b3b70' } }}>Review Evidence</Button>
+        <IconButton aria-label="Project actions" sx={{ border: '1px solid #d8e0ea', borderRadius: 2, width: 42, height: 42 }}><MoreVertRounded /></IconButton>
+      </Stack>
+    </Stack>
+
+    {notice && <Alert severity="success" onClose={() => setNotice('')} sx={{ mb: 1.5, borderRadius: 2.5 }}>{notice}</Alert>}
+    {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 1.5, borderRadius: 2.5 }}>{error}</Alert>}
+
+    <Grid container spacing={1.5} sx={{ mb: 1.5 }}>
+      <Grid size={{ xs: 12, md: 5 }}>
+        <Paper elevation={0} sx={{ p: 1.45, height: '100%', minHeight: 126, border: '1px solid #e5eaf1', borderRadius: 2.5, boxShadow: '0 6px 22px rgba(15,23,42,.035)', bgcolor: '#fff' }}>
+          <Stack direction="row" spacing={1.45} alignItems="center" sx={{ height: '100%' }}>
+            <Box sx={{ width: { xs: 112, sm: 146 }, height: 98, borderRadius: 2, overflow: 'hidden', flexShrink: 0, bgcolor: '#eef4f8', display: 'grid', placeItems: 'center' }}>
+              {propertyImage ? <Box component="img" src={propertyImage} alt={project.property?.title || 'Survey property'} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <LocationOnRounded sx={{ fontSize: 34, color: '#6b7d91' }} />}
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontWeight: 700, color: '#102a4c', fontSize: 16 }}>{project.property?.title || project.job?.title || 'Survey Property'}</Typography>
+              <Stack direction="row" spacing={.55} alignItems="flex-start" sx={{ mt: .7 }}>
+                <LocationOnRounded sx={{ fontSize: 16, color: '#667085', mt: .15 }} />
+                <Typography variant="body2" sx={{ color: '#667085', lineHeight: 1.45 }}>{projectAddress}</Typography>
+              </Stack>
+              <Stack direction="row" spacing={.65} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
+                <Chip size="small" label={project.job?.propertyType || project.propertySite?.propertyType || 'Property'} sx={{ bgcolor: '#f2f4f7', color: '#475467', height: 24 }} />
+                <Chip size="small" label={project.job?.surveyType ? label(project.job.surveyType) : label(project.surveyCategory || 'Survey')} sx={{ bgcolor: '#f2f4f7', color: '#475467', height: 24 }} />
+              </Stack>
+            </Box>
+          </Stack>
+        </Paper>
+      </Grid>
+      <Grid size={{ xs: 12, md: 3.5 }}>
+        <Paper elevation={0} sx={{ p: 1.7, height: '100%', minHeight: 126, border: '1px solid #e5eaf1', borderRadius: 2.5, boxShadow: '0 6px 22px rgba(15,23,42,.035)' }}>
+          <Typography variant="caption" sx={{ color: '#475467', fontWeight: 600 }}>Landlord</Typography>
+          <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mt: 1.25 }}>
+            <Avatar src={landlordAvatar || undefined} alt={project.client?.name || 'Landlord'} sx={{ width: 50, height: 50, bgcolor: '#e7eef7', color: '#102a4c', fontWeight: 700 }}>{String(project.client?.name || 'L').slice(0, 1)}</Avatar>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontWeight: 700, color: '#102a4c' }}>{project.client?.name || 'Landlord'}</Typography>
+              {project.client?.email && <Typography variant="caption" noWrap sx={{ display: 'block', color: '#667085' }}>{project.client.email}</Typography>}
+              {project.client?.phone && <Typography variant="caption" sx={{ display: 'block', color: '#667085' }}>{project.client.phone}</Typography>}
+            </Box>
+          </Stack>
+        </Paper>
+      </Grid>
+      <Grid size={{ xs: 12, md: 3.5 }}>
+        <Paper elevation={0} sx={{ p: 1.7, height: '100%', minHeight: 126, border: '1px solid #e5eaf1', borderRadius: 2.5, boxShadow: '0 6px 22px rgba(15,23,42,.035)' }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+            <Typography variant="caption" sx={{ color: '#475467', fontWeight: 600 }}>Assigned Surveyor</Typography>
+            <IconButton size="small" onClick={chat} disabled={busy} sx={{ border: '1px solid #e4e7ec', borderRadius: 1.5 }}><ChatRounded sx={{ fontSize: 17 }} /></IconButton>
+          </Stack>
+          <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mt: .75 }}>
+            <Avatar src={surveyorAvatar || undefined} alt={project.surveyor?.name || 'Surveyor'} sx={{ width: 50, height: 50, bgcolor: '#e7eef7', color: '#102a4c', fontWeight: 700 }}>{String(project.surveyor?.name || 'S').slice(0, 1)}</Avatar>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontWeight: 700, color: '#102a4c' }}>{project.surveyor?.name || 'Assigned Surveyor'}</Typography>
+              {project.surveyor?.email && <Typography variant="caption" noWrap sx={{ display: 'block', color: '#667085' }}>{project.surveyor.email}</Typography>}
+              {project.surveyor?.phone && <Typography variant="caption" sx={{ display: 'block', color: '#667085' }}>{project.surveyor.phone}</Typography>}
+            </Box>
+          </Stack>
+        </Paper>
+      </Grid>
+    </Grid>
+
+    <Paper elevation={0} sx={{ mb: 1.5, border: '1px solid #e4e9f0', borderRadius: 2.5, overflow: 'hidden', boxShadow: '0 6px 22px rgba(15,23,42,.035)' }}>
+      <Grid container>
+        {[
+          { title: 'Quote Amount', value: money(quoteAmount), icon: <PaidRounded />, accent: '#079455', bg: '#ecfdf3' },
+          { title: 'Approved Amount', value: money(approvedAmount), icon: <CheckCircleRounded />, accent: '#079455', bg: '#ecfdf3' },
+          { title: 'Scheduled Date', value: scheduledDate ? new Date(String(scheduledDate)).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Not scheduled', sub: scheduledDate ? new Date(String(scheduledDate)).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '', icon: <TaskAltRounded />, accent: '#0b4aa2', bg: '#eff6ff' },
+          { title: 'Project Status', value: journey.status, sub: 'Next: ' + journey.nextAction, icon: <TaskAltRounded />, accent: '#079455', bg: '#ecfdf3' },
+        ].map((item, index) => <Grid size={{ xs: 6, md: 3 }} key={item.title} sx={{ borderRight: { md: index < 3 ? '1px solid #edf0f4' : 'none' }, borderBottom: { xs: index < 2 ? '1px solid #edf0f4' : 'none', md: 'none' } }}>
+          <Stack direction="row" spacing={1.2} alignItems="center" sx={{ p: { xs: 1.35, sm: 1.65 }, minHeight: 86 }}>
+            <Box sx={{ width: 38, height: 38, borderRadius: '50%', display: 'grid', placeItems: 'center', flexShrink: 0, color: item.accent, bgcolor: item.bg, '& svg': { fontSize: 20 } }}>{item.icon}</Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="caption" sx={{ color: '#667085' }}>{item.title}</Typography>
+              <Typography sx={{ mt: .15, fontWeight: 700, color: item.accent === '#079455' && item.title === 'Project Status' ? '#087a49' : '#102a4c', fontSize: { xs: 14, sm: 16 }, lineHeight: 1.25 }}>{item.value}</Typography>
+              {item.sub && <Typography variant="caption" noWrap sx={{ display: 'block', color: '#98a2b3', maxWidth: 220 }}>{item.sub}</Typography>}
+            </Box>
+          </Stack>
+        </Grid>)}
+      </Grid>
+    </Paper>
+
+    <Box sx={{ display: { xs: 'flex', md: 'none' }, mb: 1.5, p: .5, border: '1px solid #e4e9f0', borderRadius: 2, bgcolor: '#fff', overflowX: 'auto' }}>
+      {['Overview', 'Evidence', 'Payment', 'Report'].map((tab, index) => <Box key={tab} onClick={() => document.getElementById(index === 1 ? 'survey-evidence' : index === 2 ? 'survey-payment' : index === 3 ? 'survey-report' : 'survey-overview')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} sx={{ px: 1.6, py: .8, minWidth: 'max-content', borderBottom: index === 0 ? '2px solid #079455' : '2px solid transparent', color: index === 0 ? '#087a49' : '#667085', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{tab}</Box>)}
+    </Box>
+
+    <Paper id="survey-overview" elevation={0} sx={{ mb: 1.5, p: { xs: 1.5, sm: 1.8 }, border: '1px solid #e4e9f0', borderRadius: 2.5, boxShadow: '0 6px 22px rgba(15,23,42,.035)' }}>
+      <Box sx={{ overflowX: 'auto', pb: .25 }}>
+        <Stack direction="row" alignItems="flex-start" sx={{ minWidth: directProject ? 860 : 650 }}>
+          {journeySteps.map((step, index) => {
+            const completed = index < journey.activeStep;
+            const active = index === journey.activeStep;
+            return <Box key={step.title} sx={{ flex: 1, minWidth: 100, position: 'relative', textAlign: 'center', px: .5 }}>
+              {index < journeySteps.length - 1 && <Box sx={{ position: 'absolute', left: '50%', right: '-50%', top: 14, height: 2, bgcolor: completed ? '#079455' : '#e0e7ef', zIndex: 0 }} />}
+              <Box sx={{ position: 'relative', zIndex: 1, mx: 'auto', width: 29, height: 29, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: completed || active ? '#079455' : '#e8edf3', color: completed || active ? '#fff' : '#667085', fontSize: 12, fontWeight: 700, boxShadow: active ? '0 0 0 5px rgba(7,148,85,.12)' : 'none' }}>{completed ? <CheckCircleRounded sx={{ fontSize: 17 }} /> : index + 1}</Box>
+              <Typography sx={{ mt: .75, fontSize: 11.5, fontWeight: active ? 700 : 600, color: active ? '#102a4c' : '#475467', lineHeight: 1.3 }}>{step.title}</Typography>
+              <Typography variant="caption" sx={{ display: 'block', mt: .2, color: '#98a2b3', fontSize: 10.5 }}>{step.owner}</Typography>
+            </Box>;
+          })}
         </Stack>
       </Box>
     </Paper>
 
-    <Grid container spacing={2.5} sx={{ mt: .2 }}>
-      <Grid size={{ xs: 12, lg: 8 }}><Stack spacing={2.5}>
-        {directProject && <Paper data-secureasset-direct-surveyor-budget="two-milestones-v205" elevation={0} sx={{ p: { xs: 2, md: 2.8 }, border: '1px solid', borderColor: 'primary.light', borderRadius: 4, bgcolor: 'rgba(25, 118, 210, .035)' }}>
-          <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1.5} alignItems={{ md: 'center' }}><Box><Typography variant="h6" sx={{ fontWeight: 700 }}>Two-milestone budget</Typography><Typography color="text.secondary">The landlord proposes the amounts; the hired Surveyor accepts each milestone before site work begins.</Typography></Box><Chip size="small" color={directBudgetReadyForUi ? 'success' : 'warning'} label={directBudgetReadyForUi ? 'Budget agreed' : 'Awaiting agreement'} /></Stack>
-          <Divider sx={{ my: 2 }} />
-          <Stack spacing={1.5}>{directMilestones.map((milestone: any) => {
-            const draft = milestoneDrafts[String(milestone._id)] || { title: milestone.title || '', description: milestone.description || '', amount: String(milestone.amount || '') };
-            const payment = paymentForMilestone(milestone);
-            const editable = project.permissions?.landlord && ['proposed', 'rejected'].includes(String(milestone.status || ''));
-            return <Paper variant="outlined" key={milestone._id} sx={{ p: 1.7, borderRadius: 3 }}><Stack direction={{ xs: 'column', md: 'row' }} spacing={1.2} justifyContent="space-between"><Box sx={{ flex: 1 }}><TextField fullWidth size="small" label={`Milestone ${milestone.order} title`} value={draft.title} disabled={!editable} onChange={(event) => setMilestoneDrafts({ ...milestoneDrafts, [String(milestone._id)]: { ...draft, title: event.target.value } })} /><TextField fullWidth size="small" multiline minRows={2} sx={{ mt: 1 }} label="Scope / deliverable" value={draft.description} disabled={!editable} onChange={(event) => setMilestoneDrafts({ ...milestoneDrafts, [String(milestone._id)]: { ...draft, description: event.target.value } })} /></Box><Stack sx={{ minWidth: { md: 230 } }} spacing={1}><TextField fullWidth size="small" type="number" label="Agreed amount (INR)" value={draft.amount} disabled={!editable} onChange={(event) => setMilestoneDrafts({ ...milestoneDrafts, [String(milestone._id)]: { ...draft, amount: event.target.value } })} /><Stack direction="row" spacing={.7} flexWrap="wrap" useFlexGap><Chip size="small" label={label(milestone.status)} color={milestone.status === 'accepted' || milestone.status === 'paid' ? 'success' : 'warning'} />{editable && <Button size="small" variant="outlined" onClick={() => void saveDirectMilestone(milestone)} disabled={busy}>Save budget</Button>}{project.permissions?.surveyor && ['proposed', 'rejected'].includes(String(milestone.status || '')) && <Button size="small" color="success" variant="contained" onClick={() => void acceptDirectMilestone(milestone)} disabled={busy}>Accept</Button>}</Stack>{payment && <Typography variant="caption" color="text.secondary">{payment.invoiceNumber} · {money(payment.amount)} · {label(payment.status)}</Typography>}</Stack></Stack>
-              {payment?.paymentVerification?.status === 'submitted' && <Alert severity="info" sx={{ mt: 1.2, py: 0.3 }}>Payment proof submitted. The Surveyor must review the transaction and accept receipt.</Alert>}
-            </Paper>;
-          })}</Stack>
-          {!directMilestones.length && <Alert severity="error" sx={{ mt: 2 }}>This direct project has no milestones. Contact support before fieldwork begins.</Alert>}
-        </Paper>}
-        <Paper elevation={0} sx={{ p: { xs: 2, md: 2.8 }, border: '1px solid rgba(15,23,42,.08)', borderColor: 'rgba(15,23,42,.08)', borderRadius: 4, boxShadow: '0 10px 30px rgba(15,23,42,.05)' }}>
-          <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2}><Box><Typography variant="h6" sx={{ fontWeight: 800, color: '#102a4c' }}>Project Overview</Typography><Typography color="text.secondary">Property, contacts, schedule, scope and agreed commercial details.</Typography></Box><Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            {project.navigationUrl && <Button component="a" href={project.navigationUrl} target="_blank" rel="noreferrer" variant="outlined" startIcon={<MapRounded />}>Navigate</Button>}
-            <Button variant="outlined" startIcon={<ChatRounded />} onClick={chat} disabled={busy}>Chat</Button>
-          </Stack></Stack>
-          <Divider sx={{ my: 2 }} />
-          <Grid container spacing={2}>{[
-            ['Survey type', label(project.job?.surveyType || project.surveyCategory)], ['Property type', project.job?.propertyType || project.propertySite?.propertyType || '—'],
-            ['Landlord', project.client?.name || '—'], ['Surveyor', project.surveyor?.name || '—'], ['Visit date', date(project.job?.preferredVisitDate || project.startDate)],
-            ['Deadline', date(project.job?.preferredCompletionDate || project.dueDate)], ['Agreed value', money(project.paymentSummary?.total)], ['Outstanding', money(project.paymentSummary?.outstanding)],
-          ].map(([title, value]) => <Grid size={{ xs: 12, sm: 6, md: 4 }} key={title}><Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>{title.toUpperCase()}</Typography><Typography sx={{ fontWeight: 600, mt: .3 }}>{value}</Typography></Grid>)}</Grid>
-          {(project.job?.requirements?.length || project.job?.deliverables?.length || project.quotation?.scope) && <><Divider sx={{ my: 2 }} /><Grid container spacing={2}><Grid size={{ xs: 12, md: 6 }}><Typography sx={{ fontWeight: 700, mb: 1 }}>Requirements</Typography>{(project.job?.requirements || []).map((item: string) => <Typography key={item} variant="body2" color="text.secondary">• {item}</Typography>)}{!project.job?.requirements?.length && <Typography variant="body2" color="text.secondary">{project.quotation?.scope || 'No extra requirements'}</Typography>}</Grid><Grid size={{ xs: 12, md: 6 }}><Typography sx={{ fontWeight: 700, mb: 1 }}>Deliverables</Typography>{(project.job?.deliverables || []).map((item: string) => <Typography key={item} variant="body2" color="text.secondary">• {item}</Typography>)}{!project.job?.deliverables?.length && <Typography variant="body2" color="text.secondary">Formal measured survey report and supporting evidence.</Typography>}</Grid></Grid></>}
-          <Box sx={{ mt: 2.5 }}><SurveyProjectNavigationMap apiKey={mapApiKey} destination={projectDestination(project)} destinationLabel={project.property?.title || project.job?.title || 'survey property'} externalUrl={project.navigationUrl} travelMode={mapTravelMode} defaultZoom={Number(siteData.settings?.map?.defaultZoom || 15)} mapId={String(siteData.settings?.map?.mapId || '')} directionsEnabled={siteData.settings?.map?.directionsEnabled !== false} serverRoutingEnabled={siteData.settings?.map?.serverRoutesEnabled !== false && siteData.settings?.map?.routesEnabled !== false} routeRefreshSeconds={Number(siteData.settings?.map?.routeRefreshSeconds || 10)} locationUpdateSeconds={Number(siteData.settings?.map?.locationUpdateSeconds || 5)} /></Box>
-        </Paper>
-
-        <Paper elevation={0} sx={{ p: { xs: 2, md: 2.8 }, border: '1px solid rgba(15,23,42,.08)', borderColor: 'rgba(15,23,42,.08)', borderRadius: 4, boxShadow: '0 10px 30px rgba(15,23,42,.05)' }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1.5}><Box><Typography variant="h6" sx={{ fontWeight: 800, color: '#102a4c' }}>Site Visit & Measurements</Typography><Typography color="text.secondary">GPS check-in, measurements, field notes and secure supporting evidence for this survey.</Typography></Box>{project.permissions?.surveyor && <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            {currentStage === 'hired' && <Button variant="contained" startIcon={<LocationOnRounded />} onClick={checkIn} disabled={busy}>Secure check-in</Button>}
-            {surveyorCanEdit && <Button variant="outlined" startIcon={<NoteAddRounded />} onClick={() => setFieldOpen(true)}>Add field data</Button>}
-            {surveyorCanEdit && <Button component="label" variant="outlined" startIcon={<CloudUploadRounded />} disabled={busy}>Upload evidence<input hidden multiple type="file" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv" onChange={(event) => { void uploadEvidence(event.target.files); event.currentTarget.value = ''; }} /></Button>}
-            {canSubmitFieldwork && <Button variant="contained" startIcon={<SendRounded />} onClick={submitFieldworkReview} disabled={busy}>Submit for landlord review</Button>}
-          </Stack>}</Stack>
-          <Divider sx={{ my: 2 }} />
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Stack direction="row" spacing={1} alignItems="center"><StraightenRounded color="primary" /><Typography sx={{ fontWeight: 700 }}>Measurements ({measurements.length})</Typography></Stack>
-              <Stack spacing={1} sx={{ mt: 1.3 }}>{measurements.length ? measurements.map((item: any, index: number) => <Box key={`${item._id || item.label}-${index}`} sx={{ py: 1, borderBottom: '1px solid', borderColor: 'divider' }}><Stack direction="row" justifyContent="space-between" spacing={1} alignItems="center"><Box><Typography sx={{ fontWeight: 600 }}>{item.label || label(item.type)}</Typography>{item.notes && <Typography variant="caption" color="text.secondary">{item.notes}</Typography>}</Box><Stack direction="row" spacing={.5} alignItems="center"><Typography color="primary" sx={{ fontWeight: 700 }}>{item.value} {item.unit}</Typography>{surveyorCanEdit && <Button size="small" startIcon={<EditRounded />} onClick={() => editMeasurement(item, index)}>Edit</Button>}</Stack></Stack></Box>) : <Typography variant="body2" color="text.secondary">No measurements recorded.</Typography>}</Stack>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Stack direction="row" spacing={1} alignItems="center"><NoteAddRounded color="primary" /><Typography sx={{ fontWeight: 700 }}>Field notes ({fieldNotes.length})</Typography></Stack>
-              <Stack spacing={1} sx={{ mt: 1.3 }}>{fieldNotes.length ? fieldNotes.map((item: any, index: number) => <Box key={`${item._id || item.text || index}`} sx={{ py: 1, borderBottom: '1px solid', borderColor: 'divider' }}><Stack direction="row" justifyContent="space-between" spacing={1} alignItems="flex-start"><Box><Typography variant="body2">{item.text || item}</Typography><Typography variant="caption" color="text.secondary">{date(item.at || item.capturedAt || item.createdAt)}</Typography></Box>{surveyorCanEdit && <Button size="small" startIcon={<EditRounded />} onClick={() => editFieldNote(item, index)}>Edit</Button>}</Stack></Box>) : <Typography variant="body2" color="text.secondary">No field notes recorded.</Typography>}</Stack>
-            </Grid>
-          </Grid>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 2.7, mb: 1.5 }}><Typography sx={{ fontWeight: 800, color: '#102a4c' }}>Evidence Gallery</Typography><Chip size="small" label={`${project.evidence?.length || 0} files`} variant="outlined" /></Stack>
-          {!project.evidence?.length ? <Alert severity="info" icon={<CameraAltRounded />}>Upload at least one field photo, video, or document before requesting landlord review.</Alert> : <Grid container spacing={1.5}>{project.evidence.map((item: any) => <Grid size={{ xs: 12, sm: 6, md: 4 }} key={item._id}><EvidenceCard projectId={projectId} item={item} canDelete={surveyorCanEdit} onDelete={() => run(() => removeSurveyWorkflowEvidence(projectId, item._id), 'Evidence removed.')} /></Grid>)}</Grid>}
-          {project.permissions?.surveyor && currentStage === 'in_progress' && project.activeVisit?.checkIn?.at && !project.activeVisit?.checkOut?.at && <Button sx={{ mt: 2 }} variant="text" onClick={checkOut} disabled={busy}>Complete site visit / check out</Button>}
-          {project.permissions?.surveyor && project.status === 'awaiting_landlord_review' && <Alert severity="info" sx={{ mt: 2 }}>Fieldwork is locked while the landlord reviews your measurements and evidence.</Alert>}
-        </Paper>
-
-        <Paper data-secureasset-landlord-review-desk="recorded-review-payment-v167" elevation={0} sx={{ p: { xs: 2, md: 2.8 }, border: '1px solid rgba(15,23,42,.08)', borderColor: 'rgba(15,23,42,.08)', borderRadius: 4, boxShadow: '0 10px 30px rgba(15,23,42,.05)' }}>
-          <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1.5} alignItems={{ md: 'center' }}>
-            <Box><Typography variant="h6">Landlord review &amp; payment desk</Typography><Typography color="text.secondary">The landlord reviews the submitted package here. Payment proof then moves to the assigned Surveyor for a separate receipt confirmation.</Typography></Box>
-            <Chip size="small" color={fieldworkReview.status === 'approved' ? 'success' : fieldworkReview.status === 'changes_requested' ? 'warning' : 'primary'} label={label(fieldworkReview.status || 'not_requested')} />
-          </Stack>
-          <Divider sx={{ my: 2 }} />
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Typography variant="caption" color="text.secondary">1. SUBMITTED REVIEW PACKAGE</Typography>
-              <Typography sx={{ mt: .45 }}>Review round {Number(fieldworkReview.version || 0) || 1}</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: .55 }}>{Number(fieldworkReview.snapshot?.measurementCount ?? measurements.length)} measurements · {Number(fieldworkReview.snapshot?.fieldNoteCount ?? fieldNotes.length)} notes · {Number(fieldworkReview.snapshot?.evidenceCount ?? (project.evidence?.length || 0))} evidence files</Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: .8 }}>Submitted {date(fieldworkReview.submittedAt || project.fieldworkSubmittedAt)}</Typography>
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Typography variant="caption" color="text.secondary">2. LANDLORD DECISION</Typography>
-              {project.status === 'awaiting_landlord_review' ? <Stack spacing={1} sx={{ mt: .7 }}><Typography variant="body2" color="text.secondary">Inspect the measurements, notes, and evidence above. The review form records all three acknowledgements before it creates the final invoice.</Typography>{project.permissions?.landlord && <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><Button color="success" variant="contained" startIcon={<CheckCircleRounded />} onClick={() => setReviewOpen(true)} disabled={busy}>Open recorded review</Button><Button color="warning" variant="outlined" onClick={() => setRevisionOpen(true)} disabled={busy}>Request fieldwork revision</Button></Stack>}</Stack> : fieldworkReview.status === 'changes_requested' ? <Alert severity="warning" sx={{ mt: .7 }}>Changes requested: {fieldworkReview.revisionReason || 'The Surveyor has been asked to update the submitted package.'}</Alert> : fieldworkReview.status === 'approved' ? <Stack spacing={.6} sx={{ mt: .7 }}><Chip size="small" color="success" label="Recorded approval" sx={{ alignSelf: 'flex-start' }} /><Typography variant="body2" color="text.secondary">Reviewed {date(fieldworkReview.reviewedAt)}{fieldworkReview.comment ? ` · ${fieldworkReview.comment}` : ''}</Typography></Stack> : <Typography variant="body2" color="text.secondary" sx={{ mt: .7 }}>A review becomes available after the Surveyor submits measurements and evidence.</Typography>}
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Typography variant="caption" color="text.secondary">3. FINAL PAYMENT CONFIRMATION</Typography>
-              {!finalPaymentRecord ? <Typography variant="body2" color="text.secondary" sx={{ mt: .7 }}>A final invoice is generated only after the landlord records fieldwork approval.</Typography> : <Stack spacing={.65} sx={{ mt: .7 }}><Typography>{finalPaymentRecord.invoiceNumber} · {money(finalPaymentRecord.amount)}</Typography>{finalPaymentWorkflow.status === 'awaiting_landlord' && <><Typography variant="body2" color="text.secondary">Pay outside SecureAsset, then submit the transaction ID, screenshot, and payment declaration.</Typography>{project.permissions?.landlord && <Button variant="contained" startIcon={<PaidRounded />} onClick={() => setFinalPaymentOpen(true)} disabled={busy} sx={{ alignSelf: 'flex-start' }}>Pay &amp; submit proof</Button>}</>}{finalPaymentWorkflow.status === 'proof_submitted' && <><Typography variant="body2" color="text.secondary">Landlord declaration and payment proof submitted {date(finalPaymentWorkflow.proofSubmittedAt)}. The final report remains locked until receipt is confirmed.</Typography>{project.permissions?.surveyor && <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap><Button size="small" variant="outlined" onClick={() => void openPaymentProof(String(finalPaymentRecord._id))} disabled={busy}>View proof</Button><Button size="small" variant="contained" onClick={() => acceptPayment(String(finalPaymentRecord._id))} disabled={busy}>Confirm receipt</Button></Stack>}</>}{finalPaymentWorkflow.status === 'returned' && <Alert severity="warning">Payment proof needs correction: {finalPaymentWorkflow.rejectionReason || 'Please resubmit the payment details.'}</Alert>}{finalPaymentWorkflow.status === 'confirmed' && <Alert severity="success">Receipt confirmed {date(finalPaymentWorkflow.receiptConfirmedAt)}. The Surveyor can upload the final report.</Alert>}</Stack>}
-            </Grid>
-          </Grid>
-          <Alert severity="info" sx={{ mt: 2 }}>The final report stays unavailable until a recorded landlord review, landlord payment declaration, and Surveyor receipt confirmation are all complete.</Alert>
-        </Paper>
-
-        <Paper elevation={0} sx={{ p: { xs: 2, md: 2.8 }, border: '1px solid rgba(15,23,42,.08)', borderColor: 'rgba(15,23,42,.08)', borderRadius: 4, boxShadow: '0 10px 30px rgba(15,23,42,.05)' }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1.5}><Box><Typography variant="h6" sx={{ fontWeight: 800, color: '#102a4c' }}>Survey Report</Typography><Typography color="text.secondary">Preview, upload and download the final survey report after the required review and payment confirmations.</Typography></Box><Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            {canUploadFinalReport && <Button component="label" variant="contained" startIcon={<UploadFileRounded />} disabled={busy}>Upload final report<input hidden type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv" onChange={(event) => { void uploadReportFile(event.target.files); event.currentTarget.value = ''; }} /></Button>}
-            {project.report?._id && <Button variant="outlined" startIcon={<DownloadRounded />} onClick={() => downloadSurveyReport(project.report._id, 'pdf')}>Download PDF</Button>}
-            {project.report?.reportFile && <Button variant="outlined" startIcon={<DownloadRounded />} onClick={() => downloadSurveyWorkflowReportFile(projectId, project.report.reportFile.name || 'survey-report')}>Download uploaded file</Button>}
-          </Stack></Stack>
-          {project.status === 'revision_requested' && <Alert severity="warning" sx={{ mt: 2 }}>The landlord requested a fieldwork revision. Update evidence or measurements, then submit the fieldwork again.</Alert>}
-          {project.status === 'awaiting_final_payment' && <Alert severity={finalPaymentRejected ? 'warning' : 'info'} sx={{ mt: 2 }}>{finalPaymentRejected ? `Update the payment proof: ${finalPaymentRecord?.paymentVerification?.rejectionReason || 'The Surveyor requested a corrected transaction ID or screenshot.'}` : 'Landlord review is recorded. Submit the final payment transaction, screenshot, and declaration before report upload.'}</Alert>}
-          {project.status === 'payment_submitted' && <Alert severity="info" sx={{ mt: 2 }}>The final payment declaration and screenshot are awaiting Surveyor receipt confirmation.</Alert>}
-          {project.status === 'report_upload_requested' && <Alert severity="success" sx={{ mt: 2 }}>Final payment is confirmed. The assigned Surveyor can upload the final report now.</Alert>}
-          {project.report ? <Box sx={{ mt: 2 }}><Stack direction="row" spacing={1} alignItems="center"><Chip size="small" color={project.report.status === 'final' || project.report.status === 'locked' ? 'success' : 'primary'} label={label(project.report.status)} /><Typography variant="caption" color="text.secondary">{project.report.reportNumber} · revision {project.report.revisionNumber || 0}</Typography></Stack><Typography sx={{ fontSize: 18, mt: 1.5 }}>{project.report.title}</Typography>{project.report.reportFile && <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1.5 }}><DescriptionRounded color="primary" /><Typography variant="body2">{project.report.reportFile.name || project.report.reportFile.originalName || 'Uploaded survey report'}</Typography><Chip size="small" label="Final file" color="success" /></Stack>}{Object.entries(reportSections).map(([key, value]) => value ? <Box key={key} sx={{ mt: 1.5 }}><Typography variant="caption" color="text.secondary">{label(key).toUpperCase()}</Typography><Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: .3 }}>{String(value)}</Typography></Box> : null)}</Box> : <Alert severity="info" sx={{ mt: 2 }} icon={<DescriptionRounded />}>A final report becomes available only after recorded landlord fieldwork review, payment declaration, and Surveyor receipt confirmation.</Alert>}
-        </Paper>
-      </Stack></Grid>
-
-      <Grid size={{ xs: 12, lg: 4 }}><Stack spacing={2.5}>
-        <Paper elevation={0} sx={{ p: 2.4, border: '1px solid rgba(15,23,42,.08)', borderRadius: 4, background: 'linear-gradient(145deg,#ffffff,#f7fbff)', boxShadow: '0 10px 30px rgba(15,23,42,.055)' }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography sx={{ fontWeight: 800, color: '#102a4c' }}>Project Summary</Typography><Chip size="small" label={label(project.workflowStage || project.status)} color={project.workflowStage === 'completed' ? 'success' : 'primary'} /></Stack>
-          <Stack spacing={1.25} sx={{ mt: 1.8 }}>
-            {[
-              ['Project value', money(project.paymentSummary?.total)],
-              ['Outstanding', money(project.paymentSummary?.outstanding)],
-              ['Visit date', date(project.job?.preferredVisitDate || project.startDate)],
-              ['Deadline', date(project.job?.preferredCompletionDate || project.dueDate)],
-            ].map(([title, value]) => <Stack key={title} direction="row" justifyContent="space-between" spacing={2}><Typography variant="body2" color="text.secondary">{title}</Typography><Typography variant="body2" sx={{ fontWeight: 800, textAlign: 'right' }}>{value}</Typography></Stack>)}
-          </Stack>
-          <Box sx={{ mt: 2, p: 1.6, borderRadius: 2.5, bgcolor: project.paymentStatus === 'paid' ? 'rgba(7,148,85,.08)' : 'rgba(11,74,162,.06)' }}>
-            <Typography variant="caption" color="text.secondary">PAYMENT STATUS</Typography>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: .35 }}><Typography sx={{ fontWeight: 800 }}>{label(project.paymentStatus || 'unpaid')}</Typography><PaidRounded color={project.paymentStatus === 'paid' ? 'success' : 'primary'} /></Stack>
-          </Box>
-        </Paper>
-        <Paper elevation={0} sx={{ p: 2.5, border: '1px solid rgba(15,23,42,.08)', borderColor: 'rgba(15,23,42,.08)', borderRadius: 4, boxShadow: '0 10px 30px rgba(15,23,42,.05)' }}><Typography sx={{ fontWeight: 700 }}>Verification progress</Typography><Stack spacing={1.5} sx={{ mt: 2 }}>{['surveyed', 'field_verified', 'document_verified', 'fully_verified'].map((step, index) => { const order = ['unverified', 'surveyed', 'field_verified', 'document_verified', 'fully_verified']; const complete = order.indexOf(project.verificationStatus) >= order.indexOf(step); return <Stack key={step} direction="row" spacing={1.2} alignItems="center"><Box sx={{ width: 28, height: 28, borderRadius: '50%', display: 'grid', placeItems: 'center', bgcolor: complete ? 'success.main' : 'action.hover', color: complete ? 'white' : 'text.disabled' }}>{complete ? <TaskAltRounded sx={{ fontSize: 18 }} /> : index + 1}</Box><Typography sx={{ fontWeight: complete ? 700 : 600, color: complete ? 'text.primary' : 'text.secondary' }}>{label(step)}</Typography></Stack>; })}</Stack></Paper>
-        <Paper elevation={0} sx={{ p: 2.5, border: '1px solid rgba(15,23,42,.08)', borderColor: 'rgba(15,23,42,.08)', borderRadius: 4, boxShadow: '0 10px 30px rgba(15,23,42,.05)' }}>
-          <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography sx={{ fontWeight: 700 }}>Payment</Typography><Chip size="small" icon={<PaidRounded />} color={project.paymentStatus === 'paid' ? 'success' : 'warning'} label={label(project.paymentStatus || 'unpaid')} /></Stack>
-          <Stack spacing={1.2} sx={{ mt: 1.5 }}>
-            {(project.payments || []).length ? project.payments.map((payment: any) => <Box key={payment._id} sx={{ pb: 1.2, borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Stack direction="row" justifyContent="space-between" spacing={1} alignItems="center"><Typography sx={{ fontWeight: 600 }}>{label(payment.type)}</Typography><Chip size="small" label={label(payment.status)} color={payment.status === 'paid' ? 'success' : 'warning'} /></Stack>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: .35 }}>{payment.invoiceNumber} · {money(payment.amount)}</Typography>
-              {payment.transactionId && <Typography variant="caption" color="text.secondary">Transaction: {payment.transactionId}</Typography>}
-              <Stack direction="row" spacing={.7} flexWrap="wrap" useFlexGap sx={{ mt: .8 }}>
-                {payment.proofSubmitted && <Button size="small" variant="outlined" startIcon={<OpenInNewRounded />} onClick={() => void openPaymentProof(String(payment._id))} disabled={busy}>View proof</Button>}
-                {project.permissions?.surveyor && ['pending', 'partial', 'overdue'].includes(payment.status) && (payment.type !== 'survey_final' || payment.paymentVerification?.status === 'submitted') && <Button size="small" variant="contained" startIcon={<PaidRounded />} onClick={() => acceptPayment(payment._id)} disabled={busy}>{payment.type === 'survey_final' ? 'Confirm receipt' : 'Accept payment'}</Button>}
-                {project.permissions?.surveyor && payment.type === 'survey_final' && payment.paymentVerification?.status === 'submitted' && <Button size="small" color="warning" variant="outlined" onClick={() => setPaymentRejectionOpen(true)} disabled={busy}>Return proof</Button>}
+    <Grid container spacing={1.5}>
+      <Grid size={{ xs: 12, lg: 7.2 }}>
+        <Stack spacing={1.5}>
+          <Paper id="survey-evidence" elevation={0} sx={{ p: { xs: 1.6, md: 1.9 }, border: '1px solid #e4e9f0', borderRadius: 2.5, boxShadow: '0 6px 22px rgba(15,23,42,.035)' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+              <Stack direction="row" spacing={.8} alignItems="center"><CameraAltRounded sx={{ fontSize: 20, color: '#079455' }} /><Typography sx={{ fontWeight: 700, color: '#102a4c' }}>Survey Evidence</Typography></Stack>
+              <Stack direction="row" spacing={.75} alignItems="center">
+                <Typography variant="caption" sx={{ color: '#667085' }}>{project.evidence?.length || 0} files</Typography>
+                {project.permissions?.surveyor && surveyorCanEdit && <Button component="label" size="small" variant="outlined" startIcon={<CloudUploadRounded />} disabled={busy}>Upload<input hidden multiple type="file" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv" onChange={(event) => { void uploadEvidence(event.target.files); event.currentTarget.value = ''; }} /></Button>}
               </Stack>
-              {payment.type === 'survey_final' && payment.paymentVerification?.status === 'rejected' && <Alert severity="warning" sx={{ mt: 1, py: 0 }}>Correction requested: {payment.paymentVerification?.rejectionReason || 'Please submit updated payment proof.'}</Alert>}
-            </Box>) : <Typography variant="body2" color="text.secondary">The final balance is created after landlord fieldwork review.</Typography>}
-          </Stack>
-          {project.permissions?.landlord && finalPaymentRecord && ['awaiting_final_payment', 'payment_submitted'].includes(project.status) && finalPaymentRecord.paymentVerification?.status !== 'submitted' && <Button fullWidth variant="contained" sx={{ mt: 2 }} startIcon={<PaidRounded />} onClick={() => setFinalPaymentOpen(true)} disabled={busy}>{finalPaymentRejected ? 'Correct & resubmit payment proof' : 'Submit final payment transaction & screenshot'}</Button>}
-          {project.permissions?.landlord && project.status === 'payment_submitted' && <Alert severity="info" sx={{ mt: 1.5 }}>Your transaction and screenshot are awaiting Surveyor confirmation.</Alert>}
-        </Paper>
-      </Stack></Grid>
+            </Stack>
+            {!project.evidence?.length ? <Alert severity="info" sx={{ mt: 1.4 }}>No survey evidence has been uploaded yet.</Alert> : <Grid container spacing={1} sx={{ mt: .5 }}>{project.evidence.map((item: any) => <Grid size={{ xs: 6, sm: 4, md: 3 }} key={item._id}><EvidenceCard projectId={projectId} item={item} canDelete={surveyorCanEdit} onDelete={() => run(() => removeSurveyWorkflowEvidence(projectId, item._id), 'Evidence removed.')} /></Grid>)}</Grid>}
+            <Stack direction="row" spacing={.8} flexWrap="wrap" useFlexGap sx={{ mt: 1.3 }}>
+              {project.permissions?.landlord && project.status === 'awaiting_landlord_review' && <Button size="small" color="success" variant="contained" startIcon={<CheckCircleRounded />} onClick={() => setReviewOpen(true)} disabled={busy}>Approve Evidence</Button>}
+              {project.permissions?.landlord && project.status === 'awaiting_landlord_review' && <Button size="small" color="warning" variant="outlined" onClick={() => setRevisionOpen(true)} disabled={busy}>Request Changes</Button>}
+              {project.permissions?.surveyor && canSubmitFieldwork && <Button size="small" variant="contained" startIcon={<SendRounded />} onClick={submitFieldworkReview} disabled={busy}>Submit for Review</Button>}
+            </Stack>
+          </Paper>
+
+          <Paper id="survey-report" elevation={0} sx={{ p: { xs: 1.6, md: 1.9 }, border: '1px solid #e4e9f0', borderRadius: 2.5, boxShadow: '0 6px 22px rgba(15,23,42,.035)' }}>
+            <Stack direction="row" spacing={.8} alignItems="center"><DescriptionRounded sx={{ fontSize: 20, color: '#079455' }} /><Typography sx={{ fontWeight: 700, color: '#102a4c' }}>Final Survey Report</Typography></Stack>
+            {project.report ? <Stack spacing={1.1} sx={{ mt: 1.25 }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="space-between" alignItems={{ sm: 'center' }}>
+                <Box><Typography sx={{ fontWeight: 600 }}>{project.report.title || project.report.reportNumber || 'Final survey report'}</Typography><Typography variant="caption" sx={{ color: '#667085' }}>{project.report.reportNumber || 'Report'} · Revision {project.report.revisionNumber || 0}</Typography></Box>
+                <Stack direction="row" spacing={.75}>
+                  {project.report?._id && <Button size="small" variant="outlined" startIcon={<DownloadRounded />} onClick={() => downloadSurveyReport(project.report._id, 'pdf')}>View Report</Button>}
+                  {project.report?.reportFile && <Button size="small" variant="contained" startIcon={<DownloadRounded />} onClick={() => downloadSurveyWorkflowReportFile(projectId || '', project.report.reportFile.name || 'survey-report')}>Download</Button>}
+                </Stack>
+              </Stack>
+              <Chip size="small" label={label(project.report.status || 'available')} color={project.report.status === 'final' || project.report.status === 'locked' ? 'success' : 'primary'} sx={{ alignSelf: 'flex-start' }} />
+            </Stack> : <Box sx={{ mt: 1.25, p: 1.4, borderRadius: 2, bgcolor: '#f5f9ff', border: '1px solid #dbeafe' }}>
+              <Typography variant="body2" sx={{ color: '#475467' }}>Final report will be available after the required survey workflow, review, and payment confirmation are completed.</Typography>
+            </Box>}
+            {project.permissions?.surveyor && canUploadFinalReport && <Button component="label" size="small" variant="contained" startIcon={<UploadFileRounded />} disabled={busy} sx={{ mt: 1.2 }}>Upload Final Report<input hidden type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv" onChange={(event) => { void uploadReportFile(event.target.files); event.currentTarget.value = ''; }} /></Button>}
+          </Paper>
+
+          <Paper elevation={0} sx={{ p: { xs: 1.6, md: 1.9 }, border: '1px solid #e4e9f0', borderRadius: 2.5, boxShadow: '0 6px 22px rgba(15,23,42,.035)' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Stack direction="row" spacing={.8} alignItems="center"><TaskAltRounded sx={{ fontSize: 20, color: '#079455' }} /><Typography sx={{ fontWeight: 700, color: '#102a4c' }}>Activity Timeline</Typography></Stack>
+              <Typography variant="caption" sx={{ color: '#0b4aa2', fontWeight: 600 }}>Project workflow</Typography>
+            </Stack>
+            <Stack sx={{ mt: 1.3 }}>
+              {journeySteps.map((step, index) => {
+                const completed = index < journey.activeStep;
+                const active = index === journey.activeStep;
+                return <Stack key={step.title} direction="row" spacing={1.15} sx={{ position: 'relative', pb: index === journeySteps.length - 1 ? 0 : 1.35 }}>
+                  {index < journeySteps.length - 1 && <Box sx={{ position: 'absolute', left: 10, top: 22, bottom: -1, width: 1.5, bgcolor: completed ? '#79d7ad' : '#e4e7ec' }} />}
+                  <Box sx={{ width: 21, height: 21, borderRadius: '50%', display: 'grid', placeItems: 'center', flexShrink: 0, bgcolor: completed || active ? '#12b76a' : '#e4e7ec', color: '#fff', zIndex: 1 }}>{completed ? <CheckCircleRounded sx={{ fontSize: 14 }} /> : active ? index + 1 : ''}</Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}><Typography sx={{ fontSize: 13, fontWeight: active ? 700 : 600, color: '#344054' }}>{step.title}</Typography><Typography variant="caption" sx={{ color: '#98a2b3' }}>{active ? journey.status : completed ? 'Completed' : 'Pending'} · {step.owner}</Typography></Box>
+                </Stack>;
+              })}
+            </Stack>
+          </Paper>
+
+          <Paper elevation={0} sx={{ p: { xs: 1.6, md: 1.9 }, border: '1px solid #e4e9f0', borderRadius: 2.5, boxShadow: '0 6px 22px rgba(15,23,42,.035)' }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1} alignItems={{ sm: 'center' }}>
+              <Box><Typography sx={{ fontWeight: 700, color: '#102a4c' }}>Fieldwork & Measurements</Typography><Typography variant="caption" sx={{ color: '#667085' }}>GPS visit, measurements and notes remain fully available.</Typography></Box>
+              {project.permissions?.surveyor && <Stack direction="row" spacing={.65} flexWrap="wrap" useFlexGap>
+                {currentStage === 'hired' && <Button size="small" variant="contained" startIcon={<LocationOnRounded />} onClick={checkIn} disabled={busy}>Check In</Button>}
+                {surveyorCanEdit && <Button size="small" variant="outlined" startIcon={<NoteAddRounded />} onClick={() => setFieldOpen(true)}>Add Field Data</Button>}
+                {currentStage === 'in_progress' && project.activeVisit?.checkIn?.at && !project.activeVisit?.checkOut?.at && <Button size="small" variant="text" onClick={checkOut} disabled={busy}>Check Out</Button>}
+              </Stack>}
+            </Stack>
+            <Grid container spacing={1.4} sx={{ mt: .4 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Typography variant="caption" sx={{ color: '#667085', fontWeight: 600 }}>MEASUREMENTS ({measurements.length})</Typography>
+                <Stack spacing={.6} sx={{ mt: .65 }}>{measurements.length ? measurements.map((item: any, index: number) => <Box key={String(item._id || index)} sx={{ p: .9, borderRadius: 1.5, bgcolor: '#f8fafc', border: '1px solid #eef2f6' }}><Stack direction="row" justifyContent="space-between" spacing={1}><Box><Typography sx={{ fontSize: 13, fontWeight: 600 }}>{item.label || label(item.type)}</Typography>{item.notes && <Typography variant="caption" sx={{ color: '#98a2b3' }}>{item.notes}</Typography>}</Box><Stack direction="row" alignItems="center" spacing={.35}><Typography sx={{ color: '#0b4aa2', fontSize: 13, fontWeight: 700 }}>{item.value} {item.unit}</Typography>{surveyorCanEdit && <IconButton size="small" onClick={() => editMeasurement(item, index)}><EditRounded sx={{ fontSize: 15 }} /></IconButton>}</Stack></Stack></Box>) : <Typography variant="body2" sx={{ color: '#98a2b3', mt: 1 }}>No measurements recorded.</Typography>}</Stack>
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Typography variant="caption" sx={{ color: '#667085', fontWeight: 600 }}>FIELD NOTES ({fieldNotes.length})</Typography>
+                <Stack spacing={.6} sx={{ mt: .65 }}>{fieldNotes.length ? fieldNotes.map((item: any, index: number) => <Box key={String(item._id || index)} sx={{ p: .9, borderRadius: 1.5, bgcolor: '#f8fafc', border: '1px solid #eef2f6' }}><Stack direction="row" justifyContent="space-between" spacing={1}><Box><Typography variant="body2">{item.text || item}</Typography><Typography variant="caption" sx={{ color: '#98a2b3' }}>{date(item.at || item.capturedAt || item.createdAt)}</Typography></Box>{surveyorCanEdit && <IconButton size="small" onClick={() => editFieldNote(item, index)}><EditRounded sx={{ fontSize: 15 }} /></IconButton>}</Stack></Box>) : <Typography variant="body2" sx={{ color: '#98a2b3', mt: 1 }}>No field notes recorded.</Typography>}</Stack>
+              </Grid>
+            </Grid>
+            <Box sx={{ mt: 1.5 }}><SurveyProjectNavigationMap apiKey={mapApiKey} destination={projectDestination(project)} destinationLabel={project.property?.title || project.job?.title || 'survey property'} externalUrl={project.navigationUrl} travelMode={mapTravelMode} defaultZoom={Number(siteData.settings?.map?.defaultZoom || 15)} mapId={String(siteData.settings?.map?.mapId || '')} directionsEnabled={siteData.settings?.map?.directionsEnabled !== false} serverRoutingEnabled={siteData.settings?.map?.serverRoutesEnabled !== false && siteData.settings?.map?.routesEnabled !== false} routeRefreshSeconds={Number(siteData.settings?.map?.routeRefreshSeconds || 10)} locationUpdateSeconds={Number(siteData.settings?.map?.locationUpdateSeconds || 5)} /></Box>
+          </Paper>
+
+          {directProject && <Paper elevation={0} sx={{ p: { xs: 1.6, md: 1.9 }, border: '1px solid #e4e9f0', borderRadius: 2.5, boxShadow: '0 6px 22px rgba(15,23,42,.035)' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography sx={{ fontWeight: 700, color: '#102a4c' }}>Commercial Milestones</Typography><Chip size="small" color={directBudgetReadyForUi ? 'success' : 'warning'} label={directBudgetReadyForUi ? 'Budget agreed' : 'Awaiting agreement'} /></Stack>
+            <Stack spacing={1} sx={{ mt: 1.2 }}>{directMilestones.map((milestone: any) => {
+              const draft = milestoneDrafts[String(milestone._id)] || { title: milestone.title || '', description: milestone.description || '', amount: String(milestone.amount || '') };
+              const payment = paymentForMilestone(milestone);
+              const editable = project.permissions?.landlord && ['proposed', 'rejected'].includes(String(milestone.status || ''));
+              return <Box key={milestone._id} sx={{ p: 1.2, border: '1px solid #e6ebf1', borderRadius: 2 }}>
+                <Grid container spacing={1}><Grid size={{ xs: 12, md: 7 }}><TextField fullWidth size="small" label={'Milestone ' + milestone.order + ' title'} value={draft.title} disabled={!editable} onChange={(event) => setMilestoneDrafts({ ...milestoneDrafts, [String(milestone._id)]: { ...draft, title: event.target.value } })} /><TextField fullWidth size="small" multiline minRows={2} sx={{ mt: .8 }} label="Scope / deliverable" value={draft.description} disabled={!editable} onChange={(event) => setMilestoneDrafts({ ...milestoneDrafts, [String(milestone._id)]: { ...draft, description: event.target.value } })} /></Grid><Grid size={{ xs: 12, md: 5 }}><TextField fullWidth size="small" type="number" label="Agreed amount (INR)" value={draft.amount} disabled={!editable} onChange={(event) => setMilestoneDrafts({ ...milestoneDrafts, [String(milestone._id)]: { ...draft, amount: event.target.value } })} /><Stack direction="row" spacing={.6} flexWrap="wrap" useFlexGap sx={{ mt: .8 }}><Chip size="small" label={label(milestone.status)} color={milestone.status === 'accepted' || milestone.status === 'paid' ? 'success' : 'warning'} />{editable && <Button size="small" variant="outlined" onClick={() => void saveDirectMilestone(milestone)} disabled={busy}>Save</Button>}{project.permissions?.surveyor && ['proposed', 'rejected'].includes(String(milestone.status || '')) && <Button size="small" color="success" variant="contained" onClick={() => void acceptDirectMilestone(milestone)} disabled={busy}>Accept</Button>}</Stack>{payment && <Typography variant="caption" sx={{ display: 'block', mt: .7, color: '#667085' }}>{payment.invoiceNumber} · {money(payment.amount)} · {label(payment.status)}</Typography>}</Grid></Grid>
+              </Box>;
+            })}</Stack>
+          </Paper>}
+        </Stack>
+      </Grid>
+
+      <Grid size={{ xs: 12, lg: 4.8 }}>
+        <Stack spacing={1.5}>
+          <Paper id="survey-payment" elevation={0} sx={{ p: { xs: 1.6, md: 1.9 }, border: '1px solid #e4e9f0', borderRadius: 2.5, boxShadow: '0 6px 22px rgba(15,23,42,.035)' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center"><Stack direction="row" spacing={.8} alignItems="center"><PaidRounded sx={{ fontSize: 20, color: '#079455' }} /><Typography sx={{ fontWeight: 700, color: '#102a4c' }}>Payment Details</Typography></Stack><Chip size="small" label={label(project.paymentStatus || 'unpaid')} color={project.paymentStatus === 'paid' ? 'success' : 'warning'} /></Stack>
+            <Box sx={{ mt: 1.25 }}>
+              <Typography variant="caption" sx={{ color: '#667085' }}>Payment Amount</Typography>
+              <Typography sx={{ fontSize: 21, fontWeight: 700, color: '#102a4c' }}>{money(firstPaymentRecord?.amount || approvedAmount)}</Typography>
+              {firstPaymentRecord?.transactionId && <><Typography variant="caption" sx={{ mt: 1, display: 'block', color: '#667085' }}>Transaction ID</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>{firstPaymentRecord.transactionId}</Typography></>}
+            </Box>
+            <Stack spacing={1} sx={{ mt: 1.25 }}>
+              {(project.payments || []).length ? project.payments.map((payment: any) => <Box key={payment._id} sx={{ p: 1.1, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #edf1f5' }}>
+                <Stack direction="row" justifyContent="space-between" spacing={1} alignItems="center"><Box><Typography sx={{ fontSize: 13, fontWeight: 600 }}>{label(payment.type)}</Typography><Typography variant="caption" sx={{ color: '#667085' }}>{payment.invoiceNumber || 'Payment'} · {money(payment.amount)}</Typography></Box><Chip size="small" label={label(payment.status)} color={payment.status === 'paid' ? 'success' : 'warning'} /></Stack>
+                <Stack direction="row" spacing={.6} flexWrap="wrap" useFlexGap sx={{ mt: .8 }}>
+                  {payment.proofSubmitted && <Button size="small" variant="outlined" startIcon={<OpenInNewRounded />} onClick={() => void openPaymentProof(String(payment._id))} disabled={busy}>View Proof</Button>}
+                  {project.permissions?.surveyor && ['pending', 'partial', 'overdue'].includes(payment.status) && (payment.type !== 'survey_final' || payment.paymentVerification?.status === 'submitted') && <Button size="small" variant="contained" startIcon={<PaidRounded />} onClick={() => acceptPayment(String(payment._id))} disabled={busy}>{payment.type === 'survey_final' ? 'Confirm Receipt' : 'Accept Payment'}</Button>}
+                  {project.permissions?.surveyor && payment.type === 'survey_final' && payment.paymentVerification?.status === 'submitted' && <Button size="small" color="warning" variant="outlined" onClick={() => setPaymentRejectionOpen(true)} disabled={busy}>Return Proof</Button>}
+                </Stack>
+              </Box>) : <Typography variant="body2" sx={{ color: '#98a2b3' }}>Payment details will appear here when a payment is created.</Typography>}
+            </Stack>
+            {project.permissions?.landlord && finalPaymentRecord && ['awaiting_final_payment', 'payment_submitted'].includes(project.status) && finalPaymentRecord.paymentVerification?.status !== 'submitted' && <Button fullWidth variant="contained" sx={{ mt: 1.2 }} startIcon={<PaidRounded />} onClick={() => setFinalPaymentOpen(true)} disabled={busy}>{finalPaymentRejected ? 'Correct & Resubmit Payment Proof' : 'Submit Payment Proof'}</Button>}
+          </Paper>
+
+          <Paper elevation={0} sx={{ p: { xs: 1.6, md: 1.9 }, border: '1px solid #e4e9f0', borderRadius: 2.5, boxShadow: '0 6px 22px rgba(15,23,42,.035)' }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center"><Stack direction="row" spacing={.8} alignItems="center"><ChatRounded sx={{ fontSize: 20, color: '#079455' }} /><Typography sx={{ fontWeight: 700, color: '#102a4c' }}>Messages & Notes</Typography></Stack><Button size="small" onClick={chat} disabled={busy}>View All</Button></Stack>
+            <Stack spacing={.8} sx={{ mt: 1.2 }}>
+              {fieldNotes.slice(0, 3).map((item: any, index: number) => <Box key={String(item._id || index)} sx={{ p: 1.05, border: '1px solid #edf1f5', borderRadius: 2 }}><Stack direction="row" spacing={.85}><Avatar src={surveyorAvatar || undefined} sx={{ width: 30, height: 30, fontSize: 12 }}>{String(project.surveyor?.name || 'S').slice(0, 1)}</Avatar><Box><Typography sx={{ fontSize: 12.5, fontWeight: 600 }}>{project.surveyor?.name || 'Surveyor'}</Typography><Typography variant="caption" sx={{ color: '#98a2b3' }}>{date(item.at || item.capturedAt || item.createdAt)}</Typography><Typography variant="body2" sx={{ mt: .35, color: '#475467', fontSize: 12.5 }}>{item.text || item}</Typography></Box></Stack></Box>)}
+              {!fieldNotes.length && <Box sx={{ p: 1.2, borderRadius: 2, bgcolor: '#f8fafc' }}><Typography variant="body2" sx={{ color: '#667085' }}>Use secure project chat to discuss the survey, evidence and required corrections.</Typography></Box>}
+            </Stack>
+            <Button fullWidth variant="outlined" startIcon={<ChatRounded />} onClick={chat} disabled={busy} sx={{ mt: 1.1 }}>Open Secure Conversation</Button>
+          </Paper>
+
+          <Paper elevation={0} sx={{ p: { xs: 1.6, md: 1.9 }, border: '1px solid #e4e9f0', borderRadius: 2.5, boxShadow: '0 6px 22px rgba(15,23,42,.035)' }}>
+            <Typography sx={{ fontWeight: 700, color: '#102a4c' }}>Project Summary</Typography>
+            <Stack spacing={.9} sx={{ mt: 1.2 }}>
+              {[
+                ['Survey type', label(project.job?.surveyType || project.surveyCategory)],
+                ['Property type', project.job?.propertyType || project.propertySite?.propertyType || '—'],
+                ['Visit date', date(project.job?.preferredVisitDate || project.startDate)],
+                ['Deadline', date(project.job?.preferredCompletionDate || project.dueDate)],
+                ['Project value', money(project.paymentSummary?.total)],
+                ['Outstanding', money(project.paymentSummary?.outstanding)],
+              ].map(([title, value]) => <Stack key={title} direction="row" justifyContent="space-between" spacing={2}><Typography variant="body2" sx={{ color: '#667085' }}>{title}</Typography><Typography variant="body2" sx={{ fontWeight: 600, textAlign: 'right', color: '#344054' }}>{value}</Typography></Stack>)}
+            </Stack>
+            <Box sx={{ mt: 1.25, p: 1.15, borderRadius: 2, bgcolor: 'rgba(7,148,85,.07)', border: '1px solid rgba(7,148,85,.12)' }}>
+              <Typography variant="caption" sx={{ color: '#667085' }}>CURRENT ACTION</Typography>
+              <Typography sx={{ mt: .2, fontSize: 13.5, fontWeight: 700, color: '#087a49' }}>{journey.nextAction}</Typography>
+              <Typography variant="caption" sx={{ mt: .3, display: 'block', color: '#667085' }}>{journey.waiting}</Typography>
+              <Box sx={{ mt: .9 }}>{renderJourneyAction()}</Box>
+            </Box>
+          </Paper>
+        </Stack>
+      </Grid>
     </Grid>
+
+    <Button fullWidth variant="contained" startIcon={<TaskAltRounded />} onClick={() => {
+      if (project.permissions?.landlord && project.status === 'awaiting_landlord_review') setReviewOpen(true);
+      else document.getElementById('survey-evidence')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }} sx={{ display: { xs: 'flex', md: 'none' }, mt: 1.5, minHeight: 46, bgcolor: '#087a49', '&:hover': { bgcolor: '#066b40' } }}>Review Evidence</Button>
 
     <ProfessionalDialog open={fieldOpen} onClose={() => setFieldOpen(false)} maxWidth="sm" fullWidth professionalTitle={field.mode === 'measurement' ? 'Update measurement' : field.mode === 'note' ? 'Update field note' : 'Record field observation'} professionalSubtitle="Add or update the field record for this hired project."><Box component="form" onSubmit={saveFieldwork}><DialogContent dividers><Stack spacing={2}><Grid container spacing={2}><Grid size={{ xs: 12, sm: 6 }}><TextField select fullWidth label="Measurement type" value={field.type} disabled={field.mode === 'note'} onChange={(event) => setField({ ...field, type: event.target.value })}>{['dimension', 'area', 'angle', 'elevation', 'boundary', 'other'].map((item) => <MenuItem key={item} value={item}>{label(item)}</MenuItem>)}</TextField></Grid><Grid size={{ xs: 12, sm: 6 }}><TextField fullWidth label="Label" value={field.label} disabled={field.mode === 'note'} onChange={(event) => setField({ ...field, label: event.target.value })} placeholder="North boundary" /></Grid><Grid size={{ xs: 12, sm: 6 }}><TextField fullWidth type="number" label="Value" value={field.value} disabled={field.mode === 'note'} onChange={(event) => setField({ ...field, value: event.target.value })} /></Grid><Grid size={{ xs: 12, sm: 6 }}><TextField fullWidth label="Unit" value={field.unit} disabled={field.mode === 'note'} onChange={(event) => setField({ ...field, unit: event.target.value })} placeholder="metre" /></Grid></Grid><TextField fullWidth label="Measurement notes" value={field.notes} disabled={field.mode === 'note'} onChange={(event) => setField({ ...field, notes: event.target.value })} /><TextField fullWidth multiline minRows={3} label="General field note" value={field.fieldNote} disabled={field.mode === 'measurement'} onChange={(event) => setField({ ...field, fieldNote: event.target.value })} /></Stack></DialogContent><DialogActions><Button onClick={() => { setFieldOpen(false); resetField(); }}>Cancel</Button><Button type="submit" variant="contained" disabled={busy || (field.mode === 'note' ? !field.fieldNote.trim() : (!field.label.trim() || field.value === '' || !field.unit.trim()))}>{busy ? 'Saving…' : field.mode === 'measurement' ? 'Update measurement' : field.mode === 'note' ? 'Update note' : 'Save fieldwork'}</Button></DialogActions></Box></ProfessionalDialog>
     <ProfessionalDialog open={reviewOpen} onClose={() => !busy && setReviewOpen(false)} maxWidth="sm" fullWidth professionalTitle="Review fieldwork" professionalSubtitle="Record your decision only after you have inspected the measurements, field notes, evidence, and agreed scope.">
