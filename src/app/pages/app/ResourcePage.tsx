@@ -212,6 +212,9 @@ function idOf(value: any) { return value && typeof value === 'object' ? value._i
 function isManagedRentalPayment(value: any) {
   return Boolean(value?.rentalInvoice) && value?.type === 'rent' && value?.gateway?.source === 'rental_invoice';
 }
+function isAgreementSecurityDepositPayment(value: any) {
+  return value?.type === 'deposit' && value?.gateway?.source === 'security_deposit';
+}
 function optionLabel(item: any) { return item.title || item.name || item.unitNumber || item.code || item.email || item._id; }
 const statusLabels: Record<string, string> = {
   draft: 'Draft', pending_approval: 'Pending Approval', available: 'Available', partially_occupied: 'Partially Occuped', occupied: 'Occupied',
@@ -1842,7 +1845,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
                   sx={{ minWidth: 0, px: 1.05, fontWeight: 800, whiteSpace: 'nowrap' }}
                 >Agreement</Button>}
                 <Tooltip title={`View ${config.singular.toLowerCase()}`}><IconButton size="small" aria-label={`Open ${recordLabel(row)} details`} onClick={openRecord.bind(null, row)}><VisibilityRounded fontSize="small" /></IconButton></Tooltip>
-                {canEdit && !isManagedRentalPayment(row) && <Tooltip title="Edit"><IconButton className="sa-edit-icon-button" size="small" onClick={() => openDialog('edit', row)}><EditRounded fontSize="small" /></IconButton></Tooltip>}
+                {canEdit && !isManagedRentalPayment(row) && !isAgreementSecurityDepositPayment(row) && <Tooltip title="Edit"><IconButton className="sa-edit-icon-button" size="small" onClick={() => openDialog('edit', row)}><EditRounded fontSize="small" /></IconButton></Tooltip>}
                 <IconButton size="small" aria-label={`More actions for ${row.name || row.title || 'record'}`} onClick={(event) => { setActionAnchor(event.currentTarget); setActionRow(row); }}><MoreVertRounded fontSize="small" /></IconButton>
               </Stack>
             </TableCell>
@@ -1860,6 +1863,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
       {module === 'payments' && actionRow && isManagedRentalPayment(actionRow) && idOf(actionRow.payer) === user?._id && ['awaiting_tenant', 'rejected'].includes(actionRow.paymentVerification?.status || 'awaiting_tenant') && <MenuItem sx={{ color: 'primary.main', fontWeight: 800 }} onClick={() => openRentPayment(actionRow)}>Pay rent invoice</MenuItem>}
       {module === 'payments' && actionRow && isManagedRentalPayment(actionRow) && idOf(actionRow.payee) === user?._id && actionRow.paymentVerification?.status === 'submitted' && <MenuItem sx={{ color: '#238062', fontWeight: 800 }} onClick={() => acceptRentPayment(actionRow)}>Accept rent payment</MenuItem>}
       {module === 'payments' && actionRow && isManagedRentalPayment(actionRow) && idOf(actionRow.payee) === user?._id && actionRow.paymentVerification?.status === 'submitted' && <MenuItem sx={{ color: 'error.main', fontWeight: 800 }} onClick={() => rejectRentPayment(actionRow)}>Reject rent payment</MenuItem>}
+      {module === 'payments' && actionRow && isAgreementSecurityDepositPayment(actionRow) && user?.role === 'admin' && <MenuItem disabled sx={{ fontWeight: 800 }}>Landlord verification only</MenuItem>}
       {module === 'survey-quotations' && actionRow && idOf(actionRow.client) === user?._id && ['submitted','viewed','under_negotiation','revised'].includes(actionRow.status) && <MenuItem onClick={() => acceptQuotation(actionRow)}>Accept quotation & create project</MenuItem>}
       {module === 'survey-reports' && actionRow && !['locked','cancelled'].includes(actionRow.status) && idOf(actionRow.surveyor) === user?._id && <MenuItem onClick={() => lockReport(actionRow)}>Finalize & lock report</MenuItem>}
       {module === 'survey-reports' && actionRow && <MenuItem onClick={() => exportSurveyReport(actionRow, 'pdf')}>Export report PDF</MenuItem>}
@@ -1870,9 +1874,9 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
       {module === 'properties' && actionRow && canEdit && (actionRow.purpose || actionRow.listingType) === 'rent' && <MenuItem sx={{ color: 'primary.main', fontWeight: 850 }} onClick={() => { setActionAnchor(null); navigate(`/app/my-listings/${encodeURIComponent(actionRow._id)}/rooms`); }}>Manage Rooms & Tenancy</MenuItem>}
       {module === 'applications' && actionRow && canDecideApplication(actionRow) && <><MenuItem sx={{ color: 'success.main', fontWeight: 850 }} onClick={() => { setActionAnchor(null); void decideApplication(actionRow, 'approved'); }}>Accept application</MenuItem><MenuItem sx={{ color: 'error.main', fontWeight: 850 }} onClick={() => { setActionAnchor(null); void decideApplication(actionRow, 'rejected'); }}>Reject application</MenuItem></>}
       {module === 'applications' && actionRow && applicationAcceptedStatuses.includes(String(actionRow.status || '').toLowerCase()) && <MenuItem onClick={() => { setActionAnchor(null); openRecord(actionRow); }}>View application details & agreement</MenuItem>}
-      {config.statuses && canEdit && module !== 'subscriptions' && !isManagedRentalPayment(actionRow) && (module === 'applications' ? applicationStatusOptions(actionRow) : config.statuses).map((item) => <MenuItem key={item} onClick={() => changeStatus(item)}>{optionText(item)}</MenuItem>)}
-      {canEdit && module !== 'subscriptions' && !isManagedRentalPayment(actionRow) && <MenuItem sx={{ color: '#D97706' }} onClick={() => { setActionAnchor(null); openDialog('edit', actionRow); }}>Edit</MenuItem>}
-      {canDelete && <MenuItem sx={{ color: 'error.main' }} onClick={() => { setActionAnchor(null); remove(actionRow); }}><DeleteOutlineRounded fontSize="small" sx={{ mr: 1 }} />Delete</MenuItem>}
+      {config.statuses && canEdit && module !== 'subscriptions' && !isManagedRentalPayment(actionRow) && !isAgreementSecurityDepositPayment(actionRow) && (module === 'applications' ? applicationStatusOptions(actionRow) : config.statuses).map((item) => <MenuItem key={item} onClick={() => changeStatus(item)}>{optionText(item)}</MenuItem>)}
+      {canEdit && module !== 'subscriptions' && !isManagedRentalPayment(actionRow) && !isAgreementSecurityDepositPayment(actionRow) && <MenuItem sx={{ color: '#D97706' }} onClick={() => { setActionAnchor(null); openDialog('edit', actionRow); }}>Edit</MenuItem>}
+      {canDelete && !isAgreementSecurityDepositPayment(actionRow) && <MenuItem sx={{ color: 'error.main' }} onClick={() => { setActionAnchor(null); remove(actionRow); }}><DeleteOutlineRounded fontSize="small" sx={{ mr: 1 }} />Delete</MenuItem>}
     </Menu>
 
     <Menu

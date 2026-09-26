@@ -495,6 +495,9 @@ function addGeneratedFields(resource, body) {
 }
 
 function sameId(a, b) { return a && b && String(a?._id || a) === String(b?._id || b); }
+function isAgreementSecurityDepositPayment(record) {
+  return record?.type === 'deposit' && record?.gateway?.source === 'security_deposit';
+}
 function effectiveRoleIs(user, role) { return getEffectiveRole(user) === role; }
 function isLandlordActor(user) { return capabilityRolesForUser(user).includes('landlord'); }
 function isTenantActor(user) { return String(user?.role || '').toLowerCase() === 'tenant'; }
@@ -1063,6 +1066,9 @@ export const updateResource = asyncHandler(async (req, res) => {
   const record = await findResourceRecord(req, config);
   if (!record) throw new ApiError(404, 'Record not found');
   await assertTenantMutation(req.params.resource, req.user, record, 'update');
+  if (req.params.resource === 'payments' && isAgreementSecurityDepositPayment(record)) {
+    throw new ApiError(403, 'Security deposit verification is landlord-only. Use the protected agreement payment review workflow.');
+  }
   if (req.params.resource === 'payments' && record.gateway?.source === 'landlord_recorded_offline_payment') {
     throw new ApiError(403, 'Landlord-recorded rent payments are immutable. Record a correction as a separate payment entry.');
   }
@@ -1424,6 +1430,9 @@ export const deleteResource = asyncHandler(async (req, res) => {
   const record = await findResourceRecord(req, config);
   if (!record) throw new ApiError(404, 'Record not found');
   await assertTenantMutation(req.params.resource, req.user, record, 'delete');
+  if (req.params.resource === 'payments' && isAgreementSecurityDepositPayment(record)) {
+    throw new ApiError(403, 'Security deposit payment records are protected by the landlord-only agreement workflow.');
+  }
   if (req.params.resource === 'payments' && record.gateway?.source === 'landlord_recorded_offline_payment') {
     throw new ApiError(403, 'Landlord-recorded rent payments cannot be deleted. Record an adjustment instead.');
   }
@@ -1485,6 +1494,9 @@ export const changeStatus = asyncHandler(async (req, res) => {
   const record = await findResourceRecord(req, config);
   if (!record) throw new ApiError(404, 'Record not found');
   await assertTenantMutation(req.params.resource, req.user, record, 'update');
+  if (req.params.resource === 'payments' && isAgreementSecurityDepositPayment(record)) {
+    throw new ApiError(403, 'Security deposit status is landlord-only and cannot be changed from generic payment administration.');
+  }
   if (req.params.resource === 'payments' && (record.rentalInvoice || record.gateway?.source === 'landlord_recorded_offline_payment')) {
     throw new ApiError(403, 'Rental payment status is protected. Use the tenant submission and landlord approval actions.');
   }

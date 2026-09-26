@@ -518,6 +518,14 @@ function assertFirstParty(request, user, message = 'Only the landlord-enabled fi
   if (!isAgreementManager(user) || !sameId(request.landlord, user?._id)) throw new ApiError(403, message);
 }
 
+function assertSecurityDepositLandlord(request, user, message = 'Only the receiving landlord can verify or reject this security deposit payment') {
+  if (String(user?.role || '').toLowerCase() === 'admin'
+    || !capabilityRolesForUser(user).includes('landlord')
+    || !sameId(request.landlord, user?._id)) {
+    throw new ApiError(403, message);
+  }
+}
+
 async function markCyclePropertyOccupied(request, actorId) {
   const occupiedStatus = request.agreementType === 'lease' ? 'leased' : 'rented';
   const propertyId = request.property?._id || request.property;
@@ -1192,7 +1200,7 @@ export const submitAgreementSecurityDeposit = asyncHandler(async (req, res) => {
 
 export const rejectAgreementSecurityDeposit = asyncHandler(async (req, res) => {
   const request = await requestForParticipant(req.params.id, req.user);
-  assertFirstParty(request, req.user, 'Only the receiving landlord can review this security deposit');
+  assertSecurityDepositLandlord(request, req.user);
 
   const paymentId = request.securityDepositPayment?._id || request.securityDepositPayment;
   const payment = mongoose.isValidObjectId(paymentId) ? await Payment.findById(paymentId) : null;
@@ -1274,6 +1282,11 @@ export const approveAgreementRequest = asyncHandler(async (req, res) => {
   const requiredDepositAmount = securityDepositAmount(request);
   let securityDepositPayment = null;
   if (requiredDepositAmount > 0) {
+    assertSecurityDepositLandlord(
+      request,
+      req.user,
+      'Only the receiving landlord can verify the security deposit and start the rent workflow',
+    );
     const paymentId = request.securityDepositPayment?._id || request.securityDepositPayment;
     securityDepositPayment = mongoose.isValidObjectId(paymentId) ? await Payment.findById(paymentId) : null;
     const depositStage = depositVerificationStatus(securityDepositPayment);
