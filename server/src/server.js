@@ -4,12 +4,14 @@ import { connectDatabase, disconnectDatabase } from './config/db.js';
 import { env } from './config/env.js';
 import { attachSocket } from './services/socket.js';
 import { scheduleSurveyorLifecycleMaintenance } from './services/surveyorLifecycle.js';
+import { scheduleRentCycleWhatsAppReminders } from './services/rentCycleReminders.js';
 import { ensureStorageDirectories } from './services/storage.js';
 import { ensureBackupDirectories } from './services/backupRecovery.js';
 import { ensureServerSessionIndexes } from './services/serverSession.js';
 
 let server;
 let stopSurveyorMaintenance = () => {};
+let stopRentReminderScheduler = () => {};
 let shuttingDown = false;
 
 async function start() {
@@ -25,6 +27,7 @@ async function start() {
   server.keepAliveTimeout = 60_000;
   attachSocket(server);
   stopSurveyorMaintenance = scheduleSurveyorLifecycleMaintenance();
+  stopRentReminderScheduler = scheduleRentCycleWhatsAppReminders();
 
   await new Promise((resolve, reject) => {
     server.once('error', reject);
@@ -52,6 +55,7 @@ async function shutdown(signal, exitCode = 0) {
 
   try {
     stopSurveyorMaintenance();
+    stopRentReminderScheduler();
     if (server?.listening) await new Promise((resolve) => server.close(resolve));
     await disconnectDatabase();
     clearTimeout(forceTimer);
