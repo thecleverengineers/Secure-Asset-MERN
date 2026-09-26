@@ -5,7 +5,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { env } from '../config/env.js';
 import { authenticate } from '../middleware/auth.js';
-import { requireFeaturePermission, requireSubscriptionPaymentProofUpload, requireSurveyorVerificationDocumentUpload } from '../middleware/rolePermission.js';
+import { requireFeaturePermission, requireRentalPaymentProofUpload, requireSubscriptionPaymentProofUpload, requireSurveyorVerificationDocumentUpload } from '../middleware/rolePermission.js';
 import { secureMultipartLimits } from '../middleware/uploadSecurity.js';
 import { uploadDocument } from '../controllers/uploadController.js';
 import { TENANT_KYC_ALLOWED_EXTENSIONS } from '../constants/tenantKyc.js';
@@ -31,6 +31,19 @@ const proofUpload = multer({
     isImage ? callback(null, true) : callback(new Error('Subscription payment proof must be a PNG, JPG, JPEG, or WebP image'));
   },
 });
+const rentPaymentProofUpload = multer({
+  storage,
+  limits: secureMultipartLimits({ fileSize: 8 * 1024 * 1024, fields: 4 }),
+  fileFilter: (_req, file, callback) => {
+    const extension = path.extname(file.originalname).toLowerCase();
+    const mime = String(file.mimetype || '').toLowerCase();
+    const allowed = (
+      ['.png', '.jpg', '.jpeg', '.webp'].includes(extension) && mime.startsWith('image/')
+    ) || (extension === '.pdf' && mime === 'application/pdf');
+    allowed ? callback(null, true) : callback(new Error('Rent payment proof must be PNG, JPG, JPEG, WebP, or PDF'));
+  },
+});
+
 const verificationDocumentUpload = multer({
   storage,
   limits: secureMultipartLimits({ fileSize: Math.min(Math.max(Number(env.VAULT_MAX_FILE_MB) || 8, 1), 8) * 1024 * 1024, fields: 4 }),
@@ -43,5 +56,6 @@ const verificationDocumentUpload = multer({
 const router = Router();
 router.post('/document', authenticate, requireFeaturePermission('module:documents', 'create'), upload.single('file'), uploadDocument);
 router.post('/subscription-payment-proof', authenticate, requireSubscriptionPaymentProofUpload, proofUpload.single('file'), uploadDocument);
+router.post('/rent-payment-proof', authenticate, requireRentalPaymentProofUpload, rentPaymentProofUpload.single('file'), uploadDocument);
 router.post('/surveyor-verification-document', authenticate, requireSurveyorVerificationDocumentUpload, verificationDocumentUpload.single('file'), uploadDocument);
 export default router;

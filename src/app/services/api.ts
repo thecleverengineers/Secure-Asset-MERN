@@ -731,6 +731,16 @@ export async function uploadDocumentWithProgress(
 
   return run(true);
 }
+export async function uploadRentalPaymentProof(file: File, invoiceId: string) {
+  const form = new FormData();
+  form.append('file', file);
+  return request<ApiResponse<Document>>('/uploads/rent-payment-proof', {
+    method: 'POST',
+    body: form,
+    headers: { 'X-SecureAsset-Rental-Invoice': invoiceId },
+  });
+}
+
 export async function uploadSubscriptionPaymentProof(file: File, metadata: Record<string, string> = {}) {
   const form = new FormData(); form.append('file', file); Object.entries(metadata).forEach(([key, value]) => form.append(key, value));
   return request<ApiResponse<Document>>('/uploads/subscription-payment-proof', {

@@ -92,6 +92,37 @@ export const requireSubscriptionPaymentProofUpload = asyncHandler(async (req, _r
 });
 
 
+export const requireRentalPaymentProofUpload = asyncHandler(async (req, _res, next) => {
+  if (!req.user) throw new ApiError(401, 'Authentication required');
+  if (String(req.user.role || '').trim().toLowerCase() !== 'tenant') {
+    throw new ApiError(403, 'Only the tenant attached to this rent invoice can upload payment proof');
+  }
+
+  const invoiceId = String(req.get('x-secureasset-rental-invoice') || '').trim();
+  if (!invoiceId) throw new ApiError(400, 'Rental invoice is required for payment proof upload');
+
+  const allowed = await featureAllowed('module:rental-invoices', req.user, 'view');
+  if (!allowed) throw new ApiError(403, 'Your account cannot access this rent invoice');
+
+  const { RentalInvoice } = await import('../models/index.js');
+  const invoice = await RentalInvoice.findOne({ _id: invoiceId, tenant: req.user._id })
+    .select('_id property invoiceNumber billingMonth balanceAmount status')
+    .lean();
+  if (!invoice) throw new ApiError(404, 'Rental invoice not found for this tenant');
+  if (['paid', 'waived', 'refunded'].includes(String(invoice.status || '')) || Number(invoice.balanceAmount || 0) <= 0) {
+    throw new ApiError(409, 'This rent invoice no longer accepts payment proof');
+  }
+
+  req.rentPaymentProof = {
+    invoiceId: String(invoice._id),
+    property: invoice.property ? String(invoice.property) : '',
+    invoiceNumber: invoice.invoiceNumber || '',
+    billingMonth: invoice.billingMonth || '',
+  };
+  next();
+});
+
+
 export const requireSurveyorVerificationDocumentUpload = asyncHandler(async (req, _res, next) => {
   if (!req.user) throw new ApiError(401, 'Authentication required');
   const kind = String(req.get('x-secureasset-verification-document') || '').trim().toLowerCase();

@@ -16,7 +16,7 @@ import ScheduleRounded from '@mui/icons-material/ScheduleRounded';
 import VerifiedRounded from '@mui/icons-material/VerifiedRounded';
 import WarningAmberRounded from '@mui/icons-material/WarningAmberRounded';
 import UploadFileRounded from '@mui/icons-material/UploadFileRounded';
-import { fetchAgreementPreviewBlob, getMyPropertyRentCycle, submitRentalInvoicePayment, uploadDocument } from '../../services/api';
+import { fetchAgreementPreviewBlob, getMyPropertyRentCycle, submitRentalInvoicePayment, uploadRentalPaymentProof } from '../../services/api';
 import { safeRecord, safeRecordArray } from '../../utils/runtimeData';
 
 const DAY = 86_400_000;
@@ -169,12 +169,7 @@ export default function MyRentCyclePage() {
     try {
       let proofUrl = '';
       if (paymentProof) {
-        const uploaded = await uploadDocument(paymentProof, {
-          property: String(property.id || ''),
-          type: 'rent_payment_proof',
-          visibility: 'private',
-          description: `Rent payment proof for ${String(invoice.invoiceNumber || invoice.billingMonth || 'monthly rent')}`,
-        });
+        const uploaded = await uploadRentalPaymentProof(paymentProof, String(invoice.id));
         proofUrl = String((uploaded.data as any)?.url || '');
       }
 
@@ -211,7 +206,7 @@ export default function MyRentCyclePage() {
   const paymentSubmitted = paymentStage === 'submitted';
   const canPayRent = Boolean(invoice.id) && !paid && ['awaiting_tenant', 'rejected', ''].includes(paymentStage);
 
-  return <Box data-secureasset-my-rent-cycle="tenant-rent-payment-history-v221" sx={{ maxWidth: 1080, mx: 'auto', px: { xs: 1.5, sm: 2.5, lg: 0 }, pb: 6 }}>
+  return <Box data-secureasset-my-rent-cycle="tenant-rent-payment-proof-v222" sx={{ maxWidth: 1080, mx: 'auto', px: { xs: 1.5, sm: 2.5, lg: 0 }, pb: 6 }}>
     <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.3 }}>
       <Button size="small" startIcon={<ArrowBackRounded />} onClick={() => navigate('/app/my-property')} sx={{ borderRadius: 2.5, textTransform: 'none' }}>My Property</Button>
       <IconButton size="small" aria-label="Refresh rent cycle" onClick={() => void query.refetch()} disabled={query.isFetching}><RefreshRounded fontSize="small" /></IconButton>
@@ -369,7 +364,18 @@ export default function MyRentCyclePage() {
                 <Typography color="text.secondary" sx={{ mt: .15, fontSize: 10.5 }}>Optional screenshot or PDF · maximum 8 MB</Typography>
                 {paymentProof && <Typography color="primary.main" sx={{ mt: .35, fontSize: 10.5, fontWeight: 700 }}>{paymentProof.name}</Typography>}
               </Box>
-              <Button component="label" variant="outlined" size="small" startIcon={<UploadFileRounded />}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={.65}>
+                {paymentProof && <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => {
+                    const url = URL.createObjectURL(paymentProof);
+                    const tab = window.open(url, '_blank', 'noopener,noreferrer');
+                    if (!tab) setPaymentError('Allow pop-ups to preview the selected payment proof.');
+                    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+                  }}
+                >Preview selected proof</Button>}
+                <Button component="label" variant="outlined" size="small" startIcon={<UploadFileRounded />}>
                 {paymentProof ? 'Replace proof' : 'Upload proof'}
                 <input hidden type="file" accept="image/png,image/jpeg,image/webp,application/pdf" onChange={(event) => {
                   const file = event.target.files?.[0] || null;
@@ -378,7 +384,8 @@ export default function MyRentCyclePage() {
                   setPaymentProof(file);
                   setPaymentError('');
                 }} />
-              </Button>
+                </Button>
+              </Stack>
             </Stack>
           </Paper>
           <TextField size="small" fullWidth multiline minRows={2} label="Payment note (optional)" value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} inputProps={{ maxLength: 2000 }} />

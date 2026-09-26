@@ -92,16 +92,24 @@ async function scanUpload(file, { allowTenantKyc = false } = {}) {
 export const uploadDocument = asyncHandler(async (req, res) => {
   if (!req.file) throw new ApiError(422, 'Choose a file to upload');
   try {
-    const body = req.subscriptionPaymentProof
+    const body = req.rentPaymentProof
       ? {
+        ...(req.body || {}),
+        type: 'rent_payment_proof',
+        visibility: 'private',
+        property: req.rentPaymentProof.property || undefined,
+        description: `Rent payment proof for ${req.rentPaymentProof.invoiceNumber || req.rentPaymentProof.billingMonth || req.rentPaymentProof.invoiceId}`,
+      }
+      : req.subscriptionPaymentProof
+        ? {
         ...(req.body || {}),
         type: 'subscription_payment_proof',
         category: 'image',
         visibility: 'private',
         description: String(req.body?.description || 'Subscription payment proof').slice(0, 500),
-      }
-      : req.surveyorVerificationUpload
-        ? {
+        }
+        : req.surveyorVerificationUpload
+          ? {
           ...(req.body || {}),
           type: req.surveyorVerificationUpload.kind === 'bank_passbook'
             ? 'surveyor_verification_bank'
@@ -112,8 +120,8 @@ export const uploadDocument = asyncHandler(async (req, res) => {
             ? 'Surveyor bank passbook'
             : `Surveyor identity ${req.surveyorVerificationUpload.kind === 'identity_front' ? 'front' : 'back'}`,
           description: 'Protected Surveyor verification document',
-        }
-        : (req.body || {});
+          }
+          : (req.body || {});
     await assertSurveyProjectUploadAccess(req, body);
     const tenantKycUpload = body.type === 'tenant_kyc';
     const mimeType = await scanUpload(req.file, { allowTenantKyc: tenantKycUpload });
@@ -127,7 +135,7 @@ export const uploadDocument = asyncHandler(async (req, res) => {
     const owner = req.user.role === 'admin' && body.owner ? body.owner : req.user._id;
     const storageKey = buildStorageKey(owner, req.file.originalname, 'legacy-documents');
     const stored = await saveFile(req.file.path, storageKey, mimeType);
-    const confidentiality = body.type === 'surveyor_verification_bank'
+    const confidentiality = ['surveyor_verification_bank', 'rent_payment_proof', 'subscription_payment_proof'].includes(body.type)
       ? 'financial_document'
       : body.type === 'surveyor_verification_identity' || tenantKycUpload || isTenantKycCategory(category)
         ? 'identity_document'
