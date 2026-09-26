@@ -11,16 +11,16 @@ const [shell, configuration] = await Promise.all([
 
 const requestedKeys = [
   'my-listings', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings',
-  'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects',
+  'leases', 'payments', 'transactions', 'agreement-templates', 'survey-projects', 'active-projects',
 ];
 const requestedLabels = [
   'My Listings', 'Tenant Applications', 'Manage Tenants', 'Active Tenancy', 'Tenancy History', 'Manage Site Visit', 'Rent Management',
-  'Meter Readings', 'Lease Management', 'Track Payments', 'Manage Templates', 'Manage Hired Surveyors',
+  'Meter Readings', 'Lease Management', 'Track Payments', 'Transactions', 'Manage Templates', 'Manage Hired Surveyors',
   'Active Projects',
 ];
 
 test('v202 landlord sidebar contains exactly the requested landlord feature keys in order', () => {
-  assert.match(shell, /const LANDLORD_FEATURE_MENU_KEYS = \['my-listings', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects'\]/);
+  assert.match(shell, /const LANDLORD_FEATURE_MENU_KEYS = \['my-listings', 'survey-jobs', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'transactions', 'agreement-templates', 'survey-projects', 'active-projects'\]/);
   assert.match(shell, /const landlordMenu = \['dashboard', \.\.\.LANDLORD_FEATURE_MENU_KEYS, 'documents'\]/);
   assert.match(shell, /const source = new Map\(designedMenu\.map/);
   assert.match(shell, /\[\.\.\.LANDLORD_FEATURE_MENU_KEYS\]\.forEach/);
