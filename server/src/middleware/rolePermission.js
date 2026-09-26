@@ -101,9 +101,6 @@ export const requireRentalPaymentProofUpload = asyncHandler(async (req, _res, ne
   const invoiceId = String(req.get('x-secureasset-rental-invoice') || '').trim();
   if (!invoiceId) throw new ApiError(400, 'Rental invoice is required for payment proof upload');
 
-  const allowed = await featureAllowed('module:rental-invoices', req.user, 'view');
-  if (!allowed) throw new ApiError(403, 'Your account cannot access this rent invoice');
-
   const { RentalInvoice } = await import('../models/index.js');
   const invoice = await RentalInvoice.findOne({ _id: invoiceId, tenant: req.user._id })
     .select('_id property invoiceNumber billingMonth balanceAmount status')
