@@ -158,7 +158,7 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
 
   async function prepareRequest(renewalOf = '') {
     if (!templateId) {
-      onError?.(`Create or select a ${type} agreement template first`);
+      onError?.(`Create or select a ${type} agreement paper first`);
       return;
     }
     if (!validAgreementTerm) {
@@ -556,12 +556,13 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
           <Typography sx={{ fontSize: 12, fontWeight: 800, color: 'text.secondary' }}>First-party agreement setup</Typography>
           {agreementTermFields()}
           {loading && !templates.length ? <CircularProgress size={22} /> : templates.length ? <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <Select size="small" fullWidth value={templateId} onChange={(event) => setTemplateId(event.target.value)} displayEmpty aria-label={`${typeLabel(type)} agreement template`}>
-              <MenuItem value="" disabled>Select a template</MenuItem>
+            <Select size="small" fullWidth value={templateId} onChange={(event) => setTemplateId(event.target.value)} displayEmpty aria-label={`${typeLabel(type)} agreement paper`}>
+              <MenuItem value="" disabled>Select an agreement paper</MenuItem>
               {templates.map((template) => <MenuItem key={idOf(template)} value={idOf(template)}>{template.name} · v{template.version || 1}</MenuItem>)}
             </Select>
             <Button variant="contained" startIcon={<DescriptionRounded />} disabled={Boolean(busy) || !templateId} onClick={() => void prepareRequest()} sx={{ whiteSpace: 'nowrap' }}>{busy === 'prepare' ? 'Preparing…' : 'Prepare agreement'}</Button>
-          </Stack> : <Alert severity="info" action={<Button color="inherit" size="small" href="/app/agreement-templates">Create template</Button>}>Create a {typeLabel(type).toLowerCase()} template before preparing this agreement.</Alert>}
+            <Button variant="outlined" startIcon={<OpenInNewRounded />} href="/app/agreement-templates" sx={{ whiteSpace: 'nowrap' }}>Manage Papers</Button>
+          </Stack> : <Alert severity="info" action={<Button color="inherit" size="small" href="/app/agreement-templates">Add Agreement Paper</Button>}>Add a {typeLabel(type).toLowerCase()} agreement paper before preparing this agreement.</Alert>}
         </Stack>}
 
         {loading && !requests.length ? <Box sx={{ display: 'grid', placeItems: 'center', py: 1 }}><CircularProgress size={24} /></Box> : requests.length ? <Stack spacing={1.1}>
