@@ -103,24 +103,63 @@ export const overview = asyncHandler(async (req, res) => {
 
 const tenantPropertyFields = 'title code referenceNumber description status listingType purpose galleryCover images address pricing price isVerified visibility publicationStatus';
 
-function tenantPropertyRecord(record, source, cycleRecord = false) {
+function tenantPropertyRecord(record, source, cycleRecord = false, rentMeta = {}) {
   if (!record?.property) return null;
+  const invoice = rentMeta.currentInvoice || null;
+  const depositPayment = rentMeta.depositPayment || null;
   return {
     id: record._id,
     source,
     cycleId: cycleRecord ? record._id : null,
     property: record.property,
     status: record.status,
+    tenancyNumber: record.tenancyNumber,
     startDate: record.startDate || record.moveInDate,
     endDate: record.endDate || record.moveOutDate,
     monthlyRent: record.monthlyRent,
     securityDeposit: record.securityDeposit,
+    dueDay: record.dueDay,
+    dueTime: record.dueTime,
     leaseNumber: record.leaseNumber,
     paymentCycle: record.paymentCycle,
     paidAt: record.paidAt,
     paidAmount: record.paidAmount,
     space: record.space,
     unit: record.unit,
+    rentalUnit: record.rentalUnit,
+    rentRecord: cycleRecord ? {
+      tenancyId: record._id,
+      tenancyNumber: record.tenancyNumber || '',
+      tenancyStatus: record.status,
+      monthlyRent: Number(record.monthlyRent || 0),
+      dueDay: Number(record.dueDay || 1),
+      dueTime: record.dueTime || '09:00',
+      room: record.rentalUnit || record.space || null,
+      currentInvoice: invoice ? {
+        id: invoice._id,
+        invoiceNumber: invoice.invoiceNumber,
+        billingMonth: invoice.billingMonth,
+        dueDate: invoice.dueDate,
+        totalAmount: Number(invoice.totalAmount || 0),
+        paidAmount: Number(invoice.paidAmount || 0),
+        balanceAmount: Number(invoice.balanceAmount ?? invoice.totalAmount ?? 0),
+        status: invoice.status,
+      } : null,
+      securityDeposit: depositPayment ? {
+        paymentId: depositPayment._id,
+        amount: Number(depositPayment.amount || 0),
+        paidAmount: Number(depositPayment.paidAmount || 0),
+        status: depositPayment.status,
+        paidAt: depositPayment.paidAt || null,
+        verificationStatus: depositPayment.paymentVerification?.status || '',
+      } : {
+        amount: Number(record.securityDeposit || 0),
+        paidAmount: 0,
+        status: 'not_recorded',
+        paidAt: null,
+        verificationStatus: '',
+      },
+    } : null,
   };
 }
 
@@ -128,14 +167,15 @@ export const myProperties = asyncHandler(async (req, res) => {
   if (req.user.role !== 'tenant') throw new ApiError(403, 'My Property is available to tenant accounts only');
 
   const tenantId = req.user._id;
-  const activeTenancyStatuses = ['active', 'notice', 'move_out'];
+  const activeTenancyStatuses = ['payment_pending', 'active', 'notice', 'move_out'];
   const activeLeaseStatuses = ['pending_approval', 'active', 'expiring', 'renewed'];
 
   const [tenancies, legacyRentals, leases, salePayments] = await Promise.all([
     Tenancy.find({ tenant: tenantId, status: { $in: activeTenancyStatuses } })
       .sort('-startDate -createdAt')
       .populate('property', tenantPropertyFields)
-      .populate('space', 'name code level status')
+      .populate('space', 'name code level status roomNumber flatNumber apartmentNumber')
+      .populate('rentalUnit', 'name roomNumber floor floorLabel pricing availabilityStatus')
       .lean(),
     Tenant.find({ user: tenantId, status: { $in: ['active', 'notice'] } })
       .sort('-moveInDate -createdAt')
@@ -154,14 +194,49 @@ export const myProperties = asyncHandler(async (req, res) => {
       .lean(),
   ]);
 
+  const tenancyIds = tenancies.map((record) => record._id).filter(Boolean);
+  const applicationIds = tenancies.map((record) => record.application).filter(Boolean);
+  const [tenancyInvoices, depositPayments] = tenancyIds.length
+    ? await Promise.all([
+      RentalInvoice.find({ tenancy: { $in: tenancyIds }, tenant: tenantId })
+        .sort({ dueDate: -1, createdAt: -1 })
+        .lean(),
+      applicationIds.length
+        ? Payment.find({
+          payer: tenantId,
+          application: { $in: applicationIds },
+          type: 'deposit',
+          status: 'paid',
+          'gateway.source': 'security_deposit',
+          'paymentVerification.status': 'approved',
+        }).sort({ paidAt: -1, createdAt: -1 }).lean()
+        : Promise.resolve([]),
+    ])
+    : [[], []];
+
+  const invoiceByTenancy = new Map();
+  tenancyInvoices.forEach((invoice) => {
+    const key = String(invoice.tenancy || '');
+    if (key && !invoiceByTenancy.has(key)) invoiceByTenancy.set(key, invoice);
+  });
+  const depositByApplication = new Map();
+  depositPayments.forEach((payment) => {
+    const key = String(payment.application || '');
+    if (key && !depositByApplication.has(key)) depositByApplication.set(key, payment);
+  });
+  const rentMetaFor = (record) => ({
+    currentInvoice: invoiceByTenancy.get(String(record._id || '')) || null,
+    depositPayment: depositByApplication.get(String(record.application || '')) || null,
+  });
+
   const approvedRentTenancies = tenancies.filter((record) => String(record.property?.purpose || record.property?.listingType || 'rent').toLowerCase() !== 'lease');
   const approvedLeaseTenancies = tenancies.filter((record) => String(record.property?.purpose || record.property?.listingType || '').toLowerCase() === 'lease');
   const rented = [
-    ...approvedRentTenancies.map((record) => tenantPropertyRecord(record, 'rented', true)),
+    ...approvedRentTenancies.map((record) => tenantPropertyRecord(record, 'rented', true, rentMetaFor(record))),
     ...legacyRentals.map((record) => tenantPropertyRecord(record, 'rented')),
   ].filter(Boolean);
   const leased = [
-    ...approvedLeaseTenancies.map((record) => tenantPropertyRecord(record, 'leased', true)),
+    ...approvedLeaseTenancies.map((record) => tenantPropertyRecord(record, 'leased', true, rentMetaFor(record))),
     ...leases.map((record) => tenantPropertyRecord(record, 'leased')),
   ].filter(Boolean);
   const purchasedByProperty = new Map();
@@ -182,7 +257,7 @@ export const myProperties = asyncHandler(async (req, res) => {
   });
 });
 
-const ACTIVE_TENANCY_CYCLE_STATUSES = ['active', 'notice', 'move_out'];
+const ACTIVE_TENANCY_CYCLE_STATUSES = ['payment_pending', 'active', 'notice', 'move_out'];
 const DAY = 86_400_000;
 
 function cycleTimeLeft(endsAt, now = new Date()) {

@@ -30,6 +30,21 @@ type PropertyRecord = {
   cycleId?: string;
   space?: Record<string, any>;
   unit?: Record<string, any>;
+  rentalUnit?: Record<string, any>;
+  tenancyNumber?: string;
+  dueDay?: number;
+  dueTime?: string;
+  rentRecord?: {
+    tenancyId?: string;
+    tenancyNumber?: string;
+    tenancyStatus?: string;
+    monthlyRent?: number;
+    dueDay?: number;
+    dueTime?: string;
+    room?: Record<string, any>;
+    currentInvoice?: Record<string, any> | null;
+    securityDeposit?: Record<string, any> | null;
+  } | null;
 };
 
 type PropertyCollection = {
@@ -68,6 +83,14 @@ function PropertyCard({ record, category, onOpen }: { record: PropertyRecord; ca
   const financial = category === 'purchased'
     ? record.paidAmount ? money(record.paidAmount) : ''
     : record.monthlyRent ? `${money(record.monthlyRent)} / month` : '';
+  const rentRecord = record.rentRecord || null;
+  const room = rentRecord?.room || record.rentalUnit || record.space || record.unit || {};
+  const roomLabel = room.name || room.roomNumber || room.unitNumber || room.code || '';
+  const floorLabel = room.floorLabel || (room.floor !== undefined && room.floor !== null && room.floor !== '' ? `Floor ${room.floor}` : '');
+  const currentInvoice = rentRecord?.currentInvoice || null;
+  const deposit = rentRecord?.securityDeposit || null;
+  const depositPaid = String(deposit?.status || '') === 'paid' && String(deposit?.verificationStatus || '') === 'approved';
+  const dueLabel = currentInvoice?.dueDate ? dateText(currentInvoice.dueDate) : '';
 
   return <Card data-secureasset-my-property-cycle-card="text-first-v164" elevation={0} sx={{ height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 4, overflow: 'hidden', transition: 'transform .18s ease, box-shadow .18s ease', '&:hover': hasRentCycle ? { transform: 'translateY(-3px)', boxShadow: '0 16px 34px rgba(15,35,40,.12)' } : undefined }}>
     <CardActionArea disabled={!hasRentCycle} onClick={() => onOpen(record)} aria-label={hasRentCycle ? `Open rent cycle for ${property.title || 'property'}` : undefined} sx={{ textAlign: 'inherit', alignItems: 'stretch', height: hasRentCycle ? '100%' : 'auto', '&.Mui-disabled': { opacity: 1 } }}>
@@ -85,6 +108,24 @@ function PropertyCard({ record, category, onOpen }: { record: PropertyRecord; ca
         {financial && <Stack direction="row" spacing={1} alignItems="center"><Typography sx={{ color: 'primary.main', fontSize: 13, fontWeight: 900 }}>{financial}</Typography>{category !== 'purchased' && <Typography color="text.secondary" sx={{ fontSize: 11 }}>plan</Typography>}</Stack>}
         {record.status && <Typography color="text.secondary" sx={{ fontSize: 11.5 }}>Status: <Box component="span" sx={{ color: 'text.primary', fontWeight: 800 }}>{sentence(record.status)}</Box></Typography>}
       </Stack>
+      {hasRentCycle && rentRecord && <Box data-secureasset-my-property-rent-record="tenant-specific-v220" sx={{ mt: 1.6, p: 1.25, borderRadius: 2.5, bgcolor: 'rgba(9,87,86,.045)', border: '1px solid rgba(9,87,86,.12)' }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+          <Typography sx={{ fontSize: 11.4, fontWeight: 900, color: '#153E4F' }}>Rent record</Typography>
+          <Chip
+            size="small"
+            label={sentence(rentRecord.tenancyStatus || record.status || 'active')}
+            color={String(rentRecord.tenancyStatus || '').includes('payment') ? 'warning' : 'success'}
+            sx={{ height: 22, fontSize: 9.5, fontWeight: 800 }}
+          />
+        </Stack>
+        <Grid container spacing={.75} sx={{ mt: .45 }}>
+          {roomLabel && <Grid size={{ xs: 6 }}><Typography color="text.secondary" sx={{ fontSize: 9.6 }}>Room / Unit</Typography><Typography noWrap sx={{ fontSize: 11.2, fontWeight: 800 }}>{roomLabel}{floorLabel ? ` · ${floorLabel}` : ''}</Typography></Grid>}
+          <Grid size={{ xs: 6 }}><Typography color="text.secondary" sx={{ fontSize: 9.6 }}>Monthly rent</Typography><Typography sx={{ fontSize: 11.2, fontWeight: 800 }}>{money(rentRecord.monthlyRent || record.monthlyRent || 0)}</Typography></Grid>
+          <Grid size={{ xs: 6 }}><Typography color="text.secondary" sx={{ fontSize: 9.6 }}>Security deposit</Typography><Typography sx={{ fontSize: 11.2, fontWeight: 800, color: depositPaid ? 'success.main' : 'text.primary' }}>{depositPaid ? `${money(deposit?.paidAmount || deposit?.amount || record.securityDeposit || 0)} · Paid` : money(deposit?.amount || record.securityDeposit || 0)}</Typography></Grid>
+          <Grid size={{ xs: 6 }}><Typography color="text.secondary" sx={{ fontSize: 9.6 }}>{currentInvoice ? 'Current rent' : 'Next due'}</Typography><Typography sx={{ fontSize: 11.2, fontWeight: 800 }}>{currentInvoice ? `${money(currentInvoice.balanceAmount || currentInvoice.totalAmount || 0)} · ${sentence(currentInvoice.status)}` : dueLabel || 'Rent cycle started'}</Typography></Grid>
+          {currentInvoice?.invoiceNumber && <Grid size={{ xs: 12 }}><Typography color="text.secondary" sx={{ fontSize: 9.6 }}>Rent invoice</Typography><Typography sx={{ fontSize: 10.8, fontWeight: 750 }}>{currentInvoice.invoiceNumber}{dueLabel ? ` · Due ${dueLabel}` : ''}</Typography></Grid>}
+        </Grid>
+      </Box>}
       {hasRentCycle && <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 2, pt: 1.25, borderTop: '1px solid', borderColor: 'divider', color: 'primary.main' }}><Typography sx={{ fontSize: 12.5, fontWeight: 800 }}>Open rent cycle</Typography><ArrowForwardRounded sx={{ fontSize: 18 }} /></Stack>}
       </CardContent>
     </CardActionArea>
@@ -96,7 +137,7 @@ function EmptyProperties({ category, onBrowse }: { category: string; onBrowse: (
   return <Box sx={{ py: { xs: 5, md: 7 }, px: 2, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 4, bgcolor: 'background.paper' }}>
     <Box sx={{ width: 58, height: 58, mx: 'auto', display: 'grid', placeItems: 'center', borderRadius: '50%', bgcolor: 'primary.50', color: 'primary.main' }}><HomeWorkRounded /></Box>
     <Typography sx={{ mt: 1.6, fontWeight: 900, fontSize: 18 }}>{category === 'all' ? 'Your property journey starts here' : `No ${category} properties yet`}</Typography>
-    <Typography color="text.secondary" sx={{ maxWidth: 480, mx: 'auto', mt: .7, fontSize: 13 }}>Approved rental, lease, and completed purchase records connected to your tenant account will appear here automatically.</Typography>
+    <Typography color="text.secondary" sx={{ maxWidth: 480, mx: 'auto', mt: .7, fontSize: 13 }}>Landlord-approved rental, lease, and completed purchase records connected to your tenant account will appear here automatically.</Typography>
     <Button variant="contained" startIcon={<ExploreRounded />} onClick={onBrowse} sx={{ mt: 2.2 }}>Browse properties</Button>
   </Box>;
 }

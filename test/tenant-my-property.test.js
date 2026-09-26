@@ -21,7 +21,7 @@ test('tenant My Property endpoint returns rented, leased and purchased records f
 });
 
 test('agreement-pending property stays hidden until first-party approval activates the tenancy', () => {
-  assert.match(controller, /const activeTenancyStatuses = \['active', 'notice', 'move_out'\]/);
+  assert.match(controller, /const activeTenancyStatuses = \['payment_pending', 'active', 'notice', 'move_out'\]/);
   assert.doesNotMatch(controller, /const activeTenancyStatuses = \[[^\]]*agreement_pending/);
   assert.match(controller, /approvedRentTenancies/);
   assert.match(controller, /approvedLeaseTenancies/);
@@ -44,4 +44,18 @@ test('My Property page provides private rented, leased and purchased views', () 
   assert.match(modulePage, /module === 'my-property' && user\?\.role === 'tenant'/);
   assert.match(page, /const tabs = \[/);
   for (const label of ['Rented', 'Leased', 'Purchased', 'Private to you', 'getMyProperties']) assert.match(page, new RegExp(label));
+});
+
+
+test('security-deposit approval exposes the exact tenant rent record in My Property without marking monthly rent paid', () => {
+  const agreement = read('server/src/controllers/agreementController.js');
+  assert.match(agreement, /securityDepositPayment\.status = 'paid'/);
+  assert.match(agreement, /securityDepositPayment\.paidAmount = requiredDepositAmount/);
+  assert.match(agreement, /paymentVerification = \{[\s\S]*status: 'approved'/);
+  assert.match(controller, /'payment_pending', 'active', 'notice', 'move_out'/);
+  assert.match(controller, /Payment\.find\(\{[\s\S]*type: 'deposit',[\s\S]*status: 'paid'/);
+  assert.match(controller, /rentRecord: cycleRecord \?/);
+  assert.match(page, /data-secureasset-my-property-rent-record="tenant-specific-v220"/);
+  assert.match(page, /Security deposit/);
+  assert.match(page, /Rent invoice/);
 });

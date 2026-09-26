@@ -1375,8 +1375,10 @@ export const approveAgreementRequest = asyncHandler(async (req, res) => {
     title: 'Agreement approved',
     message: cycleMessage,
     category: 'lease',
-    actionUrl: `/app/my-applications?record=${request.application?._id || request.application}`,
-    metadata: { agreementRequest: request._id, tenancy: tenancy?._id || null, rentalUnit: request.rentalUnit?._id || request.rentalUnit || null, agreementType: request.agreementType, cycleStartedAt: startsAt, cycleEndsAt: endsAt, occupancyPending: Boolean(request.rentalUnit) },
+    actionUrl: tenancy?._id
+      ? `/app/my-property/${tenancy._id}/rent-cycle`
+      : `/app/my-applications?record=${request.application?._id || request.application}`,
+    metadata: { agreementRequest: request._id, tenancy: tenancy?._id || null, rentalUnit: request.rentalUnit?._id || request.rentalUnit || null, agreementType: request.agreementType, cycleStartedAt: startsAt, cycleEndsAt: endsAt, occupancyPending: Boolean(request.rentalUnit), securityDepositPaid: requiredDepositAmount > 0 },
   });
   await writeAudit(req, { action: 'first-party-approved-agreement', module: 'agreement-requests', recordId: request._id, previousValue, updatedValue: request.toObject() });
   res.json({ success: true, data: requestPayload(request, tenancy), message: cycleMessage });
