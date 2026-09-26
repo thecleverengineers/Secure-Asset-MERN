@@ -70,7 +70,7 @@ async function deliverWebhook(delivery, user) {
 
 async function deliverFast2SmsWhatsApp(delivery, user) {
   return sendFast2SmsWhatsApp({
-    mobile: user.phone || delivery.destination,
+    mobile: delivery.destination || user.whatsappNumber || user.phone,
     templateKey: delivery.metadata?.whatsappTemplate,
     variables: delivery.metadata?.whatsappVariables || [],
   });
@@ -109,7 +109,7 @@ async function executeDelivery(delivery, user, preference) {
 
 export async function processNotificationDelivery(delivery) {
   const [user, preference] = await Promise.all([
-    User.findById(delivery.user).select('name email phone status').lean(),
+    User.findById(delivery.user).select('name email phone whatsappNumber status').lean(),
     NotificationPreference.findOne({ user: delivery.user }).lean(),
   ]);
   if (!user || user.status !== 'active') {
