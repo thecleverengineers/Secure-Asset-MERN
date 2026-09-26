@@ -21,12 +21,13 @@ import ReplayRounded from '@mui/icons-material/ReplayRounded';
 import SendRounded from '@mui/icons-material/SendRounded';
 import ShieldRounded from '@mui/icons-material/ShieldRounded';
 import { useAuth } from '../../context/AuthContext';
+import { downloadXlsx } from '../../utils/excel';
 import { useActionDialog } from '../../components/shared/useActionDialog';
 import ProfessionalDialog from '../../components/shared/ProfessionalDialog';
 import {
-  API_BASE, cancelAgreementCycle, changeResourceStatus, downloadDriveFile, fetchAgreementPreviewBlob, fetchPropertyImageBlob,
-  getAppConfiguration, getTenancyDetails, recordTenancyPayment, renewAgreementCycle,
-  sendTenancyRentReminder, submitRentalInvoicePayment, transitionRentalTenancy,
+  API_BASE, acceptRentalPayment, cancelAgreementCycle, changeResourceStatus, downloadDriveFile, fetchAgreementPreviewBlob,
+  fetchPropertyImageBlob, fetchRentalPaymentProofBlob, getAppConfiguration, getTenancyDetails, recordTenancyPayment,
+  rejectRentalPayment, renewAgreementCycle, sendTenancyRentReminder, submitRentalInvoicePayment, transitionRentalTenancy,
 } from '../../services/api';
 
 const TAB_KEYS = ['overview', 'rent', 'documents', 'activity'] as const;
@@ -177,6 +178,7 @@ export default function TenancyDetailsPage() {
   const contactPerson = landlordSide ? tenant : landlord;
   const contactLabel = landlordSide ? 'Tenant' : 'Landlord';
   const canManage = Boolean(data?.permissions?.canManage && landlordSide && (permissions === null || permissions.includes('edit')));
+  const canReviewRentPayments = Boolean(data?.permissions?.participant === 'landlord' && viewerId === idOf(landlord));
   const canViewContacts = Boolean(data?.permissions?.canViewContacts && (viewerId === idOf(tenant) || viewerId === idOf(landlord) || ['admin', 'manager'].includes(String(user?.role || ''))));
   const targetSpace = tenancy.space || tenancy.rentalUnit || {};
   const property = tenancy.property || {};
@@ -241,6 +243,61 @@ export default function TenancyDetailsPage() {
       await load();
     } catch (cause) { setError((cause as Error).message || 'Payment could not be recorded'); }
     finally { setBusy(false); }
+  }
+
+  async function previewRentPaymentProof(payment: any) {
+    const paymentId = idOf(payment);
+    if (!paymentId) return;
+    setBusy(true); setError('');
+    const previewWindow = window.open('', '_blank');
+    try {
+      const blob = await fetchRentalPaymentProofBlob(paymentId);
+      const url = URL.createObjectURL(blob);
+      if (previewWindow) previewWindow.location.href = url; else window.location.href = url;
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (cause) {
+      previewWindow?.close();
+      setError((cause as Error).message || 'Payment proof could not be opened');
+    } finally { setBusy(false); }
+  }
+
+  async function approveRentPayment(payment: any) {
+    if (!canReviewRentPayments) return;
+    const accepted = await actions.askConfirmation(
+      `Approve ${money(payment.amount || payment.paidAmount)} rent payment${payment.transactionId ? ` with transaction ID ${payment.transactionId}` : ''}? The linked monthly invoice will be updated to paid.`,
+      { title: 'Approve rent payment' },
+    );
+    if (accepted) await actionCall(() => acceptRentalPayment(idOf(payment)), 'Rent payment approved and invoice updated.');
+  }
+
+  async function rejectRentPaymentReview(payment: any) {
+    if (!canReviewRentPayments) return;
+    const reason = await actions.askText(
+      'Explain why this payment cannot be approved. The tenant will be able to correct and resubmit it.',
+      { title: 'Reject rent payment', label: 'Rejection reason' },
+    );
+    if (!String(reason || '').trim()) return;
+    await actionCall(() => rejectRentalPayment(idOf(payment), String(reason).trim()), 'Rent payment rejected.');
+  }
+
+  async function exportRentHistoryExcel() {
+    const rows: Array<Array<string | number>> = [[
+      'Billing Month','Invoice Number','Due Date','Invoice Total','Invoice Paid','Invoice Balance','Invoice Status',
+      'Payment Amount','Payment Method','Transaction ID','Verification Status','Payment Status','Submitted At',
+      'Approved/Paid At','Rejection Reason','Tenant','Property','Room / Unit',
+    ]];
+    invoices.forEach((invoice: any) => {
+      const invoicePayments = invoice.payments || [];
+      if (!invoicePayments.length) {
+        rows.push([String(invoice.billingMonth || ''),String(invoice.invoiceNumber || ''),dateText(invoice.dueDate),Number(invoice.totalAmount || 0),Number(invoice.paidAmount || 0),invoiceBalance(invoice),nice(invoice.status),0,'','','Awaiting Tenant','','','','',String(tenant.name || ''),String(property.title || property.name || ''),String(targetSpace.name || targetSpace.roomNumber || targetSpace.code || '')]);
+        return;
+      }
+      invoicePayments.forEach((entry: any) => {
+        const payment = entry.payment || entry;
+        rows.push([String(invoice.billingMonth || ''),String(invoice.invoiceNumber || ''),dateText(invoice.dueDate),Number(invoice.totalAmount || 0),Number(invoice.paidAmount || 0),invoiceBalance(invoice),nice(invoice.status),Number(entry.amount || payment.amount || payment.paidAmount || 0),nice(entry.method || payment.method),String(payment.transactionId || entry.transactionId || ''),nice(payment.paymentVerification?.status || entry.status || ''),nice(payment.status || entry.status || ''),dateText(payment.paymentVerification?.submittedAt || entry.submittedAt, true),dateText(payment.paymentVerification?.approvedAt || payment.paidAt || entry.acceptedAt, true),String(payment.paymentVerification?.rejectionReason || ''),String(tenant.name || ''),String(property.title || property.name || ''),String(targetSpace.name || targetSpace.roomNumber || targetSpace.code || '')]);
+      });
+    });
+    await downloadXlsx(`rent-payment-history-${String(tenancy.tenancyNumber || tenancyId).replace(/[^a-z0-9_-]+/gi, '-')}.xlsx`, 'Rent Payment History', rows);
   }
 
   async function renew() {
@@ -397,7 +454,7 @@ export default function TenancyDetailsPage() {
 
     {tab === 'rent' && <Stack spacing={1.5}>
       {overdueBalance > 0 && <Alert severity="error" sx={{ borderRadius: 2.5 }}><strong>{money(overdueBalance)} overdue.</strong> Open cycles below show the due date and remaining amount.</Alert>}
-      <SectionCard title="Rent and payment history" subtitle="Monthly invoices, payment status and receipts" icon={ReceiptLongRounded} action={<Chip size="small" variant="outlined" label={`${invoices.length} cycle${invoices.length === 1 ? '' : 's'}`} />}>
+      <SectionCard title="Rent and payment history" subtitle="Monthly invoices, tenant payment submissions, landlord review and receipts" icon={ReceiptLongRounded} action={<Stack direction="row" spacing={.7} alignItems="center">{canReviewRentPayments && <Button size="small" variant="outlined" startIcon={<DownloadRounded />} onClick={() => void exportRentHistoryExcel()}>Export Excel</Button>}<Chip size="small" variant="outlined" label={`${invoices.length} cycle${invoices.length === 1 ? '' : 's'}`} /></Stack>}>
         {invoices.length ? <Stack spacing={1}>
           {invoices.map((invoice: any) => {
             const balance = invoiceBalance(invoice);
@@ -408,7 +465,37 @@ export default function TenancyDetailsPage() {
                 <Box sx={{ minWidth: 0 }}><Stack direction="row" spacing={.8} flexWrap="wrap" alignItems="center"><Typography sx={{ fontSize: 13, fontWeight: 900 }}>{invoice.billingMonth || dateText(invoice.dueDate)}</Typography><Chip size="small" label={nice(invoice.status)} color={invoice.status === 'paid' ? 'success' : invoice.status === 'overdue' ? 'error' : invoice.status === 'partially_paid' ? 'warning' : 'default'} sx={{ height: 22, fontWeight: 760 }} /></Stack><Typography color="text.secondary" sx={{ mt: .4, fontSize: 11.3 }}>Invoice {invoice.invoiceNumber || idOf(invoice).slice(-8)} · Due {dateText(invoice.dueDate)}</Typography></Box>
                 <Stack direction="row" spacing={2} flexWrap="wrap" sx={{ color: 'text.secondary' }}><Box><Typography sx={{ fontSize: 10.5 }}>Amount due</Typography><Typography sx={{ fontSize: 12, fontWeight: 850, color: 'text.primary' }}>{money(invoice.totalAmount)}</Typography></Box><Box><Typography sx={{ fontSize: 10.5 }}>Paid</Typography><Typography sx={{ fontSize: 12, fontWeight: 850, color: 'text.primary' }}>{money(invoice.paidAmount)}</Typography></Box><Box><Typography sx={{ fontSize: 10.5 }}>Balance</Typography><Typography sx={{ fontSize: 12, fontWeight: 900, color: balance > 0 ? 'error.main' : 'success.main' }}>{money(balance)}</Typography></Box></Stack>
               </Stack>
-              {payments.length > 0 && <Stack divider={<Divider flexItem />} sx={{ mt: 1.2 }}>{payments.map((entry: any, index: number) => { const payment = entry.payment || entry; return <Stack key={`${idOf(payment) || index}`} direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={.3} sx={{ py: .65 }}><Typography sx={{ fontSize: 11.5, fontWeight: 720 }}>{money(entry.amount || payment.paidAmount || payment.amount)} · {nice(entry.method || payment.method)} · {nice(payment.paymentVerification?.status || entry.status || payment.status)}</Typography><Typography color="text.secondary" sx={{ fontSize: 10.8 }}>{dateText(payment.paidAt || entry.acceptedAt || entry.submittedAt, true)}{payment.transactionId ? ` · Ref ${payment.transactionId}` : ''}</Typography></Stack>; })}</Stack>}
+              {payments.length > 0 && <Stack spacing={.8} sx={{ mt: 1.2 }}>
+                {payments.map((entry: any, index: number) => {
+                  const payment = entry.payment || entry;
+                  const verification = String(payment.paymentVerification?.status || entry.status || payment.status || 'pending').toLowerCase();
+                  const submitted = verification === 'submitted';
+                  const approved = verification === 'approved' || String(payment.status || '').toLowerCase() === 'paid';
+                  const rejected = verification === 'rejected';
+                  const proofAvailable = Boolean(payment.proofUrl || payment.proofFile);
+                  return <Paper key={`${idOf(payment) || index}`} variant="outlined" sx={{ p: 1.1, borderRadius: 2, bgcolor: submitted ? 'rgba(2,136,209,.035)' : approved ? 'rgba(12,145,98,.035)' : rejected ? 'rgba(211,47,47,.03)' : '#fff' }}>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" gap={.7}>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Stack direction="row" spacing={.65} alignItems="center" flexWrap="wrap" useFlexGap>
+                          <Typography sx={{ fontSize: 12, fontWeight: 850 }}>{money(entry.amount || payment.amount || payment.paidAmount)}</Typography>
+                          <Chip size="small" label={approved ? 'Paid' : submitted ? 'Awaiting landlord approval' : rejected ? 'Rejected' : nice(verification)} color={approved ? 'success' : submitted ? 'info' : rejected ? 'error' : 'default'} sx={{ height: 22, fontSize: 9.5, fontWeight: 800 }} />
+                        </Stack>
+                        <Typography color="text.secondary" sx={{ mt: .3, fontSize: 10.8 }}>{nice(entry.method || payment.method)}{payment.transactionId ? ` · Transaction ${payment.transactionId}` : ''}</Typography>
+                        <Typography color="text.secondary" sx={{ mt: .15, fontSize: 10.5 }}>Submitted {dateText(payment.paymentVerification?.submittedAt || entry.submittedAt || payment.createdAt, true)}{approved ? ` · Approved ${dateText(payment.paymentVerification?.approvedAt || payment.paidAt || entry.acceptedAt, true)}` : ''}</Typography>
+                        {rejected && payment.paymentVerification?.rejectionReason && <Typography color="error.main" sx={{ mt: .35, fontSize: 10.8, fontWeight: 700 }}>Reason: {payment.paymentVerification.rejectionReason}</Typography>}
+                        {payment.notes && <Typography color="text.secondary" sx={{ mt: .3, fontSize: 10.6 }}>Note: {payment.notes}</Typography>}
+                      </Box>
+                      <Stack direction="row" flexWrap="wrap" gap={.55} alignItems="center">
+                        {proofAvailable && <Button size="small" variant="outlined" startIcon={<DescriptionRounded />} disabled={busy} onClick={() => void previewRentPaymentProof(payment)}>Review proof</Button>}
+                        {canReviewRentPayments && submitted && <>
+                          <Button size="small" variant="contained" color="success" startIcon={<CheckCircleRounded />} disabled={busy} onClick={() => void approveRentPayment(payment)}>Approve payment</Button>
+                          <Button size="small" variant="outlined" color="error" disabled={busy} onClick={() => void rejectRentPaymentReview(payment)}>Reject</Button>
+                        </>}
+                      </Stack>
+                    </Stack>
+                  </Paper>;
+                })}
+              </Stack>}
               <Stack direction="row" flexWrap="wrap" gap={.6} sx={{ mt: 1.1 }}>
                 {balance > 0 && (canManage || data.permissions?.participant === 'tenant') && <Button size="small" variant="outlined" startIcon={<PaymentsRounded />} onClick={() => startPayment(invoice)}>Record payment</Button>}
                 {canManage && balance > 0 && <Button size="small" startIcon={<SendRounded />} onClick={() => void sendReminder(invoice)}>Send reminder</Button>}
