@@ -16,7 +16,7 @@ const SURVEYOR_WORKFLOW_MODULE_KEYS = new Set(['surveyor-dashboard', 'survey-job
 const TENANT_ONLY_ACTIVATION_MODULE_KEYS = new Set(['subscription', 'surveyor-subscription']);
 const LANDLORD_SIDEBAR_KEYS = new Set([
   'dashboard', 'my-listings', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices',
-  'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-jobs', 'survey-projects', 'active-projects',
+  'utility-readings', 'leases', 'payments', 'transactions', 'agreement-templates', 'survey-jobs', 'survey-projects', 'active-projects',
   'documents',
 ]);
 const LANDLORD_RETIRED_SURVEY_MODULE_KEYS = new Set(['survey-quotations']);
