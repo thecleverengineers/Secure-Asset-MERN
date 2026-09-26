@@ -483,8 +483,22 @@ function normalizedWorkflowStage(project) {
 }
 
 function fieldworkEditable(project) {
-  return project.workflowStage === 'in_progress'
+  return ['hired', 'in_progress'].includes(project.workflowStage)
     || (project.workflowStage === 'submitted' && project.status === 'revision_requested');
+}
+
+function hasAnyFieldwork(project, fieldData) {
+  return Boolean(
+    (fieldData?.measurements || []).length
+    || fieldNoteCount(fieldData)
+    || (fieldData?.gpsCoordinates || []).length
+    || (fieldData?.boundaryPoints || []).length
+    || (fieldData?.calculations || []).length
+    || (fieldData?.media || []).length
+    || (fieldData?.voiceNotes || []).length
+    || (fieldData?.sketches || []).length
+    || (project?.evidence || []).length
+  );
 }
 
 function asPlain(value) {
@@ -521,7 +535,7 @@ function requiredReviewChecklist(value) {
     scopeReviewed: value?.scopeReviewed === true,
   };
   if (!checklist.measurementsReviewed || !checklist.evidenceReviewed || !checklist.scopeReviewed) {
-    throw new ApiError(422, 'Confirm that you reviewed the measurements, evidence, and agreed scope before approving fieldwork');
+    throw new ApiError(422, 'Confirm that you reviewed the available field records, available evidence, and agreed scope before approving fieldwork');
   }
   return checklist;
 }
@@ -741,42 +755,76 @@ export const getSurveyProject = asyncHandler(async (req, res) => {
 
 export const checkInSurveyProject = asyncHandler(async (req, res) => {
   const { project } = await workflowProject(req, 'surveyor', { allowClosed: false });
-  if (!['hired', 'in_progress'].includes(project.workflowStage)) throw new ApiError(409, 'Secure check-in is available only after you are hired');
+  if (!['hired', 'in_progress'].includes(project.workflowStage)) throw new ApiError(409, 'Check-in is available only after you are hired');
   const unpaidAdvance = await Payment.exists({ surveyProject: project._id, type: 'survey_advance', status: { $ne: 'paid' } });
   if (unpaidAdvance) throw new ApiError(409, 'The agreed advance payment must be secured before site check-in');
-  const current = {
+
+  const hasLatitude = req.body?.latitude !== undefined && req.body?.latitude !== null && req.body?.latitude !== '';
+  const hasLongitude = req.body?.longitude !== undefined && req.body?.longitude !== null && req.body?.longitude !== '';
+  const current = hasLatitude && hasLongitude ? {
     latitude: finiteNumber(req.body.latitude, 'Latitude'),
     longitude: finiteNumber(req.body.longitude, 'Longitude'),
-  };
-  const accuracy = Math.max(0, finiteNumber(req.body.accuracy ?? 0, 'GPS accuracy'));
-  if (accuracy > 150) throw new ApiError(422, 'GPS accuracy is too low for secure check-in; move outdoors and try again');
+  } : null;
+  const accuracy = current && req.body?.accuracy !== undefined && req.body?.accuracy !== null && req.body?.accuracy !== ''
+    ? Math.max(0, finiteNumber(req.body.accuracy, 'GPS accuracy'))
+    : null;
+
   const property = project.property ? await Property.findById(project.property).lean() : null;
   const job = project.job ? await SurveyJob.findById(project.job).lean() : null;
   const target = coordinatePair(job?.exactLocation || project.propertySite || {})
     || coordinatePair({ latitude: property?.map?.latitude, longitude: property?.map?.longitude })
     || (Array.isArray(property?.location?.coordinates) ? coordinatePair({ latitude: property.location.coordinates[1], longitude: property.location.coordinates[0] }) : null);
-  if (!target) throw new ApiError(422, 'The landlord must add exact property GPS coordinates before secure check-in');
-  const distance = Math.round(distanceMetres(current, target));
-  if (distance > CHECK_IN_RADIUS_METRES) throw new ApiError(403, `Check-in denied: you are ${distance} metres from the property`);
+  const distance = current && target ? Math.round(distanceMetres(current, target)) : null;
+  const locationVerified = Boolean(current && target && (accuracy === null || accuracy <= 150) && distance !== null && distance <= CHECK_IN_RADIUS_METRES);
+
   const now = new Date();
   let visit = project.activeVisit ? await SiteVisit.findById(project.activeVisit) : null;
   if (!visit) visit = new SiteVisit({ project: project._id, client: project.client, surveyor: project.surveyor, requestedStart: job?.preferredVisitDate, confirmedStart: now, createdBy: req.user._id });
   visit.status = 'in_progress';
-  visit.checkIn = { at: now, ...current, accuracy, verified: true, distanceMetres: distance };
+  visit.checkIn = {
+    at: now,
+    ...(current || {}),
+    ...(accuracy !== null ? { accuracy } : {}),
+    verified: locationVerified,
+    ...(distance !== null ? { distanceMetres: distance } : {}),
+  };
   visit.route = { ...(visit.route || {}), destination: job?.exactLocation?.address || project.propertySite?.fullAddress };
   visit.updatedBy = req.user._id;
   await visit.save();
+
   project.activeVisit = visit._id;
-  project.workflowStage = 'in_progress'; project.status = 'fieldwork_in_progress'; project.startedAt ||= now;
-  project.verificationStatus = 'surveyed'; project.updatedBy = req.user._id;
+  project.workflowStage = 'in_progress';
+  project.status = 'fieldwork_in_progress';
+  project.startedAt ||= now;
+  if (project.verificationStatus === 'unverified') project.verificationStatus = 'surveyed';
+  project.updatedBy = req.user._id;
   await project.save();
+
   await Promise.all([
     SurveyJob.findByIdAndUpdate(project.job, { status: 'in_progress', workflowStage: 'in_progress', startedAt: now, updatedBy: req.user._id }),
     project.property ? Property.findByIdAndUpdate(project.property, { surveyVerificationStatus: 'surveyed', surveyedAt: now, lastSurveyProject: project._id }) : null,
-    createNotification({ user: project.client, title: 'Surveyor checked in', message: `Secure GPS check-in completed for ${project.projectNumber}.`, category: 'survey', actionUrl: `/app/survey-projects/${project._id}`, metadata: { projectId: project._id, event: 'survey_check_in' } }),
+    createNotification({
+      user: project.client,
+      title: 'Surveyor started fieldwork',
+      message: locationVerified
+        ? `Check-in and property proximity were recorded for ${project.projectNumber}.`
+        : `Fieldwork check-in was recorded for ${project.projectNumber}. Exact-location verification is optional.`,
+      category: 'survey',
+      actionUrl: `/app/survey-projects/${project._id}`,
+      metadata: { projectId: project._id, event: 'survey_check_in', locationVerified },
+    }),
   ]);
-  await writeAudit(req, { action: 'survey-project:secure-check-in', module: 'survey-projects', recordId: project._id, updatedValue: { visitId: visit._id, distanceMetres: distance, accuracy } });
-  res.json({ success: true, data: await projectBundle(project, req), message: 'Secure property check-in verified' });
+  await writeAudit(req, {
+    action: 'survey-project:check-in',
+    module: 'survey-projects',
+    recordId: project._id,
+    updatedValue: { visitId: visit._id, locationVerified, distanceMetres: distance, accuracy },
+  });
+  res.json({
+    success: true,
+    data: await projectBundle(project, req),
+    message: locationVerified ? 'Check-in recorded with property proximity' : 'Check-in recorded. Exact-location verification is optional',
+  });
 });
 
 export const checkOutSurveyProject = asyncHandler(async (req, res) => {
@@ -873,10 +921,25 @@ export const saveSurveyFieldwork = asyncHandler(async (req, res) => {
   if (!measurementSaved && !noteSaved && !gpsSaved) throw new ApiError(422, 'Add a measurement, GPS point, or field note');
   fieldData.syncStatus = 'synced'; fieldData.updatedBy = req.user._id;
   await fieldData.save();
-  project.fieldData = fieldData._id; project.updatedBy = req.user._id;
+  const now = new Date();
+  const startedFromFieldData = project.workflowStage === 'hired';
+  project.fieldData = fieldData._id;
+  if (startedFromFieldData) {
+    project.workflowStage = 'in_progress';
+    project.status = 'fieldwork_in_progress';
+    project.startedAt ||= now;
+    if (project.verificationStatus === 'unverified') project.verificationStatus = 'surveyed';
+  }
+  project.updatedBy = req.user._id;
   await project.save();
-  await writeAudit(req, { action: measurementSaved || noteSaved ? 'survey-project:fieldwork-updated' : 'survey-project:fieldwork-recorded', module: 'survey-projects', recordId: project._id, updatedValue: { fieldDataId: fieldData._id, measurement: measurement || undefined, note: note || undefined, measurementId: req.body.measurementId, measurementIndex: req.body.measurementIndex, noteId: req.body.noteId, noteIndex: req.body.noteIndex } });
-  res.json({ success: true, data: await projectBundle(project, req), message: 'Fieldwork saved' });
+  if (startedFromFieldData) {
+    await Promise.all([
+      SurveyJob.findByIdAndUpdate(project.job, { status: 'in_progress', workflowStage: 'in_progress', startedAt: project.startedAt || now, updatedBy: req.user._id }),
+      project.property ? Property.findByIdAndUpdate(project.property, { surveyVerificationStatus: 'surveyed', surveyedAt: project.startedAt || now, lastSurveyProject: project._id }) : null,
+    ]);
+  }
+  await writeAudit(req, { action: measurementSaved || noteSaved ? 'survey-project:fieldwork-updated' : 'survey-project:fieldwork-recorded', module: 'survey-projects', recordId: project._id, updatedValue: { fieldDataId: fieldData._id, measurement: measurement || undefined, note: note || undefined, measurementId: req.body.measurementId, measurementIndex: req.body.measurementIndex, noteId: req.body.noteId, noteIndex: req.body.noteIndex, nextProcessEnabled: true, startedWithoutMandatoryCheckIn: startedFromFieldData } });
+  res.json({ success: true, data: await projectBundle(project, req), message: 'Fieldwork saved. The next process is now available' });
 });
 
 // Field data and evidence are reviewed before any final report is requested.
@@ -886,8 +949,7 @@ export const submitSurveyFieldworkForReview = asyncHandler(async (req, res) => {
   const { project } = await workflowProject(req, 'surveyor', { allowClosed: false });
   if (!fieldworkEditable(project)) throw new ApiError(409, 'Fieldwork can be submitted only while the hired Surveyor is actively working on this project');
   const fieldData = project.fieldData ? await FieldData.findOne({ _id: project.fieldData, project: project._id, surveyor: req.user._id }) : null;
-  if (!(fieldData?.measurements || []).length) throw new ApiError(422, 'Record at least one field measurement before requesting landlord review');
-  if (!(project.evidence || []).length) throw new ApiError(422, 'Attach at least one photo, video, or document before requesting landlord review');
+  if (!hasAnyFieldwork(project, fieldData)) throw new ApiError(422, 'Add or update at least one field record, note, GPS point, or evidence file before requesting landlord review');
   const now = new Date();
   if (project.workflowType === 'direct_surveyor') {
     const firstMilestone = directMilestoneForOrder(project, 1);
@@ -955,10 +1017,24 @@ export const attachSurveyEvidence = asyncHandler(async (req, res) => {
     latitude: req.body.latitude, longitude: req.body.longitude, accuracy: req.body.accuracy,
     capturedAt: req.body.capturedAt ? validDate(req.body.capturedAt, 'Evidence capture date') : new Date(), uploadedBy: req.user._id,
   });
+  const now = new Date();
+  const startedFromEvidence = project.workflowStage === 'hired';
+  if (startedFromEvidence) {
+    project.workflowStage = 'in_progress';
+    project.status = 'fieldwork_in_progress';
+    project.startedAt ||= now;
+    if (project.verificationStatus === 'unverified') project.verificationStatus = 'surveyed';
+  }
   project.updatedBy = req.user._id;
   await project.save();
-  await writeAudit(req, { action: 'survey-project:evidence-added', module: 'survey-projects', recordId: project._id, updatedValue: { fileId: file._id, kind, name: file.name } });
-  res.status(201).json({ success: true, data: await projectBundle(project, req), message: 'Evidence attached to this survey' });
+  if (startedFromEvidence) {
+    await Promise.all([
+      SurveyJob.findByIdAndUpdate(project.job, { status: 'in_progress', workflowStage: 'in_progress', startedAt: project.startedAt || now, updatedBy: req.user._id }),
+      project.property ? Property.findByIdAndUpdate(project.property, { surveyVerificationStatus: 'surveyed', surveyedAt: project.startedAt || now, lastSurveyProject: project._id }) : null,
+    ]);
+  }
+  await writeAudit(req, { action: 'survey-project:evidence-added', module: 'survey-projects', recordId: project._id, updatedValue: { fileId: file._id, kind, name: file.name, nextProcessEnabled: true, startedWithoutMandatoryCheckIn: startedFromEvidence } });
+  res.status(201).json({ success: true, data: await projectBundle(project, req), message: 'Evidence attached. The next process is now available' });
 });
 
 export const removeSurveyEvidence = asyncHandler(async (req, res) => {
@@ -1283,7 +1359,7 @@ export const reviewSurveyFieldwork = asyncHandler(async (req, res) => {
     throw new ApiError(409, 'Only submitted fieldwork can be reviewed before requesting the final payment');
   }
   const fieldData = project.fieldData ? await FieldData.findById(project.fieldData) : null;
-  if (!(fieldData?.measurements || []).length || !(project.evidence || []).length) throw new ApiError(409, 'The Surveyor must provide measurements and evidence before landlord review');
+  if (!hasAnyFieldwork(project, fieldData)) throw new ApiError(409, 'The Surveyor must provide at least one field record, note, GPS point, or evidence file before landlord review');
   const checklist = requiredReviewChecklist(req.body?.checklist);
   const comment = String(req.body?.comment || '').trim().slice(0, 2000);
   const activeReview = asPlain(project.fieldworkReview);

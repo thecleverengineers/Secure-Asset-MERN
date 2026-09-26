@@ -230,7 +230,17 @@ export default function SurveyProjectsWorkflowPage() {
   const [milestonePayment, setMilestonePayment] = useState<{ milestone: any; transactionId: string; method: 'upi' | 'bank_transfer' | 'offline'; proof: File | null; payerDeclaration: boolean } | null>(null);
   const currentStage = String(project?.workflowStage || 'hired');
   const surveyorCanEdit = Boolean(project?.permissions?.surveyor && (currentStage === 'hired' || currentStage === 'in_progress' || (currentStage === 'submitted' && project?.status === 'revision_requested')));
-  const canSubmitFieldwork = Boolean(project?.permissions?.surveyor && (currentStage === 'in_progress' || (currentStage === 'submitted' && project?.status === 'revision_requested')));
+  const hasAnyFieldData = Boolean(
+    project?.fieldData?.measurements?.length
+    || project?.fieldData?.fieldNotes?.length
+    || project?.fieldData?.observations?.notes?.length
+    || project?.fieldData?.gpsCoordinates?.length
+    || project?.fieldData?.boundaryPoints?.length
+    || project?.fieldData?.calculations?.length
+    || project?.fieldData?.media?.length
+    || project?.evidence?.length
+  );
+  const canSubmitFieldwork = Boolean(project?.permissions?.surveyor && hasAnyFieldData && (['hired', 'in_progress'].includes(currentStage) || (currentStage === 'submitted' && project?.status === 'revision_requested')));
   const canUploadFinalReport = Boolean(project?.permissions?.surveyor && currentStage === 'approved' && project?.status === 'report_upload_requested');
   const finalPaymentRecord = (project?.payments || []).find((item: any) => item.type === 'survey_final') || null;
   const finalPaymentRejected = finalPaymentRecord?.paymentVerification?.status === 'rejected';
@@ -314,8 +324,13 @@ export default function SurveyProjectsWorkflowPage() {
   async function checkIn() {
     if (!projectId) return;
     setBusy(true); setError('');
-    try { const gps = await gpsPosition(); const response = await checkInSurveyWorkflowProject(projectId, gps); setProject(response.data); setNotice(response.message || 'Secure GPS check-in verified.'); }
-    catch (reason) { setError((reason as Error).message); }
+    try {
+      let gps: { latitude?: number; longitude?: number; accuracy?: number } = {};
+      try { gps = await gpsPosition(); } catch { /* exact-location access is optional */ }
+      const response = await checkInSurveyWorkflowProject(projectId, gps);
+      setProject(response.data);
+      setNotice(response.message || 'Check-in recorded. Exact-location verification is optional.');
+    } catch (reason) { setError((reason as Error).message); }
     finally { setBusy(false); }
   }
 
@@ -548,7 +563,7 @@ export default function SurveyProjectsWorkflowPage() {
       if (project.permissions?.surveyor && journey.activeStep === 4 && canUploadFinalReport) return <Button component="label" variant="contained" startIcon={<UploadFileRounded />} disabled={busy}>Upload survey report<input hidden type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv" onChange={(event) => { void uploadReportFile(event.target.files); event.currentTarget.value = ''; }} /></Button>;
       if (project.permissions?.landlord && journey.activeStep === 5 && secondMilestone && secondPayment && secondPayment.paymentVerification?.status !== 'submitted') return <Button variant="contained" startIcon={<PaidRounded />} onClick={() => openDirectMilestonePayment(secondMilestone)} disabled={busy}>Pay milestone 2 &amp; submit proof</Button>;
       if (project.permissions?.surveyor && journey.activeStep === 6 && secondPayment?.paymentVerification?.status === 'submitted') return <Button variant="contained" startIcon={<PaidRounded />} onClick={() => acceptPayment(String(secondPayment._id))} disabled={busy}>Accept milestone 2 payment &amp; verify property</Button>;
-      if (project.permissions?.surveyor && currentStage === 'hired' && directBudgetReadyForUi) return <Button variant="contained" startIcon={<LocationOnRounded />} onClick={checkIn} disabled={busy}>Secure check-in to start fieldwork</Button>;
+      if (project.permissions?.surveyor && currentStage === 'hired' && directBudgetReadyForUi) return <Button variant="contained" startIcon={<LocationOnRounded />} onClick={checkIn} disabled={busy}>Optional check-in</Button>;
       return <Typography variant="body2" color="text.secondary">{journey.waiting}</Typography>;
     }
     if (journey.activeStep === 5) return <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
@@ -560,7 +575,7 @@ export default function SurveyProjectsWorkflowPage() {
       <Button variant="contained" startIcon={<NoteAddRounded />} onClick={() => setFieldOpen(true)} disabled={busy}>Add field data</Button>
       <Button component="label" variant="outlined" startIcon={<CloudUploadRounded />} disabled={busy}>Upload evidence<input hidden multiple type="file" accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.csv" onChange={(event) => { void uploadEvidence(event.target.files); event.currentTarget.value = ''; }} /></Button>
     </Stack>;
-    if (project.permissions?.surveyor && currentStage === 'hired') return <Button variant="contained" startIcon={<LocationOnRounded />} onClick={checkIn} disabled={busy}>Secure check-in to start fieldwork</Button>;
+    if (project.permissions?.surveyor && currentStage === 'hired') return <Button variant="contained" startIcon={<LocationOnRounded />} onClick={checkIn} disabled={busy}>Optional check-in</Button>;
     if (project.permissions?.landlord && project.status === 'awaiting_landlord_review') return <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
       <Button color="success" variant="contained" startIcon={<CheckCircleRounded />} onClick={() => setReviewOpen(true)} disabled={busy}>Open fieldwork review</Button>
       <Button color="warning" variant="outlined" onClick={() => setRevisionOpen(true)} disabled={busy}>Request changes</Button>
@@ -864,9 +879,9 @@ export default function SurveyProjectsWorkflowPage() {
     <ProfessionalDialog open={reviewOpen} onClose={() => !busy && setReviewOpen(false)} maxWidth="sm" fullWidth professionalTitle="Review fieldwork" professionalSubtitle="Record your decision only after you have inspected the measurements, field notes, evidence, and agreed scope.">
       <Box component="form" onSubmit={reviewFieldwork}>
         <DialogContent dividers><Stack spacing={2}>
-          <Alert severity="info">Review round {Number(fieldworkReview.version || 0) || 1}: {measurements.length} measurements, {fieldNotes.length} notes, and {project.evidence?.length || 0} evidence files are available in this project workspace.</Alert>
-          <FormControlLabel control={<Checkbox checked={reviewChecklist.measurementsReviewed} onChange={(event) => setReviewChecklist({ ...reviewChecklist, measurementsReviewed: event.target.checked })} />} label="I reviewed the submitted measurements and field notes." />
-          <FormControlLabel control={<Checkbox checked={reviewChecklist.evidenceReviewed} onChange={(event) => setReviewChecklist({ ...reviewChecklist, evidenceReviewed: event.target.checked })} />} label="I reviewed the submitted photos, videos, and documents." />
+          <Alert severity="info">Review round {Number(fieldworkReview.version || 0) || 1}: {measurements.length} measurements, {fieldNotes.length} notes, and {project.evidence?.length || 0} evidence files are available. Any submitted field record can move the workflow forward.</Alert>
+          <FormControlLabel control={<Checkbox checked={reviewChecklist.measurementsReviewed} onChange={(event) => setReviewChecklist({ ...reviewChecklist, measurementsReviewed: event.target.checked })} />} label="I reviewed the available measurements and field notes." />
+          <FormControlLabel control={<Checkbox checked={reviewChecklist.evidenceReviewed} onChange={(event) => setReviewChecklist({ ...reviewChecklist, evidenceReviewed: event.target.checked })} />} label="I reviewed the available photos, videos, and documents (if any)." />
           <FormControlLabel control={<Checkbox checked={reviewChecklist.scopeReviewed} onChange={(event) => setReviewChecklist({ ...reviewChecklist, scopeReviewed: event.target.checked })} />} label="I confirm the submitted fieldwork meets the agreed survey scope." />
           <TextField fullWidth multiline minRows={3} label="Review comment (optional)" value={reviewComment} onChange={(event) => setReviewComment(event.target.value)} inputProps={{ maxLength: 2000 }} helperText="This is shared with the assigned Surveyor and retained in the project audit record." />
           <Alert severity="warning">Approving this review creates the final invoice. The report stays locked until the landlord declares the payment and the Surveyor confirms receipt.</Alert>
