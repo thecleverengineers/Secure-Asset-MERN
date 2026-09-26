@@ -10,6 +10,7 @@ import {
   Chip,
   Container,
   Grid,
+  IconButton,
   Paper,
   Stack,
   Tab,
@@ -17,6 +18,8 @@ import {
   Typography,
 } from '@mui/material';
 import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded';
+import ArrowBackIosNewRounded from '@mui/icons-material/ArrowBackIosNewRounded';
+import ArrowForwardIosRounded from '@mui/icons-material/ArrowForwardIosRounded';
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
 import HomeWorkRounded from '@mui/icons-material/HomeWorkRounded';
 import ApartmentRounded from '@mui/icons-material/ApartmentRounded';
@@ -71,6 +74,7 @@ export default function PropertyDetailPage() {
   const wishlist = useWishlist();
   const [detailsTab, setDetailsTab] = useState(0);
   const [tourExpanded, setTourExpanded] = useState(false);
+  const [roomSlideIndex, setRoomSlideIndex] = useState(0);
   const propertyQuery = useQuery(publicPropertyQueryOptions(slug || id));
   const listing = propertyQuery.data?.listing || null;
   const structure = propertyQuery.data?.structure || null;
@@ -388,7 +392,13 @@ export default function PropertyDetailPage() {
   ].filter(Boolean) as Array<[string, any]>;
 
   const scrollToSection = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  const roomPreviewUnits = rentalUnits.slice(0, 4);
+  const roomPreviewUnits = rentalUnits;
+  const roomSlideCount = Math.max(1, roomPreviewUnits.length);
+  const roomSlideItems = roomPreviewUnits.length
+    ? [roomPreviewUnits[roomSlideIndex % roomSlideCount], roomPreviewUnits[(roomSlideIndex + 1) % roomSlideCount]].filter(Boolean)
+    : [];
+  const showPreviousRoom = () => setRoomSlideIndex((current) => roomPreviewUnits.length ? (current - 1 + roomPreviewUnits.length) % roomPreviewUnits.length : 0);
+  const showNextRoom = () => setRoomSlideIndex((current) => roomPreviewUnits.length ? (current + 1) % roomPreviewUnits.length : 0);
   const compactDetails: Array<[string, unknown]> = [
     ['Property Type', sentence(selected?.level || property.type || 'Residential Apartment')],
     ['BHK', heroBedrooms ? `${heroBedrooms} BHK` : undefined],
@@ -573,68 +583,148 @@ export default function PropertyDetailPage() {
                 <Typography sx={{ color: '#102a43', fontSize: 15, fontWeight: 800 }}>Rooms & Floor Plan</Typography>
                 {rentalUnits.length > 0 && <Button size="small" onClick={() => roomPreviewUnits[0] && navigate(`/room_details/${roomPreviewUnits[0]._id}`)} sx={{ textTransform: 'none', fontSize: 10.5 }}>View All Rooms →</Button>}
               </Stack>
-              <Grid container spacing={{ xs: .9, sm: 1.1 }} sx={{ mt: .35 }}>
-                {roomPreviewUnits.length ? roomPreviewUnits.map((unit: any) => {
-                  const roomImage = unit.primaryImage?.url || unit.gallery?.find((item: any) => item?.url)?.url || shareImage;
-                  const rawStatus = String(unit.availabilityStatus || '').toUpperCase();
-                  const available = unit.canBook !== false && !unit.isLocked && !unit.applicationInProgress && !['OCCUPIED','BLOCKED','ARCHIVED'].includes(rawStatus);
-                  const statusLabel = unit.availabilityLabel || (unit.isLocked ? 'Occupied' : unit.applicationInProgress ? 'Application Pending' : rawStatus ? sentence(rawStatus) : 'Available');
-                  const statusTone = available
-                    ? { bg: '#DCFCE7', color: '#087443', dot: '#12B76A' }
-                    : unit.applicationInProgress || ['APPLICATION_PENDING','AGREEMENT_PENDING','PAYMENT_PENDING','NOTICE_PERIOD','VACATING'].includes(rawStatus)
-                      ? { bg: '#FFF7E6', color: '#B54708', dot: '#F79009' }
-                      : { bg: '#FEECEC', color: '#B42318', dot: '#F04438' };
-                  const floorText = unit.floor?.floorName || (unit.floor?.floorNumber !== undefined ? `Floor ${unit.floor.floorNumber}` : '');
-                  const roomType = sentence(unit.specifications?.roomType || unit.roomType || 'Private room');
-                  const roomSize = unit.specifications?.roomSize?.value
-                    ? `${unit.specifications.roomSize.value} ${unit.specifications.roomSize.unit || 'sqft'}`
-                    : '';
-                  return <Grid key={unit._id} size={{ xs: 6, sm: 4, md: 3 }}>
-                    <Paper
-                      component="button"
-                      type="button"
-                      onClick={() => navigate(`/room_details/${unit._id}`)}
-                      elevation={0}
+              <Box sx={{ mt: .65 }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1} sx={{ mb: .75 }}>
+                  <Typography sx={{ fontSize: 10.5, color: '#7A8D9E' }}>
+                    {roomPreviewUnits.length ? `${roomSlideIndex + 1} of ${roomPreviewUnits.length} rooms` : 'Room previews'}
+                  </Typography>
+                  <Stack direction="row" spacing={.55}>
+                    <IconButton
+                      aria-label="Previous room"
+                      onClick={showPreviousRoom}
+                      disabled={roomPreviewUnits.length <= 1}
+                      size="small"
                       sx={{
-                        width: '100%', height: '100%', p: 0, textAlign: 'left', overflow: 'hidden',
-                        border: '1px solid #E2E9EF', borderRadius: 2.5, bgcolor: '#fff', cursor: 'pointer',
-                        boxShadow: '0 5px 16px rgba(25,55,80,.035)',
-                        transition: 'transform .18s ease, box-shadow .18s ease, border-color .18s ease',
-                        '&:hover': { transform: 'translateY(-2px)', borderColor: '#C9D8E3', boxShadow: '0 12px 26px rgba(25,55,80,.09)' },
+                        width: 32, height: 32, border: '1px solid #DCE5EC', borderRadius: '50%',
+                        color: '#173B55', bgcolor: '#fff', boxShadow: '0 3px 10px rgba(25,55,80,.04)',
+                        '&:hover': { bgcolor: '#F6F9FB', borderColor: '#C8D7E2' },
                       }}
                     >
-                      <Box sx={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', bgcolor: '#EDF2F5' }}>
-                        <OptimizedImage src={roomImage} alt={unit.name || `Room ${unit.roomNumber}`} width={520} height={390} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        <Chip
-                          size="small"
-                          label={<Stack component="span" direction="row" spacing={.55} alignItems="center"><Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: statusTone.dot }} />{statusLabel}</Stack>}
-                          sx={{ position: 'absolute', left: 9, top: 9, height: 24, bgcolor: statusTone.bg, color: statusTone.color, fontSize: 9.5, fontWeight: 800, border: '1px solid rgba(255,255,255,.72)', backdropFilter: 'blur(8px)' }}
-                        />
-                      </Box>
-                      <Box sx={{ p: { xs: 1, sm: 1.15 } }}>
-                        <Typography noWrap sx={{ fontSize: { xs: 11.5, sm: 12.5 }, fontWeight: 800, color: '#173B55' }}>{unit.name || `Room ${unit.roomNumber}`}</Typography>
-                        <Stack direction="row" spacing={.55} alignItems="center" sx={{ mt: .45, minWidth: 0 }}>
-                          <BedRounded sx={{ fontSize: 14, color: '#8291A0', flexShrink: 0 }} />
-                          <Typography noWrap sx={{ fontSize: 9.5, color: '#75889A' }}>{[roomType, floorText].filter(Boolean).join(' · ')}</Typography>
-                        </Stack>
-                        {roomSize && <Typography sx={{ mt: .35, fontSize: 9.5, color: '#8A98A6' }}>Approx. {roomSize}</Typography>}
-                        <Box sx={{ mt: .9, pt: .8, borderTop: '1px solid #EEF2F5' }}>
-                          <Typography sx={{ fontSize: { xs: 12, sm: 13 }, fontWeight: 800, color: '#087F5B' }}>{money(Number(unit.pricing?.monthlyRent || 0))}</Typography>
-                          <Typography sx={{ mt: .05, fontSize: 8.8, color: '#8A98A6' }}>per month</Typography>
+                      <ArrowBackIosNewRounded sx={{ fontSize: 15 }} />
+                    </IconButton>
+                    <IconButton
+                      aria-label="Next room"
+                      onClick={showNextRoom}
+                      disabled={roomPreviewUnits.length <= 1}
+                      size="small"
+                      sx={{
+                        width: 32, height: 32, border: '1px solid #DCE5EC', borderRadius: '50%',
+                        color: '#173B55', bgcolor: '#fff', boxShadow: '0 3px 10px rgba(25,55,80,.04)',
+                        '&:hover': { bgcolor: '#F6F9FB', borderColor: '#C8D7E2' },
+                      }}
+                    >
+                      <ArrowForwardIosRounded sx={{ fontSize: 15 }} />
+                    </IconButton>
+                  </Stack>
+                </Stack>
+
+                <Grid container spacing={{ xs: .85, sm: 1 }}>
+                  {roomSlideItems.length ? roomSlideItems.map((unit: any, slidePosition: number) => {
+                    const roomImage = unit.primaryImage?.url || unit.gallery?.find((item: any) => item?.url)?.url || shareImage;
+                    const rawStatus = String(unit.availabilityStatus || '').toUpperCase();
+                    const available = unit.canBook !== false && !unit.isLocked && !unit.applicationInProgress && !['OCCUPIED','BLOCKED','ARCHIVED'].includes(rawStatus);
+                    const statusLabel = unit.availabilityLabel || (unit.isLocked ? 'Occupied' : unit.applicationInProgress ? 'Application Pending' : rawStatus ? sentence(rawStatus) : 'Available');
+                    const statusTone = available
+                      ? { bg: '#EAF9F1', color: '#087443', dot: '#12B76A' }
+                      : unit.applicationInProgress || ['APPLICATION_PENDING','AGREEMENT_PENDING','PAYMENT_PENDING','NOTICE_PERIOD','VACATING'].includes(rawStatus)
+                        ? { bg: '#FFF7E6', color: '#B54708', dot: '#F79009' }
+                        : { bg: '#FEECEC', color: '#B42318', dot: '#F04438' };
+                    const floorText = unit.floor?.floorName || (unit.floor?.floorNumber !== undefined ? `Floor ${unit.floor.floorNumber}` : '');
+                    const roomType = sentence(unit.specifications?.roomType || unit.roomType || 'Private room');
+                    const roomSize = unit.specifications?.roomSize?.value
+                      ? `${unit.specifications.roomSize.value} ${unit.specifications.roomSize.unit || 'sqft'}`
+                      : '';
+                    return <Grid
+                      key={`${unit._id}-${slidePosition}`}
+                      size={{ xs: 12, sm: 6 }}
+                      sx={{ display: slidePosition === 1 ? { xs: 'none', sm: 'block' } : 'block' }}
+                    >
+                      <Paper
+                        component="button"
+                        type="button"
+                        onClick={() => navigate(`/room_details/${unit._id}`)}
+                        elevation={0}
+                        sx={{
+                          width: '100%', height: { xs: 102, sm: 108 }, p: .7,
+                          display: 'flex', alignItems: 'stretch', gap: .9,
+                          textAlign: 'left', border: '1px solid #E3E9EE', borderRadius: 2,
+                          bgcolor: '#fff', cursor: 'pointer', overflow: 'hidden',
+                          boxShadow: '0 4px 13px rgba(25,55,80,.025)',
+                          transition: 'transform .18s ease, box-shadow .18s ease, opacity .18s ease',
+                          '&:hover': { transform: 'translateY(-1px)', borderColor: '#CBD8E2', boxShadow: '0 8px 20px rgba(25,55,80,.07)' },
+                        }}
+                      >
+                        <Box sx={{
+                          width: { xs: 108, sm: 120 }, minWidth: { xs: 108, sm: 120 },
+                          height: '100%', overflow: 'hidden', bgcolor: '#EDF2F5',
+                          borderRadius: '5px', flexShrink: 0,
+                        }}>
+                          <OptimizedImage
+                            src={roomImage}
+                            alt={unit.name || `Room ${unit.roomNumber}`}
+                            width={360}
+                            height={280}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '5px', display: 'block' }}
+                          />
                         </Box>
+
+                        <Box sx={{ flex: 1, minWidth: 0, py: .1, pr: .15, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                          <Box>
+                            <Stack direction="row" justifyContent="space-between" spacing={.55} alignItems="flex-start">
+                              <Typography noWrap sx={{ minWidth: 0, flex: 1, fontSize: { xs: 11.3, sm: 12.2 }, lineHeight: 1.15, fontWeight: 800, color: '#173B55' }}>
+                                {unit.name || `Room ${unit.roomNumber}`}
+                              </Typography>
+                              <Chip
+                                size="small"
+                                label={<Stack component="span" direction="row" spacing={.4} alignItems="center"><Box component="span" sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: statusTone.dot }} />{statusLabel}</Stack>}
+                                sx={{
+                                  height: 20, maxWidth: 120, flexShrink: 0, bgcolor: statusTone.bg, color: statusTone.color,
+                                  fontSize: 8.2, fontWeight: 800, '& .MuiChip-label': { px: .65, overflow: 'hidden', textOverflow: 'ellipsis' },
+                                }}
+                              />
+                            </Stack>
+                            <Typography noWrap sx={{ mt: .35, fontSize: 9.1, color: '#75889A' }}>{[roomType, floorText].filter(Boolean).join(' · ')}</Typography>
+                            {roomSize && <Typography noWrap sx={{ mt: .2, fontSize: 8.9, color: '#8A98A6' }}>Approx. {roomSize}</Typography>}
+                          </Box>
+
+                          <Stack direction="row" justifyContent="space-between" alignItems="flex-end" spacing={.7}>
+                            <Box>
+                              <Typography sx={{ fontSize: { xs: 11.8, sm: 12.7 }, lineHeight: 1, fontWeight: 800, color: '#087F5B' }}>{money(Number(unit.pricing?.monthlyRent || 0))}</Typography>
+                              <Typography sx={{ mt: .1, fontSize: 8, color: '#8A98A6' }}>per month</Typography>
+                            </Box>
+                            <Typography sx={{ pb: .05, fontSize: 8.5, color: '#4E6A80', fontWeight: 700 }}>View →</Typography>
+                          </Stack>
+                        </Box>
+                      </Paper>
+                    </Grid>;
+                  }) : displayImages.slice(1,3).map((image:string,index:number) => <Grid key={image} size={{ xs: 12, sm: 6 }} sx={{ display: index === 1 ? { xs: 'none', sm: 'block' } : 'block' }}>
+                    <Paper elevation={0} sx={{ height: { xs: 102, sm: 108 }, p: .7, display: 'flex', gap: .9, alignItems: 'stretch', border: '1px solid #E3E9EE', borderRadius: 2, bgcolor: '#fff' }}>
+                      <Box sx={{ width: { xs: 108, sm: 120 }, minWidth: { xs: 108, sm: 120 }, height: '100%', overflow: 'hidden', borderRadius: '5px', bgcolor: '#EDF2F5' }}>
+                        <OptimizedImage src={image} alt={`Room ${index+1}`} width={360} height={280} style={{ width:'100%',height:'100%',objectFit:'cover',borderRadius:'5px',display:'block' }} />
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 0, py: .2 }}>
+                        <Stack direction="row" justifyContent="space-between" spacing={.5}><Typography sx={{ fontSize:11.5,fontWeight:800,color:'#173B55' }}>Room {index+1}</Typography><Chip size="small" label="Available" sx={{ height:20,bgcolor:'#EAF9F1',color:'#087443',fontSize:8.2,fontWeight:800 }} /></Stack>
+                        <Typography sx={{ mt:.4,fontSize:9,color:'#8291A0' }}>Property interior</Typography>
                       </Box>
                     </Paper>
-                  </Grid>;
-                }) : displayImages.slice(1,5).map((image:string,index:number) => <Grid key={image} size={{ xs: 6, sm: 4, md: 3 }}>
-                  <Paper elevation={0} sx={{ height: '100%', border: '1px solid #E2E9EF', borderRadius: 2.5, overflow: 'hidden', bgcolor: '#fff' }}>
-                    <Box sx={{ position: 'relative', aspectRatio: '4 / 3', overflow: 'hidden' }}>
-                      <OptimizedImage src={image} alt={`Room ${index+1}`} width={520} height={390} style={{ width:'100%',height:'100%',objectFit:'cover' }} />
-                      <Chip size="small" label="Available" sx={{ position:'absolute',left:9,top:9,height:24,bgcolor:'#DCFCE7',color:'#087443',fontSize:9.5,fontWeight:800 }} />
-                    </Box>
-                    <Box sx={{ p:1.05 }}><Typography sx={{ fontSize:12,fontWeight:800,color:'#173B55' }}>Room {index+1}</Typography><Typography sx={{ mt:.3,fontSize:9.5,color:'#8291A0' }}>Property interior</Typography></Box>
-                  </Paper>
-                </Grid>)}
-              </Grid>
+                  </Grid>)}
+                </Grid>
+
+                {roomPreviewUnits.length > 1 && <Stack direction="row" justifyContent="center" spacing={.55} sx={{ mt: .8 }}>
+                  {roomPreviewUnits.map((unit: any, index: number) => <Box
+                    component="button"
+                    type="button"
+                    aria-label={`Show ${unit.name || `Room ${unit.roomNumber || index + 1}`}`}
+                    key={unit._id || index}
+                    onClick={() => setRoomSlideIndex(index)}
+                    sx={{
+                      width: roomSlideIndex === index ? 18 : 6, height: 6, p: 0, border: 0, borderRadius: 99,
+                      bgcolor: roomSlideIndex === index ? '#087F5B' : '#CFD9E1', cursor: 'pointer',
+                      transition: 'width .18s ease, background-color .18s ease',
+                    }}
+                  />)}
+                </Stack>}
+              </Box>
 
               <Paper elevation={0} sx={{ mt: 1.1, border: '1px solid #E2E9EF', borderRadius: 2.5, overflow: 'hidden', p: { xs: 1.1, sm: 1.3 }, bgcolor: '#FBFCFD' }}>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.2} alignItems={{ sm: 'center' }}>
