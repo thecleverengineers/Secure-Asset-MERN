@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Checkbox,
@@ -53,6 +54,80 @@ const money = (value: number) => new Intl.NumberFormat('en-IN', { style: 'curren
 const flatten = (nodes: any[]): any[] => nodes.flatMap((node) => [node, ...flatten(node.children || [])]);
 const safeDate = () => new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 const sentence = (value: unknown) => String(value || '').replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+const OCCUPATION_OPTIONS = [
+  'Government Employee',
+  'Private Sector Employee',
+  'Public Sector / PSU Employee',
+  'Business Owner',
+  'Self-Employed',
+  'Freelancer',
+  'Entrepreneur / Startup Founder',
+  'Professional',
+  'Software / IT Professional',
+  'Engineer',
+  'Doctor / Medical Professional',
+  'Nurse / Healthcare Worker',
+  'Teacher / Professor',
+  'Lawyer / Legal Professional',
+  'Chartered Accountant / Accountant',
+  'Banker / Finance Professional',
+  'Consultant',
+  'Sales / Marketing Professional',
+  'Real Estate Professional',
+  'Contractor',
+  'Skilled Worker / Technician',
+  'Construction Worker / Labourer',
+  'Driver / Transport Professional',
+  'Delivery / Logistics Worker',
+  'Retail / Shopkeeper',
+  'Hospitality / Hotel / Restaurant Worker',
+  'Farmer / Agriculturist',
+  'Defence / Armed Forces',
+  'Police / Security Services',
+  'Artist / Media / Content Creator',
+  'Social Worker / NGO Employee',
+  'Domestic Worker',
+  'Student',
+  'Homemaker',
+  'Retired / Pensioner',
+  'Unemployed / Job Seeker',
+  'Other',
+] as const;
+
+const RELATION_OPTIONS = [
+  'Father',
+  'Mother',
+  'Husband',
+  'Wife',
+  'Son',
+  'Daughter',
+  'Brother',
+  'Sister',
+  'Grandfather',
+  'Grandmother',
+  'Grandson',
+  'Granddaughter',
+  'Father-in-Law',
+  'Mother-in-Law',
+  'Son-in-Law',
+  'Daughter-in-Law',
+  'Brother-in-Law',
+  'Sister-in-Law',
+  'Uncle',
+  'Aunt',
+  'Nephew',
+  'Niece',
+  'Cousin',
+  'Guardian',
+  'Spouse',
+  'Relative',
+  'Friend',
+  'Employer',
+  'Employee',
+  'Colleague',
+  'Other',
+] as const;
 
 type FormState = {
   fullName: string;
@@ -418,7 +493,20 @@ export default function ApplyPropertyPage() {
               <Grid size={{ xs: 12, sm: 4 }}><TextField {...inputProps} required label="Phone Number" value={form.phone} onChange={(e) => setField('phone', e.target.value)} /></Grid>
               <Grid size={{ xs: 12, sm: 4 }}><TextField {...inputProps} required label="Email Address" type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} /></Grid>
               <Grid size={{ xs: 12, sm: 4 }}><TextField {...inputProps} select required label="Gender" value={form.gender} onChange={(e) => setField('gender', e.target.value)}><MenuItem value="Male">Male</MenuItem><MenuItem value="Female">Female</MenuItem><MenuItem value="Other">Other</MenuItem><MenuItem value="Prefer not to say">Prefer not to say</MenuItem></TextField></Grid>
-              <Grid size={{ xs: 12, sm: 4 }}><TextField {...inputProps} select required label="Occupation" value={form.occupation} onChange={(e) => setField('occupation', e.target.value)}><MenuItem key="Government Employee" value="Government Employee">Government Employee</MenuItem><MenuItem key="Private Sector Employee" value="Private Sector Employee">Private Sector Employee</MenuItem><MenuItem key="Public Sector / PSU Employee" value="Public Sector / PSU Employee">Public Sector / PSU Employee</MenuItem><MenuItem key="Business Owner" value="Business Owner">Business Owner</MenuItem><MenuItem key="Self-Employed" value="Self-Employed">Self-Employed</MenuItem><MenuItem key="Freelancer" value="Freelancer">Freelancer</MenuItem><MenuItem key="Entrepreneur / Startup Founder" value="Entrepreneur / Startup Founder">Entrepreneur / Startup Founder</MenuItem><MenuItem key="Professional" value="Professional">Professional</MenuItem><MenuItem key="Software / IT Professional" value="Software / IT Professional">Software / IT Professional</MenuItem><MenuItem key="Engineer" value="Engineer">Engineer</MenuItem><MenuItem key="Doctor / Medical Professional" value="Doctor / Medical Professional">Doctor / Medical Professional</MenuItem><MenuItem key="Nurse / Healthcare Worker" value="Nurse / Healthcare Worker">Nurse / Healthcare Worker</MenuItem><MenuItem key="Teacher / Professor" value="Teacher / Professor">Teacher / Professor</MenuItem><MenuItem key="Lawyer / Legal Professional" value="Lawyer / Legal Professional">Lawyer / Legal Professional</MenuItem><MenuItem key="Chartered Accountant / Accountant" value="Chartered Accountant / Accountant">Chartered Accountant / Accountant</MenuItem><MenuItem key="Banker / Finance Professional" value="Banker / Finance Professional">Banker / Finance Professional</MenuItem><MenuItem key="Consultant" value="Consultant">Consultant</MenuItem><MenuItem key="Sales / Marketing Professional" value="Sales / Marketing Professional">Sales / Marketing Professional</MenuItem><MenuItem key="Real Estate Professional" value="Real Estate Professional">Real Estate Professional</MenuItem><MenuItem key="Contractor" value="Contractor">Contractor</MenuItem><MenuItem key="Skilled Worker / Technician" value="Skilled Worker / Technician">Skilled Worker / Technician</MenuItem><MenuItem key="Construction Worker / Labourer" value="Construction Worker / Labourer">Construction Worker / Labourer</MenuItem><MenuItem key="Driver / Transport Professional" value="Driver / Transport Professional">Driver / Transport Professional</MenuItem><MenuItem key="Delivery / Logistics Worker" value="Delivery / Logistics Worker">Delivery / Logistics Worker</MenuItem><MenuItem key="Retail / Shopkeeper" value="Retail / Shopkeeper">Retail / Shopkeeper</MenuItem><MenuItem key="Hospitality / Hotel / Restaurant Worker" value="Hospitality / Hotel / Restaurant Worker">Hospitality / Hotel / Restaurant Worker</MenuItem><MenuItem key="Farmer / Agriculturist" value="Farmer / Agriculturist">Farmer / Agriculturist</MenuItem><MenuItem key="Defence / Armed Forces" value="Defence / Armed Forces">Defence / Armed Forces</MenuItem><MenuItem key="Police / Security Services" value="Police / Security Services">Police / Security Services</MenuItem><MenuItem key="Artist / Media / Content Creator" value="Artist / Media / Content Creator">Artist / Media / Content Creator</MenuItem><MenuItem key="Social Worker / NGO Employee" value="Social Worker / NGO Employee">Social Worker / NGO Employee</MenuItem><MenuItem key="Domestic Worker" value="Domestic Worker">Domestic Worker</MenuItem><MenuItem key="Student" value="Student">Student</MenuItem><MenuItem key="Homemaker" value="Homemaker">Homemaker</MenuItem><MenuItem key="Retired / Pensioner" value="Retired / Pensioner">Retired / Pensioner</MenuItem><MenuItem key="Unemployed / Job Seeker" value="Unemployed / Job Seeker">Unemployed / Job Seeker</MenuItem><MenuItem key="Other" value="Other">Other</MenuItem></TextField></Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <Autocomplete
+                  options={[...OCCUPATION_OPTIONS]}
+                  value={form.occupation || null}
+                  onChange={(_, value) => setField('occupation', value || '')}
+                  autoHighlight
+                  openOnFocus
+                  selectOnFocus
+                  handleHomeEndKeys
+                  noOptionsText="No occupation found"
+                  renderInput={(params) => <TextField {...params} required label="Occupation" placeholder="Search occupation" size="small" fullWidth sx={fieldSx} />}
+                  slotProps={{ paper: { sx: { mt: .4, border: '1px solid #DCE6ED', borderRadius: 2, boxShadow: '0 12px 30px rgba(22,55,80,.12)', '& .MuiAutocomplete-option': { minHeight: 36, fontSize: 10.5, fontFamily: '"Open Sans", Arial, sans-serif' } } } }}
+                />
+              </Grid>
             </Grid>
 
             <Box sx={{ my: 1.35, borderTop: '1px solid #E8EEF3' }} />
@@ -452,7 +540,20 @@ export default function ApplyPropertyPage() {
             <SectionTitle number={5} icon={<ContactPhoneRounded sx={{ fontSize: 16 }} />} title="Emergency Contact" subtitle="Someone we can reach in an emergency" />
             <Grid container spacing={.85}>
               <Grid size={{ xs: 12, sm: 4 }}><TextField {...inputProps} required label="Contact Name" value={form.emergencyName} onChange={(e) => setField('emergencyName', e.target.value)} /></Grid>
-              <Grid size={{ xs: 12, sm: 4 }}><TextField {...inputProps} required label="Relation" value={form.emergencyRelation} onChange={(e) => setField('emergencyRelation', e.target.value)} /></Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <Autocomplete
+                  options={[...RELATION_OPTIONS]}
+                  value={form.emergencyRelation || null}
+                  onChange={(_, value) => setField('emergencyRelation', value || '')}
+                  autoHighlight
+                  openOnFocus
+                  selectOnFocus
+                  handleHomeEndKeys
+                  noOptionsText="No relation found"
+                  renderInput={(params) => <TextField {...params} required label="Relation" placeholder="Search relation" size="small" fullWidth sx={fieldSx} />}
+                  slotProps={{ paper: { sx: { mt: .4, border: '1px solid #DCE6ED', borderRadius: 2, boxShadow: '0 12px 30px rgba(22,55,80,.12)', '& .MuiAutocomplete-option': { minHeight: 36, fontSize: 10.5, fontFamily: '"Open Sans", Arial, sans-serif' } } } }}
+                />
+              </Grid>
               <Grid size={{ xs: 12, sm: 4 }}><TextField {...inputProps} required label="Phone Number" value={form.emergencyPhone} onChange={(e) => setField('emergencyPhone', e.target.value)} /></Grid>
             </Grid>
 
