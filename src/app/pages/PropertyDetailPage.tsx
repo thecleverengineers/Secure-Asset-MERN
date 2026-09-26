@@ -79,6 +79,7 @@ export default function PropertyDetailPage() {
   const [roomSlideIndex, setRoomSlideIndex] = useState(0);
   const [roomFloorKey, setRoomFloorKey] = useState('');
   const [nearbySlideIndex, setNearbySlideIndex] = useState(0);
+  const [relatedSlideIndex, setRelatedSlideIndex] = useState(0);
   const propertyQuery = useQuery(publicPropertyQueryOptions(slug || id));
   const listing = propertyQuery.data?.listing || null;
   const structure = propertyQuery.data?.structure || null;
@@ -137,20 +138,28 @@ export default function PropertyDetailPage() {
         type: relatedPropertyType || undefined,
         city: relatedCity || undefined,
         page: 1,
-        limit: 8,
+        limit: 12,
       });
       append(primary.data || []);
-      if (collected.length < 6 && relatedPropertyType) {
+      if (collected.length < 10 && relatedPropertyType) {
         const sameType = await getProperties({ listingType: relatedListingType, type: relatedPropertyType, page: 1, limit: 10 });
         append(sameType.data || []);
       }
-      if (collected.length < 6) {
+      if (collected.length < 10) {
         const samePurpose = await getProperties({ listingType: relatedListingType, page: 1, limit: 10 });
         append(samePurpose.data || []);
       }
-      return collected.slice(0, 6);
+      return collected.slice(0, 12);
     },
   });
+  const relatedProperties = relatedPropertiesQuery.data || [];
+  const relatedSlideItems = relatedProperties.length
+    ? [0,1,2,3]
+        .map((offset) => relatedProperties[(relatedSlideIndex + offset) % relatedProperties.length])
+        .filter((item, index, items) => item && items.findIndex((other) => String(other?._id) === String(item?._id)) === index)
+    : [];
+  const showPreviousRelated = () => setRelatedSlideIndex((current) => relatedProperties.length ? (current - 1 + relatedProperties.length) % relatedProperties.length : 0);
+  const showNextRelated = () => setRelatedSlideIndex((current) => relatedProperties.length ? (current + 1) % relatedProperties.length : 0);
 
   if (loading) return <WorkspaceSkeleton rows={3} />;
   if (error || !property) return <Container sx={{ py: 10 }}><Alert severity="error">{error || 'Listing not found'}</Alert></Container>;
@@ -916,66 +925,108 @@ export default function PropertyDetailPage() {
               </Stack>}
             </Paper>
 
-            <Paper id="related-properties" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="flex-end" spacing={1}>
+            <Paper id="related-properties" elevation={0} sx={{ ...sectionCard, p: { xs: 1.35, md: 1.7 } }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
                 <Box>
                   <Typography sx={{ color: '#102A43', fontSize: 15, fontWeight: 800 }}>Related Properties</Typography>
-                  <Typography sx={{ mt: .25, color: '#7A8D9E', fontSize: 10 }}>Similar {sentence(relatedListingType)} properties based on type and location.</Typography>
+                  <Typography sx={{ mt: .2, color: '#7A8D9E', fontSize: 9.5 }}>Similar {sentence(relatedListingType)} properties based on type and location.</Typography>
                 </Box>
-                <Button
-                  size="small"
-                  onClick={() => navigate('/marketplace?listingType=' + encodeURIComponent(relatedListingType) + (relatedPropertyType ? '&type=' + encodeURIComponent(relatedPropertyType) : ''))}
-                  sx={{ textTransform: 'none', fontSize: 10.5, fontWeight: 700 }}
-                >
-                  View Marketplace →
-                </Button>
+                <Stack direction="row" spacing={.55}>
+                  <IconButton
+                    aria-label="Previous related property"
+                    onClick={showPreviousRelated}
+                    disabled={relatedProperties.length <= 1}
+                    size="small"
+                    sx={{
+                      width: 30, height: 30, border: '1px solid #DCE5EC', borderRadius: '50%',
+                      color: '#173B55', bgcolor: '#FFFFFF', boxShadow: '0 3px 10px rgba(25,55,80,.04)',
+                      '&:hover': { bgcolor: '#F6F9FB', borderColor: '#C8D7E2' },
+                    }}
+                  >
+                    <ArrowBackIosNewRounded sx={{ fontSize: 13 }} />
+                  </IconButton>
+                  <IconButton
+                    aria-label="Next related property"
+                    onClick={showNextRelated}
+                    disabled={relatedProperties.length <= 1}
+                    size="small"
+                    sx={{
+                      width: 30, height: 30, border: '1px solid #DCE5EC', borderRadius: '50%',
+                      color: '#173B55', bgcolor: '#FFFFFF', boxShadow: '0 3px 10px rgba(25,55,80,.04)',
+                      '&:hover': { bgcolor: '#F6F9FB', borderColor: '#C8D7E2' },
+                    }}
+                  >
+                    <ArrowForwardIosRounded sx={{ fontSize: 13 }} />
+                  </IconButton>
+                </Stack>
               </Stack>
 
-              {relatedPropertiesQuery.isPending ? <Grid container spacing={1} sx={{ mt: .45 }}>
-                {[0,1,2].map((index) => <Grid key={index} size={{ xs: 12, sm: 6, md: 4 }}><Box sx={{ height: 205, borderRadius: 2.5, bgcolor: '#F1F4F6' }} /></Grid>)}
-              </Grid> : (relatedPropertiesQuery.data || []).length ? <Grid container spacing={1} sx={{ mt: .45 }}>
-                {(relatedPropertiesQuery.data || []).slice(0, 6).map((item: any) => {
-                  const itemPurpose = String(item.listingType || item.purpose || (item.isSale ? 'sale' : 'rent')).toLowerCase();
-                  const itemPrice = Number(
-                    itemPurpose === 'sale' ? item.pricing?.salePrice
-                      : itemPurpose === 'lease' ? item.pricing?.leaseAmount
-                        : item.pricing?.monthlyRent || item.startingMonthlyRent || item.rentalSummary?.startingMonthlyRent || item.price || 0
-                  );
-                  const itemImage = item.images?.[0] || item.galleryCover || fallback;
-                  const itemAddress = [item.address?.locality, item.address?.city, item.address?.state].filter(Boolean).join(', ');
-                  return <Grid key={String(item._id)} size={{ xs: 12, sm: 6, md: 4 }}>
-                    <Paper
-                      component="button"
-                      type="button"
-                      onClick={() => navigate(propertyOverviewPath(item))}
-                      elevation={0}
-                      sx={{
-                        width: '100%', p: .65, textAlign: 'left', overflow: 'hidden', cursor: 'pointer',
-                        border: '1px solid #E2E9EF', borderRadius: 2.5, bgcolor: '#FFFFFF',
-                        boxShadow: '0 5px 15px rgba(25,55,80,.03)',
-                        transition: 'transform .18s ease, box-shadow .18s ease, border-color .18s ease',
-                        '&:hover': { transform: 'translateY(-2px)', borderColor: '#C8D7E2', boxShadow: '0 10px 24px rgba(25,55,80,.08)' },
-                      }}
-                    >
-                      <Box sx={{ position: 'relative', height: { xs: 145, sm: 118, md: 112 }, overflow: 'hidden', borderRadius: '5px', bgcolor: '#EDF2F5' }}>
-                        <OptimizedImage src={itemImage} alt={item.title || 'Related property'} width={520} height={320} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '5px', display: 'block' }} />
-                        <Stack direction="row" spacing={.4} sx={{ position: 'absolute', top: 7, left: 7 }}>
-                          <Chip size="small" label={sentence(itemPurpose)} sx={{ height: 20, bgcolor: 'rgba(9,45,65,.88)', color: '#FFFFFF', fontSize: 8.2, fontWeight: 800 }} />
-                          {item.isVerified && <Chip size="small" icon={<VerifiedRounded sx={{ fontSize: '12px !important' }} />} label="Verified" sx={{ height: 20, bgcolor: '#EAF9F1', color: '#087443', fontSize: 8.2, fontWeight: 800, '& .MuiChip-icon': { color: '#087443' } }} />}
-                        </Stack>
-                      </Box>
-                      <Box sx={{ px: .35, pt: .75, pb: .25 }}>
-                        <Typography noWrap sx={{ color: '#173B55', fontSize: 11.5, fontWeight: 800 }}>{item.title || 'Property'}</Typography>
-                        <Stack direction="row" spacing={.35} alignItems="center" sx={{ mt: .35, minWidth: 0 }}><LocationOnRounded sx={{ fontSize: 13, color: '#8291A0', flexShrink: 0 }} /><Typography noWrap sx={{ color: '#8291A0', fontSize: 8.8 }}>{itemAddress || 'Location available on request'}</Typography></Stack>
-                        <Stack direction="row" justifyContent="space-between" alignItems="flex-end" spacing={.5} sx={{ mt: .75, pt: .65, borderTop: '1px solid #EEF2F5' }}>
-                          <Box><Typography sx={{ color: '#087F5B', fontSize: 11.5, lineHeight: 1, fontWeight: 800 }}>{itemPrice > 0 ? money(itemPrice) : 'On request'}</Typography>{itemPurpose === 'rent' && itemPrice > 0 && <Typography sx={{ mt: .1, color: '#8A98A6', fontSize: 7.8 }}>per month</Typography>}</Box>
-                          <Typography sx={{ color: '#4E6A80', fontSize: 8.5, fontWeight: 700 }}>View →</Typography>
-                        </Stack>
-                      </Box>
-                    </Paper>
-                  </Grid>;
-                })}
-              </Grid> : <Typography sx={{ mt: 1, color: '#7A8D9E', fontSize: 10.5 }}>No similar published properties are available right now.</Typography>}
+              {relatedPropertiesQuery.isPending ? <Grid container spacing={.8} sx={{ mt: .55 }}>
+                {[0,1,2,3].map((index) => <Grid key={index} size={{ xs: 6, md: 3 }} sx={{ display: index > 1 ? { xs: 'none', md: 'block' } : 'block' }}><Box sx={{ height: { xs: 158, md: 175 }, borderRadius: 2.5, bgcolor: '#F1F4F6' }} /></Grid>)}
+              </Grid> : relatedSlideItems.length ? <>
+                <Grid container spacing={.8} sx={{ mt: .55 }}>
+                  {relatedSlideItems.map((item: any, index: number) => {
+                    const itemPurpose = String(item.listingType || item.purpose || (item.isSale ? 'sale' : 'rent')).toLowerCase();
+                    const itemPrice = Number(
+                      itemPurpose === 'sale' ? item.pricing?.salePrice
+                        : itemPurpose === 'lease' ? item.pricing?.leaseAmount
+                          : item.pricing?.monthlyRent || item.startingMonthlyRent || item.rentalSummary?.startingMonthlyRent || item.price || 0
+                    );
+                    const itemImage = item.images?.[0] || item.galleryCover || fallback;
+                    const itemAddress = [item.address?.locality, item.address?.city, item.address?.state].filter(Boolean).join(', ');
+                    return <Grid key={String(item._id)} size={{ xs: 6, md: 3 }} sx={{ display: index > 1 ? { xs: 'none', md: 'block' } : 'block' }}>
+                      <Paper
+                        component="button"
+                        type="button"
+                        onClick={() => navigate(propertyOverviewPath(item))}
+                        elevation={0}
+                        sx={{
+                          width: '100%', height: '100%', p: .55, textAlign: 'left', overflow: 'hidden', cursor: 'pointer',
+                          border: '1px solid #E2E9EF', borderRadius: 2.25, bgcolor: '#FFFFFF',
+                          boxShadow: '0 4px 13px rgba(25,55,80,.025)',
+                          transition: 'transform .18s ease, box-shadow .18s ease, border-color .18s ease',
+                          '&:hover': { transform: 'translateY(-2px)', borderColor: '#C8D7E2', boxShadow: '0 9px 22px rgba(25,55,80,.07)' },
+                        }}
+                      >
+                        <Box sx={{ position: 'relative', height: { xs: 90, sm: 105, md: 96 }, overflow: 'hidden', borderRadius: '5px', bgcolor: '#EDF2F5' }}>
+                          <OptimizedImage src={itemImage} alt={item.title || 'Related property'} width={420} height={260} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '5px', display: 'block' }} />
+                          <Chip size="small" label={sentence(itemPurpose)} sx={{ position: 'absolute', left: 5, top: 5, height: 18, bgcolor: 'rgba(9,45,65,.88)', color: '#FFFFFF', fontSize: 7.4, fontWeight: 800 }} />
+                          {item.isVerified && <Chip size="small" label="Verified" sx={{ position: 'absolute', right: 5, top: 5, height: 18, bgcolor: '#EAF9F1', color: '#087443', fontSize: 7.2, fontWeight: 800 }} />}
+                        </Box>
+                        <Box sx={{ px: .25, pt: .55, pb: .15 }}>
+                          <Typography noWrap sx={{ color: '#173B55', fontSize: { xs: 9.4, sm: 10.4 }, fontWeight: 800 }}>{item.title || 'Property'}</Typography>
+                          <Stack direction="row" spacing={.3} alignItems="center" sx={{ mt: .3, minWidth: 0 }}>
+                            <LocationOnRounded sx={{ fontSize: 11, color: '#8291A0', flexShrink: 0 }} />
+                            <Typography noWrap sx={{ color: '#8291A0', fontSize: { xs: 7.2, sm: 8 } }}>{itemAddress || 'Location available on request'}</Typography>
+                          </Stack>
+                          <Stack direction="row" justifyContent="space-between" alignItems="flex-end" spacing={.4} sx={{ mt: .55, pt: .5, borderTop: '1px solid #EEF2F5' }}>
+                            <Box>
+                              <Typography sx={{ color: '#087F5B', fontSize: { xs: 9.4, sm: 10.4 }, lineHeight: 1, fontWeight: 800 }}>{itemPrice > 0 ? money(itemPrice) : 'On request'}</Typography>
+                              {itemPurpose === 'rent' && itemPrice > 0 && <Typography sx={{ mt: .1, color: '#8A98A6', fontSize: 6.7 }}>per month</Typography>}
+                            </Box>
+                            <Typography sx={{ display: { xs: 'none', sm: 'block' }, color: '#4E6A80', fontSize: 7.7, fontWeight: 700 }}>View →</Typography>
+                          </Stack>
+                        </Box>
+                      </Paper>
+                    </Grid>;
+                  })}
+                </Grid>
+
+                {relatedProperties.length > 1 && <Stack direction="row" justifyContent="center" spacing={.4} sx={{ mt: .7 }}>
+                  {relatedProperties.slice(0, Math.min(relatedProperties.length, 10)).map((item: any, index: number) => <Box
+                    component="button"
+                    type="button"
+                    aria-label={`Show related property ${index + 1}`}
+                    key={String(item._id || index)}
+                    onClick={() => setRelatedSlideIndex(index)}
+                    sx={{
+                      width: relatedSlideIndex === index ? 16 : 5, height: 4, p: 0, border: 0, borderRadius: 99,
+                      bgcolor: relatedSlideIndex === index ? '#087F5B' : '#D2DCE4', cursor: 'pointer',
+                      transition: 'width .18s ease, background-color .18s ease',
+                    }}
+                  />)}
+                </Stack>}
+              </> : <Typography sx={{ mt: 1, color: '#7A8D9E', fontSize: 10.5 }}>No similar published properties are available right now.</Typography>}
             </Paper>
 
           </Stack>
