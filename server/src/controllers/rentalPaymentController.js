@@ -1,4 +1,4 @@
-import { Payment, RentalInvoice, Tenancy } from '../models/index.js';
+import { DriveFile, Payment, RentalInvoice, Tenancy, User } from '../models/index.js';
 import { writeAudit } from '../middleware/audit.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
@@ -7,6 +7,7 @@ import { createNotification } from '../services/notifications.js';
 import { emitRealtime } from '../services/realtime.js';
 import { capabilityRolesForUser } from '../services/rbac.js';
 import { ensureRentalInvoicePayment } from '../services/rentalBilling.js';
+import { readBuffer } from '../services/storage.js';
 
 const paymentMethods = new Set(['upi', 'card', 'bank_transfer', 'cash', 'cheque', 'gateway', 'offline']);
 const sameId = (left, right) => Boolean(left && right && String(left?._id || left) === String(right?._id || right));
@@ -108,7 +109,7 @@ export const submitRentalInvoicePayment = asyncHandler(async (req, res) => {
     title: 'Rent payment awaiting approval',
     message: `${invoice.invoiceNumber} has a tenant payment submission for ₹${Number(payment.amount || 0).toLocaleString('en-IN')}.`,
     category: 'payment',
-    actionUrl: '/app/payments?type=rent',
+    actionUrl: `/app/tenancy_details/${invoice.tenancy}?tab=rent`,
     metadata: { paymentId: payment._id, invoiceId: invoice._id, event: 'rental_payment_submitted' },
   });
   await writeAudit(req, { action: 'rental-payment:submitted', module: 'payments', recordId: payment._id, previousValue, updatedValue: payment.toObject() });
@@ -187,11 +188,94 @@ export const rejectRentalPayment = asyncHandler(async (req, res) => {
     title: 'Rent payment needs attention',
     message: `${invoice.invoiceNumber} was not accepted: ${reason}`,
     category: 'payment',
-    actionUrl: '/app/payments?type=rent',
+    actionUrl: `/app/tenancy_details/${invoice.tenancy}?tab=rent`,
     metadata: { paymentId: payment._id, invoiceId: invoice._id, event: 'rental_payment_rejected' },
   });
   await writeAudit(req, { action: 'rental-payment:rejected', module: 'payments', recordId: payment._id, previousValue, updatedValue: payment.toObject() });
   emitRealtime('payments', 'rental-payment-rejected', payment, { users: [payment.payer, payment.payee] });
   emitRealtime('rental-invoices', 'rental-payment-rejected', invoice, { users: [invoice.tenant, invoice.landlord] });
   res.json({ success: true, data: payment, message: 'Rent payment rejected. The tenant can submit a corrected payment.' });
+});
+
+
+export const getRentalPaymentProof = asyncHandler(async (req, res) => {
+  const payment = await Payment.findOne({ _id: req.params.paymentId, rentalInvoice: { $exists: true } }).lean();
+  if (!payment) throw new ApiError(404, 'Rental payment not found.');
+
+  const participant = sameId(payment.payer, req.user._id) || sameId(payment.payee, req.user._id);
+  if (!participant) throw new ApiError(403, 'Only the tenant or receiving landlord can preview this rent payment proof.');
+
+  const explicitFileId = String(payment.proofFile?._id || payment.proofFile || '').trim();
+  const proofUrl = String(payment.proofUrl || '');
+  const match = proofUrl.match(/\/drive\/files\/([a-f\d]{24})(?:\/content)?(?:[/?#]|$)/i);
+  const fileId = explicitFileId || match?.[1] || '';
+  if (!fileId) throw new ApiError(404, 'No payment proof is attached to this rent payment.');
+
+  const file = await DriveFile.findOne({ _id: fileId, status: { $ne: 'trashed' } }).select('+storageKey').lean();
+  if (!file?.storageKey) throw new ApiError(404, 'Rent payment proof is unavailable.');
+  const buffer = await readBuffer(file.storageDriver, file.storageKey);
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+  res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${encodeURIComponent(file.originalName || file.name || 'rent-payment-proof')}`);
+  res.send(buffer);
+});
+
+export const listLandlordTransactions = asyncHandler(async (req, res) => {
+  if (String(req.user?.role || '').toLowerCase() === 'admin' || !capabilityRolesForUser(req.user).includes('landlord')) {
+    throw new ApiError(403, 'Landlord transaction access required.');
+  }
+
+  const page = Math.max(1, Number(req.query.page || 1));
+  const limit = Math.min(100, Math.max(10, Number(req.query.limit || 25)));
+  const filter = { payee: req.user._id };
+  const type = String(req.query.type || '').trim().toLowerCase();
+  const status = String(req.query.status || '').trim().toLowerCase();
+  const verificationStatus = String(req.query.verificationStatus || '').trim().toLowerCase();
+
+  if (type && type !== 'all') filter.type = type;
+  if (status && status !== 'all') filter.status = status;
+  if (verificationStatus && verificationStatus !== 'all') filter['paymentVerification.status'] = verificationStatus;
+
+  const query = String(req.query.q || '').trim();
+  if (query) {
+    const regex = new RegExp(query.replace(/[.*+?^$()|[\]{}\\]/g, '\\$&'), 'i');
+    const payerIds = await User.find({ name: regex }).select('_id').limit(50).lean();
+    filter.$or = [
+      { invoiceNumber: regex },
+      { transactionId: regex },
+      { payer: { $in: payerIds.map((item) => item._id) } },
+    ];
+  }
+
+  const [records, total, summaryRows] = await Promise.all([
+    Payment.find(filter)
+      .populate('payer', 'name email phone avatar')
+      .populate('property', 'title name address')
+      .populate('rentalUnit', 'name roomNumber floor floorLabel')
+      .populate('tenancy', 'tenancyNumber status')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    Payment.countDocuments(filter),
+    Payment.aggregate([
+      { $match: filter },
+      { $group: {
+        _id: null,
+        totalAmount: { $sum: '$amount' },
+        totalPaid: { $sum: { $cond: [{ $eq: ['$status', 'paid'] }, '$paidAmount', 0] } },
+        paidCount: { $sum: { $cond: [{ $eq: ['$status', 'paid'] }, 1, 0] } },
+        pendingCount: { $sum: { $cond: [{ $eq: ['$paymentVerification.status', 'submitted'] }, 1, 0] } },
+        rejectedCount: { $sum: { $cond: [{ $eq: ['$paymentVerification.status', 'rejected'] }, 1, 0] } },
+      } },
+    ]),
+  ]);
+
+  const summary = summaryRows[0] || { totalAmount: 0, totalPaid: 0, paidCount: 0, pendingCount: 0, rejectedCount: 0 };
+  res.json({
+    success: true,
+    data: records,
+    summary,
+    pagination: { page, limit, total, pages: Math.max(1, Math.ceil(total / limit)) },
+  });
 });
