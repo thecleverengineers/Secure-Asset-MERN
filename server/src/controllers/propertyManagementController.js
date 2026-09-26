@@ -16,6 +16,7 @@ import { assertApplicationDecisionTransition } from '../services/applicationWork
 import { canAcceptRentalApplication, syncPropertyRentalSummary, transitionRentalUnit } from '../services/rentalUnitLifecycle.js';
 import { writeAudit } from '../middleware/audit.js';
 import { notifyPropertyListed } from '../services/whatsappNotifications.js';
+import { normalizeIndianMobile } from '../utils/identity.js';
 
 function toCsv(rows) { if (!rows.length) return ''; const keys = Object.keys(rows[0]); const esc = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`; return [keys.map(esc).join(','), ...rows.map((row) => keys.map((key) => esc(row[key])).join(','))].join('\n'); }
 
@@ -292,6 +293,8 @@ export const submitTenantKyc = asyncHandler(async (req, res) => {
   const governmentIdentity = body.governmentIdentity || {};
   const addressProofDetails = body.addressProofDetails || {};
   const passportPhoto = body.passportPhoto || {};
+  const whatsappNumber = normalizeIndianMobile(body.whatsappNumber);
+  if (!whatsappNumber) throw new ApiError(422, 'A valid Indian WhatsApp number is required for tenant KYC and rent reminders');
   const requiredValues = [
     governmentIdentity.documentType, governmentIdentity.documentId, governmentIdentity.frontFile,
     addressProofDetails.documentType, addressProofDetails.documentId, addressProofDetails.frontFile, addressProofDetails.backFile,
@@ -311,6 +314,7 @@ export const submitTenantKyc = asyncHandler(async (req, res) => {
     governmentId: body.governmentId || governmentIdentity.frontFile,
     addressProof: body.addressProof || addressProofDetails.frontFile,
     profilePhoto: body.profilePhoto || passportPhoto.file,
+    whatsappNumber,
     user: req.user._id,
     status: 'submitted',
     submittedAt: new Date(),
@@ -323,8 +327,25 @@ export const submitTenantKyc = asyncHandler(async (req, res) => {
     },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   );
-  await User.findByIdAndUpdate(req.user._id, { kycStatus: 'submitted' });
-  res.json({ success: true, data: record });
+  await User.findByIdAndUpdate(req.user._id, { kycStatus: 'submitted', whatsappNumber }, { runValidators: true });
+  res.json({ success: true, data: record, message: 'KYC submitted and WhatsApp number saved for rent reminders.' });
+});
+
+export const updateTenantKycWhatsapp = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'tenant') throw new ApiError(403, 'Tenant account required');
+  const whatsappNumber = normalizeIndianMobile(req.body?.whatsappNumber);
+  if (!whatsappNumber) throw new ApiError(422, 'Enter a valid 10-digit Indian WhatsApp number');
+
+  const [record] = await Promise.all([
+    TenantKyc.findOneAndUpdate(
+      { user: req.user._id },
+      { $set: { whatsappNumber }, $setOnInsert: { user: req.user._id } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ),
+    User.findByIdAndUpdate(req.user._id, { whatsappNumber }, { new: true, runValidators: true }),
+  ]);
+
+  res.json({ success: true, data: record, message: 'WhatsApp number updated. Rent reminders will be sent to this number.' });
 });
 
 export const reviewTenantKyc = asyncHandler(async (req, res) => {
