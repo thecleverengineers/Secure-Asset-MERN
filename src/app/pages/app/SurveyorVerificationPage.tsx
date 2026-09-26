@@ -99,6 +99,7 @@ export default function SurveyorVerificationPage() {
   const [notice, setNotice] = useState('');
 
   const locked = ['submitted', 'under_review', 'verified'].includes(String(form.status || ''));
+  const bankLocked = ['submitted', 'under_review'].includes(String(form.status || ''));
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   async function load() {
@@ -215,6 +216,33 @@ export default function SurveyorVerificationPage() {
       await saveSurveyorVerification(data);
       clearPendingFiles();
       setNotice('Verification draft saved securely');
+      await load();
+    } catch (cause) {
+      setError((cause as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveBankDetails() {
+    if (bankLocked) return;
+    setBusy(true); setError('');
+    try {
+      const bankDetails: any = {
+        bankName: String(form.bankDetails?.bankName || '').trim(),
+        ifsc: String(form.bankDetails?.ifsc || '').trim().toUpperCase(),
+        accountNumber: String(form.bankDetails?.accountNumber || '').replace(/\D/g, ''),
+        passbookFile: form.bankDetails?.passbookFile || undefined,
+        passbookUrl: form.bankDetails?.passbookUrl || undefined,
+      };
+      if (passbookFile) {
+        const uploaded = await uploadSurveyorVerificationDocument(passbookFile, 'bank_passbook');
+        bankDetails.passbookFile = uploaded.data.driveFile;
+        bankDetails.passbookUrl = uploaded.data.url;
+      }
+      await saveSurveyorVerification({ bankDetails });
+      setPassbookFile(null);
+      setNotice('Bank information updated for survey milestone payments');
       await load();
     } catch (cause) {
       setError((cause as Error).message);
@@ -438,20 +466,23 @@ export default function SurveyorVerificationPage() {
         <Divider sx={{ my: 2 }} />
         <Grid container spacing={1.5}>
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField select fullWidth size="small" label="Bank name" value={form.bankDetails?.bankName || ''} onChange={(e) => update('bankDetails.bankName', e.target.value)} disabled={locked}>
+            <TextField select fullWidth size="small" label="Bank name" value={form.bankDetails?.bankName || ''} onChange={(e) => update('bankDetails.bankName', e.target.value)} disabled={bankLocked}>
               {BANKS.map((bank) => <MenuItem key={bank} value={bank}>{bank}</MenuItem>)}
             </TextField>
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField fullWidth size="small" label="IFSC" value={form.bankDetails?.ifsc || ''} onChange={(e) => update('bankDetails.ifsc', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11))} disabled={locked} />
+            <TextField fullWidth size="small" label="IFSC" value={form.bankDetails?.ifsc || ''} onChange={(e) => update('bankDetails.ifsc', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11))} disabled={bankLocked} />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
-            <TextField fullWidth size="small" label="Account number" inputProps={{ inputMode: 'numeric' }} value={form.bankDetails?.accountNumber || ''} onChange={(e) => update('bankDetails.accountNumber', e.target.value.replace(/\D/g, '').slice(0, 24))} disabled={locked} />
+            <TextField fullWidth size="small" label="Account number" inputProps={{ inputMode: 'numeric' }} value={form.bankDetails?.accountNumber || ''} onChange={(e) => update('bankDetails.accountNumber', e.target.value.replace(/\D/g, '').slice(0, 24))} disabled={bankLocked} />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
-            <UploadField label="Passbook image" file={passbookFile} existing={form.bankDetails?.passbookUrl} onChange={setPassbookFile} disabled={locked} />
+            <UploadField label="Passbook image" file={passbookFile} existing={form.bankDetails?.passbookUrl} onChange={setPassbookFile} disabled={bankLocked} />
           </Grid>
         </Grid>
+        {String(form.status || '') === 'verified' && <Stack direction="row" justifyContent="flex-end" sx={{ mt: 1.5 }}>
+          <Button variant="contained" startIcon={<SaveRounded />} onClick={() => void saveBankDetails()} disabled={busy || bankLocked || !form.bankDetails?.bankName || !form.bankDetails?.ifsc || !form.bankDetails?.accountNumber} sx={{ textTransform: 'none', borderRadius: 2 }}>Update payment bank information</Button>
+        </Stack>}
       </Paper>
 
       <Paper elevation={0} sx={sectionSx}>

@@ -28,7 +28,7 @@ import CompactPageToolbar from '../../components/layout/CompactPageToolbar';
 import SurveyProjectNavigationMap, { type SurveyProjectDestination } from '../../components/survey/SurveyProjectNavigationMap';
 import { useSite } from '../../context/SiteContext';
 import {
-  acceptSurveyMilestone, acceptSurveyWorkflowPayment, attachSurveyWorkflowEvidence, attachSurveyWorkflowReportFile,
+  acceptSurveyMilestone, acceptSurveyWorkflowPayment, approveSurveyWorkflowReport, attachSurveyWorkflowEvidence, attachSurveyWorkflowReportFile,
   checkInSurveyWorkflowProject, checkOutSurveyWorkflowProject,
   createConversation, downloadSurveyReport, downloadSurveyWorkflowEvidence, fetchSurveyWorkflowEvidence,
   downloadSurveyWorkflowReportFile, getSurveyWorkflowProject, getSurveyWorkflowProjects, removeSurveyWorkflowEvidence,
@@ -55,24 +55,26 @@ const directSurveyJourneySteps = [
   { title: 'Two milestones agreed', owner: 'Both' },
   { title: 'Visit, measurements & evidence', owner: 'Surveyor' },
   { title: 'Milestone 1 payment', owner: 'Landlord' },
-  { title: 'Survey report submitted', owner: 'Surveyor' },
-  { title: 'Report review & milestone 2', owner: 'Landlord' },
-  { title: 'Receipt confirmation', owner: 'Surveyor' },
-  { title: 'Property verified', owner: 'SecureAsset' },
+  { title: 'Survey report upload & submit', owner: 'Surveyor' },
+  { title: 'Report review & approve', owner: 'Landlord' },
+  { title: 'Milestone 2 payment', owner: 'Landlord' },
+  { title: 'Accept payment & verify property', owner: 'Surveyor' },
 ] as const;
 type SurveyJourneyState = { activeStep: number; status: string; owner: string; nextAction: string; waiting: string };
 function surveyJourney(project: any): SurveyJourneyState {
   const status = String(project?.status || '');
   const stage = String(project?.workflowStage || 'hired');
   if (project?.workflowType === 'direct_surveyor') {
-    if (status === 'completed' || stage === 'completed' || project?.verificationStatus === 'fully_verified') return { activeStep: 7, status: 'Property verified', owner: 'SecureAsset', nextAction: 'Review or download the verified survey report.', waiting: 'The completed direct-hiring record is available to the landlord and Surveyor.' };
-    if (status === 'second_payment_submitted') return { activeStep: 6, status: 'Milestone 2 proof awaiting receipt confirmation', owner: 'Surveyor', nextAction: 'Review the landlord transaction and payment proof, then accept milestone 2.', waiting: 'Property verification is completed only after the Surveyor accepts the second payment.' };
-    if (status === 'awaiting_second_payment') return { activeStep: 5, status: 'Report ready for milestone 2', owner: 'Landlord', nextAction: 'Read the submitted survey report, then pay milestone 2 with transaction ID and proof.', waiting: 'The property remains unverified until milestone 2 receipt is accepted.' };
-    if (status === 'report_upload_requested') return { activeStep: 4, status: 'Milestone 1 accepted — report needed', owner: 'Surveyor', nextAction: 'Upload the survey report for the landlord to read.', waiting: 'Milestone 2 opens after the report is submitted.' };
-    if (status === 'first_payment_submitted') return { activeStep: 3, status: 'Milestone 1 proof awaiting receipt confirmation', owner: 'Surveyor', nextAction: 'Review the landlord transaction and payment proof, then accept milestone 1.', waiting: 'The report upload remains locked until milestone 1 is accepted.' };
-    if (status === 'awaiting_first_payment') return { activeStep: 3, status: 'Milestone 1 payment needed', owner: 'Landlord', nextAction: 'Pay milestone 1 with transaction ID and payment proof.', waiting: 'The Surveyor can submit the report after receipt confirmation.' };
-    if (stage === 'in_progress') return { activeStep: 2, status: 'Visit and fieldwork in progress', owner: 'Surveyor', nextAction: 'Complete the site visit, record measurements, attach evidence, and submit.', waiting: 'Milestone 1 payment opens after fieldwork is submitted.' };
-    return { activeStep: 1, status: 'Agree the two milestones', owner: 'Both', nextAction: 'The landlord sets the two amounts and the Surveyor accepts them before check-in.', waiting: 'Chat is available now; site check-in is locked until both milestones are accepted.' };
+    const milestonesReady = (project?.milestones || []).length === 2 && (project.milestones || []).every((item: any) => ['accepted', 'approved', 'paid'].includes(String(item.status || '')) && Number(item.amount || 0) > 0);
+    if (status === 'completed' || stage === 'completed' || project?.verificationStatus === 'fully_verified') return { activeStep: 7, status: 'Property verified', owner: 'Surveyor', nextAction: 'The second payment was accepted and the property is verified.', waiting: 'The approved report is locked as the verified survey record.' };
+    if (status === 'second_payment_submitted') return { activeStep: 7, status: 'Milestone 2 proof awaiting Surveyor acceptance', owner: 'Surveyor', nextAction: 'Review the transaction ID and payment proof, then accept milestone 2 to verify the property.', waiting: 'Property verification happens immediately after the Surveyor accepts milestone 2.' };
+    if (status === 'awaiting_second_payment') return { activeStep: 6, status: 'Report approved — milestone 2 payment needed', owner: 'Landlord', nextAction: 'Pay milestone 2 using the Surveyor bank details, then upload proof and enter the transaction ID.', waiting: 'The Surveyor accepts the submitted second payment to complete property verification.' };
+    if (status === 'client_review') return { activeStep: 5, status: 'Survey report awaiting landlord approval', owner: 'Landlord', nextAction: 'Open the submitted report, review it, then approve it to unlock milestone 2.', waiting: 'Milestone 2 remains locked until the landlord approves the report.' };
+    if (status === 'report_upload_requested') return { activeStep: 4, status: 'Milestone 1 accepted — report needed', owner: 'Surveyor', nextAction: 'Upload and submit the survey report for landlord review.', waiting: 'The landlord reviews and approves the report before milestone 2 is opened.' };
+    if (status === 'first_payment_submitted') return { activeStep: 3, status: 'Milestone 1 proof awaiting Surveyor acceptance', owner: 'Surveyor', nextAction: 'Review the transaction ID and proof, then accept milestone 1.', waiting: 'Survey report upload unlocks only after milestone 1 is accepted.' };
+    if (status === 'awaiting_first_payment') return { activeStep: 3, status: 'Milestone 1 payment needed', owner: 'Landlord', nextAction: 'Pay milestone 1 using the Surveyor bank details, then upload proof and enter the transaction ID.', waiting: 'The Surveyor must accept the payment before report upload.' };
+    if (stage === 'in_progress' || milestonesReady) return { activeStep: 2, status: 'Visit, measurements & evidence', owner: 'Surveyor', nextAction: 'Update field data, measurements and/or evidence, then submit to open milestone 1.', waiting: 'Exact-location check-in is optional.' };
+    return { activeStep: 1, status: 'Two milestones must be agreed', owner: 'Both', nextAction: 'The landlord sets both milestone amounts and the Surveyor accepts both.', waiting: 'Fieldwork starts after both milestone amounts are agreed.' };
   }
   const finalPayment = (project?.payments || []).find((item: any) => item.type === 'survey_final');
   const paymentRejected = finalPayment?.paymentVerification?.status === 'rejected';
@@ -529,6 +531,11 @@ export default function SurveyProjectsWorkflowPage() {
     if (done) { setPaymentRejectionOpen(false); setPaymentRejectionReason(''); }
   }
 
+  async function approveDirectReport() {
+    if (!projectId) return;
+    await run(() => approveSurveyWorkflowReport(projectId), 'Survey report approved. Milestone 2 payment is now available.');
+  }
+
   async function sendRevision(event: FormEvent) {
     event.preventDefault(); if (!projectId) return;
     const done = await run(() => requestSurveyWorkflowRevision(projectId, revisionReason), 'Revision request sent.');
@@ -558,11 +565,16 @@ export default function SurveyProjectsWorkflowPage() {
         {project.report?._id && <Button variant="outlined" startIcon={<DownloadRounded />} onClick={() => downloadSurveyReport(project.report._id, 'pdf')}>View verified report</Button>}
         {project.report?.reportFile && <Button variant="outlined" startIcon={<DownloadRounded />} onClick={() => downloadSurveyWorkflowReportFile(projectId || '', project.report.reportFile.name || 'survey-report')}>Download report file</Button>}
       </Stack>;
-      if (project.permissions?.landlord && journey.activeStep === 3 && firstMilestone && firstPayment && ['awaiting_first_payment', 'first_payment_submitted'].includes(project.status) && firstPayment.paymentVerification?.status !== 'submitted') return <Button variant="contained" startIcon={<PaidRounded />} onClick={() => openDirectMilestonePayment(firstMilestone)} disabled={busy}>Pay milestone 1 &amp; submit proof</Button>;
+      if (project.permissions?.landlord && journey.activeStep === 3 && firstMilestone && firstPayment && project.status === 'awaiting_first_payment') return <Button variant="contained" startIcon={<PaidRounded />} onClick={() => openDirectMilestonePayment(firstMilestone)} disabled={busy || !project.surveyorPaymentDetails?.ready}>Pay milestone 1 &amp; submit proof</Button>;
       if (project.permissions?.surveyor && journey.activeStep === 3 && firstPayment?.paymentVerification?.status === 'submitted') return <Button variant="contained" startIcon={<PaidRounded />} onClick={() => acceptPayment(String(firstPayment._id))} disabled={busy}>Accept milestone 1 payment</Button>;
-      if (project.permissions?.surveyor && journey.activeStep === 4 && canUploadFinalReport) return <Button component="label" variant="contained" startIcon={<UploadFileRounded />} disabled={busy}>Upload survey report<input hidden type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv" onChange={(event) => { void uploadReportFile(event.target.files); event.currentTarget.value = ''; }} /></Button>;
-      if (project.permissions?.landlord && journey.activeStep === 5 && secondMilestone && secondPayment && secondPayment.paymentVerification?.status !== 'submitted') return <Button variant="contained" startIcon={<PaidRounded />} onClick={() => openDirectMilestonePayment(secondMilestone)} disabled={busy}>Pay milestone 2 &amp; submit proof</Button>;
-      if (project.permissions?.surveyor && journey.activeStep === 6 && secondPayment?.paymentVerification?.status === 'submitted') return <Button variant="contained" startIcon={<PaidRounded />} onClick={() => acceptPayment(String(secondPayment._id))} disabled={busy}>Accept milestone 2 payment &amp; verify property</Button>;
+      if (project.permissions?.surveyor && journey.activeStep === 4 && canUploadFinalReport) return <Button component="label" variant="contained" startIcon={<UploadFileRounded />} disabled={busy}>Upload &amp; submit survey report<input hidden type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv" onChange={(event) => { void uploadReportFile(event.target.files); event.currentTarget.value = ''; }} /></Button>;
+      if (project.permissions?.landlord && journey.activeStep === 5 && project.report) return <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Button variant="outlined" startIcon={<DownloadRounded />} onClick={() => downloadSurveyWorkflowReportFile(projectId || '', project.report?.reportFile?.name || 'survey-report')}>Open report</Button>
+        <Button color="success" variant="contained" startIcon={<CheckCircleRounded />} onClick={() => void approveDirectReport()} disabled={busy}>Approve report &amp; unlock milestone 2</Button>
+        <Button color="warning" variant="outlined" onClick={() => { setRevisionReason(''); setRevisionOpen(true); }} disabled={busy}>Request report revision</Button>
+      </Stack>;
+      if (project.permissions?.landlord && journey.activeStep === 6 && secondMilestone && secondPayment && project.status === 'awaiting_second_payment') return <Button variant="contained" startIcon={<PaidRounded />} onClick={() => openDirectMilestonePayment(secondMilestone)} disabled={busy || !project.surveyorPaymentDetails?.ready}>Pay milestone 2 &amp; submit proof</Button>;
+      if (project.permissions?.surveyor && journey.activeStep === 7 && secondPayment?.paymentVerification?.status === 'submitted') return <Button variant="contained" startIcon={<PaidRounded />} onClick={() => acceptPayment(String(secondPayment._id))} disabled={busy}>Accept milestone 2 &amp; verify property</Button>;
       if (project.permissions?.surveyor && currentStage === 'hired' && directBudgetReadyForUi) return <Button variant="contained" startIcon={<LocationOnRounded />} onClick={checkIn} disabled={busy}>Optional check-in</Button>;
       return <Typography variant="body2" color="text.secondary">{journey.waiting}</Typography>;
     }
@@ -820,6 +832,15 @@ export default function SurveyProjectsWorkflowPage() {
         <Stack spacing={1.5}>
           <Paper id="survey-payment" elevation={0} sx={{ p: { xs: 1.6, md: 1.9 }, border: '1px solid #e4e9f0', borderRadius: 2.5, boxShadow: '0 6px 22px rgba(15,23,42,.035)' }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center"><Stack direction="row" spacing={.8} alignItems="center"><PaidRounded sx={{ fontSize: 20, color: '#079455' }} /><Typography sx={{ fontWeight: 700, color: '#102a4c' }}>Payment Details</Typography></Stack><Chip size="small" label={label(project.paymentStatus || 'unpaid')} color={project.paymentStatus === 'paid' ? 'success' : 'warning'} /></Stack>
+            {directProject && <Box sx={{ mt: 1.25, p: 1.2, borderRadius: 2, bgcolor: project.surveyorPaymentDetails?.ready ? '#f0fdf4' : '#fff7ed', border: project.surveyorPaymentDetails?.ready ? '1px solid #bbf7d0' : '1px solid #fed7aa' }}>
+              <Typography variant="caption" sx={{ color: '#667085', fontWeight: 700 }}>SURVEYOR BANK INFORMATION</Typography>
+              {project.surveyorPaymentDetails?.ready ? <Stack spacing={.35} sx={{ mt: .7 }}>
+                <Stack direction="row" justifyContent="space-between" spacing={2}><Typography variant="body2" sx={{ color: '#667085' }}>Bank</Typography><Typography variant="body2" sx={{ fontWeight: 700 }}>{project.surveyorPaymentDetails.bankName}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between" spacing={2}><Typography variant="body2" sx={{ color: '#667085' }}>Account</Typography><Typography variant="body2" sx={{ fontWeight: 700 }}>{project.surveyorPaymentDetails.accountNumber}</Typography></Stack>
+                <Stack direction="row" justifyContent="space-between" spacing={2}><Typography variant="body2" sx={{ color: '#667085' }}>IFSC</Typography><Typography variant="body2" sx={{ fontWeight: 700 }}>{project.surveyorPaymentDetails.ifsc}</Typography></Stack>
+                <Typography variant="caption" sx={{ color: '#98a2b3' }}>Use these current Surveyor payment instructions before uploading proof.</Typography>
+              </Stack> : <Typography variant="body2" sx={{ mt: .6, color: '#b54708' }}>The Surveyor must update bank name, account number and IFSC before milestone payment can be submitted.</Typography>}
+            </Box>}
             <Box sx={{ mt: 1.25 }}>
               <Typography variant="caption" sx={{ color: '#667085' }}>Payment Amount</Typography>
               <Typography sx={{ fontSize: 21, fontWeight: 700, color: '#102a4c' }}>{money(firstPaymentRecord?.amount || approvedAmount)}</Typography>
@@ -875,6 +896,26 @@ export default function SurveyProjectsWorkflowPage() {
       else document.getElementById('survey-evidence')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }} sx={{ display: { xs: 'flex', md: 'none' }, mt: 1.5, minHeight: 46, bgcolor: '#087a49', '&:hover': { bgcolor: '#066b40' } }}>Review Evidence</Button>
 
+    <ProfessionalDialog open={Boolean(milestonePayment)} onClose={() => !busy && setMilestonePayment(null)} maxWidth="sm" fullWidth professionalTitle={`Pay milestone ${milestonePayment?.milestone?.order || ''}`} professionalSubtitle="Pay using the assigned Surveyor's current bank information, then enter the transaction ID and upload payment proof.">
+      <Box component="form" onSubmit={submitDirectMilestonePayment}>
+        <DialogContent dividers><Stack spacing={2}>
+          <Alert severity="info">Milestone amount: {money(milestonePayment?.milestone?.amount)}</Alert>
+          <Box sx={{ p: 1.5, borderRadius: 2.5, bgcolor: project.surveyorPaymentDetails?.ready ? '#f0fdf4' : '#fff7ed', border: project.surveyorPaymentDetails?.ready ? '1px solid #bbf7d0' : '1px solid #fed7aa' }}>
+            <Typography sx={{ fontWeight: 700, color: '#102a4c' }}>Surveyor bank information</Typography>
+            {project.surveyorPaymentDetails?.ready ? <Stack spacing={.65} sx={{ mt: 1 }}>
+              <Stack direction="row" justifyContent="space-between" spacing={2}><Typography variant="body2" color="text.secondary">Bank name</Typography><Typography variant="body2" sx={{ fontWeight: 700 }}>{project.surveyorPaymentDetails.bankName}</Typography></Stack>
+              <Stack direction="row" justifyContent="space-between" spacing={2}><Typography variant="body2" color="text.secondary">Account number</Typography><Typography variant="body2" sx={{ fontWeight: 700 }}>{project.surveyorPaymentDetails.accountNumber}</Typography></Stack>
+              <Stack direction="row" justifyContent="space-between" spacing={2}><Typography variant="body2" color="text.secondary">IFSC</Typography><Typography variant="body2" sx={{ fontWeight: 700 }}>{project.surveyorPaymentDetails.ifsc}</Typography></Stack>
+            </Stack> : <Typography variant="body2" sx={{ mt: .8, color: '#b54708' }}>Payment is locked until the Surveyor updates complete bank information.</Typography>}
+          </Box>
+          <TextField select fullWidth label="Payment method" value={milestonePayment?.method || 'bank_transfer'} onChange={(event) => milestonePayment && setMilestonePayment({ ...milestonePayment, method: event.target.value as 'upi' | 'bank_transfer' | 'offline' })}>{[['bank_transfer', 'Bank transfer'], ['upi', 'UPI'], ['offline', 'Offline transfer']].map(([value, title]) => <MenuItem key={value} value={value}>{title}</MenuItem>)}</TextField>
+          <TextField required fullWidth label="Transaction ID" value={milestonePayment?.transactionId || ''} onChange={(event) => milestonePayment && setMilestonePayment({ ...milestonePayment, transactionId: event.target.value })} inputProps={{ minLength: 6, maxLength: 160 }} />
+          <Button component="label" variant="outlined" startIcon={<CloudUploadRounded />}>{milestonePayment?.proof ? milestonePayment.proof.name : 'Upload payment proof'}<input hidden type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => milestonePayment && setMilestonePayment({ ...milestonePayment, proof: event.target.files?.[0] || null })} /></Button>
+          <FormControlLabel control={<Checkbox checked={Boolean(milestonePayment?.payerDeclaration)} onChange={(event) => milestonePayment && setMilestonePayment({ ...milestonePayment, payerDeclaration: event.target.checked })} />} label={`I confirm that I paid ${money(milestonePayment?.milestone?.amount)} to the Surveyor using the bank information shown above.`} />
+        </Stack></DialogContent>
+        <DialogActions><Button onClick={() => setMilestonePayment(null)} disabled={busy}>Cancel</Button><Button type="submit" variant="contained" startIcon={<SendRounded />} disabled={busy || !project.surveyorPaymentDetails?.ready || !milestonePayment?.transactionId.trim() || !milestonePayment?.proof || !milestonePayment?.payerDeclaration}>{busy ? 'Submitting…' : 'Submit transaction & proof'}</Button></DialogActions>
+      </Box>
+    </ProfessionalDialog>
     <ProfessionalDialog open={fieldOpen} onClose={() => setFieldOpen(false)} maxWidth="sm" fullWidth professionalTitle={field.mode === 'measurement' ? 'Update measurement' : field.mode === 'note' ? 'Update field note' : 'Record field observation'} professionalSubtitle="Add or update the field record for this hired project."><Box component="form" onSubmit={saveFieldwork}><DialogContent dividers><Stack spacing={2}><Grid container spacing={2}><Grid size={{ xs: 12, sm: 6 }}><TextField select fullWidth label="Measurement type" value={field.type} disabled={field.mode === 'note'} onChange={(event) => setField({ ...field, type: event.target.value })}>{['dimension', 'area', 'angle', 'elevation', 'boundary', 'other'].map((item) => <MenuItem key={item} value={item}>{label(item)}</MenuItem>)}</TextField></Grid><Grid size={{ xs: 12, sm: 6 }}><TextField fullWidth label="Label" value={field.label} disabled={field.mode === 'note'} onChange={(event) => setField({ ...field, label: event.target.value })} placeholder="North boundary" /></Grid><Grid size={{ xs: 12, sm: 6 }}><TextField fullWidth type="number" label="Value" value={field.value} disabled={field.mode === 'note'} onChange={(event) => setField({ ...field, value: event.target.value })} /></Grid><Grid size={{ xs: 12, sm: 6 }}><TextField fullWidth label="Unit" value={field.unit} disabled={field.mode === 'note'} onChange={(event) => setField({ ...field, unit: event.target.value })} placeholder="metre" /></Grid></Grid><TextField fullWidth label="Measurement notes" value={field.notes} disabled={field.mode === 'note'} onChange={(event) => setField({ ...field, notes: event.target.value })} /><TextField fullWidth multiline minRows={3} label="General field note" value={field.fieldNote} disabled={field.mode === 'measurement'} onChange={(event) => setField({ ...field, fieldNote: event.target.value })} /></Stack></DialogContent><DialogActions><Button onClick={() => { setFieldOpen(false); resetField(); }}>Cancel</Button><Button type="submit" variant="contained" disabled={busy || (field.mode === 'note' ? !field.fieldNote.trim() : (!field.label.trim() || field.value === '' || !field.unit.trim()))}>{busy ? 'Saving…' : field.mode === 'measurement' ? 'Update measurement' : field.mode === 'note' ? 'Update note' : 'Save fieldwork'}</Button></DialogActions></Box></ProfessionalDialog>
     <ProfessionalDialog open={reviewOpen} onClose={() => !busy && setReviewOpen(false)} maxWidth="sm" fullWidth professionalTitle="Review fieldwork" professionalSubtitle="Record your decision only after you have inspected the measurements, field notes, evidence, and agreed scope.">
       <Box component="form" onSubmit={reviewFieldwork}>
@@ -915,6 +956,6 @@ export default function SurveyProjectsWorkflowPage() {
       </Box>
     </ProfessionalDialog>
     <ProfessionalDialog open={paymentRejectionOpen} onClose={() => !busy && setPaymentRejectionOpen(false)} maxWidth="sm" fullWidth professionalTitle="Return payment proof" professionalSubtitle="Tell the landlord exactly what needs to be corrected. They can resubmit without restarting the survey workflow."><Box component="form" onSubmit={rejectFinalPayment}><DialogContent dividers><Stack spacing={2}><Alert severity="info">The final report remains locked until corrected payment proof is confirmed.</Alert><TextField required fullWidth multiline minRows={4} label="Correction reason" value={paymentRejectionReason} onChange={(event) => setPaymentRejectionReason(event.target.value)} helperText="For example: transaction ID is unclear or the screenshot does not show the amount." inputProps={{ minLength: 5, maxLength: 1200 }} /></Stack></DialogContent><DialogActions><Button onClick={() => setPaymentRejectionOpen(false)} disabled={busy}>Cancel</Button><Button type="submit" color="warning" variant="contained" disabled={busy || paymentRejectionReason.trim().length < 5}>{busy ? 'Returning…' : 'Return for correction'}</Button></DialogActions></Box></ProfessionalDialog>
-    <ProfessionalDialog open={revisionOpen} onClose={() => setRevisionOpen(false)} maxWidth="sm" fullWidth professionalTitle="Request fieldwork revision"><Box component="form" onSubmit={sendRevision}><DialogContent dividers><TextField required fullWidth multiline minRows={4} label="Required corrections" value={revisionReason} onChange={(event) => setRevisionReason(event.target.value)} inputProps={{ minLength: 5, maxLength: 1200 }} /></DialogContent><DialogActions><Button onClick={() => setRevisionOpen(false)}>Cancel</Button><Button type="submit" color="warning" variant="contained" disabled={busy || revisionReason.trim().length < 5}>Send revision request</Button></DialogActions></Box></ProfessionalDialog>
+    <ProfessionalDialog open={revisionOpen} onClose={() => setRevisionOpen(false)} maxWidth="sm" fullWidth professionalTitle={directProject && project.status === 'client_review' ? 'Request report revision' : 'Request fieldwork revision'}><Box component="form" onSubmit={sendRevision}><DialogContent dividers><TextField required fullWidth multiline minRows={4} label={directProject && project.status === 'client_review' ? 'Required report corrections' : 'Required corrections'} value={revisionReason} onChange={(event) => setRevisionReason(event.target.value)} inputProps={{ minLength: 5, maxLength: 1200 }} /></DialogContent><DialogActions><Button onClick={() => setRevisionOpen(false)}>Cancel</Button><Button type="submit" color="warning" variant="contained" disabled={busy || revisionReason.trim().length < 5}>Send revision request</Button></DialogActions></Box></ProfessionalDialog>
   </Box>;
 }

@@ -359,7 +359,11 @@ export const verifyVerificationMobileOtp = asyncHandler(async (req, res) => {
 export const saveVerification = asyncHandler(async (req, res) => {
   await getActiveSurveyorSubscription(req.user._id);
   const existing = await SurveyorVerification.findOne({ user: req.user._id });
-  if (!editableSurveyorVerification(existing)) throw new ApiError(409, 'Submitted verification cannot be changed while it is under review');
+  const requestKeys = Object.keys(req.body || {});
+  const verifiedBankOnlyUpdate = String(existing?.status || '') === 'verified'
+    && requestKeys.length === 1
+    && requestKeys[0] === 'bankDetails';
+  if (!editableSurveyorVerification(existing) && !verifiedBankOnlyUpdate) throw new ApiError(409, 'Submitted verification cannot be changed while it is under review');
 
   const allowed = [
     'legalName', 'profilePhoto', 'dateOfBirth', 'gender', 'phone', 'email', 'address',
@@ -387,7 +391,10 @@ export const saveVerification = asyncHandler(async (req, res) => {
   }
   if (patch.gender !== undefined && !['male', 'female', 'other', 'prefer_not_to_say'].includes(String(patch.gender))) throw new ApiError(422, 'Choose a valid gender');
   if (patch.identityVerification !== undefined) patch.identityVerification = normalizeSurveyorIdentity(patch.identityVerification);
-  if (patch.bankDetails !== undefined) patch.bankDetails = normalizeSurveyorBankDetails(patch.bankDetails);
+  if (patch.bankDetails !== undefined) {
+    patch.bankDetails = normalizeSurveyorBankDetails(patch.bankDetails);
+    if (verifiedBankOnlyUpdate) patch['bankVerification.status'] = 'pending';
+  }
   await validateVerificationDocumentOwnership(
     req.user._id,
     patch.identityVerification ?? existing?.identityVerification ?? {},
@@ -406,7 +413,7 @@ export const saveVerification = asyncHandler(async (req, res) => {
     { $set: patch, $setOnInsert: { user: req.user._id, status: 'draft', bankVerification: { status: 'pending' }, createdBy: req.user._id } },
     { upsert: true, new: true, runValidators: true },
   );
-  await writeLog(req, 'surveyor-verification:saved', 'surveyor-verifications', verification);
+  await writeLog(req, verifiedBankOnlyUpdate ? 'surveyor-bank-details:updated' : 'surveyor-verification:saved', 'surveyor-verifications', verification);
   const safe = verification.toObject();
   delete safe.bankVerification;
   res.json({ success: true, data: safe });

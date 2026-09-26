@@ -9,6 +9,7 @@ import {
   SurveyQuotation,
   SurveyReport,
   SurveyorProfile,
+  SurveyorVerification,
   User,
 } from '../models/index.js';
 import { writeAudit } from '../middleware/audit.js';
@@ -54,6 +55,20 @@ function directMilestoneForOrder(project, order) {
 function directBudgetReady(project) {
   const milestones = [1, 2].map((order) => directMilestoneForOrder(project, order));
   return milestones.every((milestone) => milestone && milestone.status === 'accepted' && Number(milestone.amount || 0) > 0);
+}
+
+async function directSurveyorBankDetails(project) {
+  const verification = await SurveyorVerification.findOne({ user: project.surveyor }).select('bankDetails bankVerification status updatedAt').lean();
+  const bank = verification?.bankDetails || {};
+  const details = {
+    bankName: String(bank.bankName || '').trim(),
+    ifsc: String(bank.ifsc || '').trim(),
+    accountNumber: String(bank.accountNumber || '').trim(),
+    verificationStatus: verification?.bankVerification?.status || 'pending',
+    updatedAt: verification?.updatedAt || null,
+  };
+  details.ready = Boolean(details.bankName && details.ifsc && details.accountNumber);
+  return details;
 }
 
 async function ensureDirectMilestonePayment(project, milestone, actorId) {
@@ -619,9 +634,12 @@ async function projectBundle(project, req) {
   const reportId = populated.report?._id || populated.report;
   const reportFileId = populated.report?.reportFile?._id || populated.report?.reportFile;
   if (reportFileId) fileIds.push(reportFileId);
-  const [files, payments] = await Promise.all([
+  const [files, payments, surveyorVerification] = await Promise.all([
     DriveFile.find({ _id: { $in: fileIds }, status: 'active' }).select('name originalName mimeType category sizeBytes preview createdAt').lean(),
     Payment.find({ surveyProject: populated._id, type: { $in: ['survey_advance', 'survey_milestone', 'survey_final'] } }).select('invoiceNumber type amount paidAmount status dueDate paidAt method transactionId proofFile paymentVerification gateway').sort({ createdAt: 1 }).lean(),
+    populated.workflowType === 'direct_surveyor'
+      ? SurveyorVerification.findOne({ user: populated.surveyor?._id || populated.surveyor }).select('bankDetails bankVerification status updatedAt').lean()
+      : null,
   ]);
   const byFile = new Map(files.map((file) => [String(file._id), file]));
   const data = populated.toObject ? populated.toObject() : populated;
@@ -681,6 +699,16 @@ async function projectBundle(project, req) {
   data.paymentSummary = { ...(data.paymentSummary || {}), total, paid: totalPaid, outstanding: Math.max(0, total - totalPaid) };
   data.paymentStatus = total > 0 && totalPaid >= total ? 'paid' : totalPaid > 0 ? 'partial' : payments.some((payment) => ['pending', 'overdue'].includes(payment.status)) ? 'pending' : 'unpaid';
   data.navigationUrl = mapUrlFor(data);
+  const bank = surveyorVerification?.bankDetails || {};
+  const bankReady = Boolean(String(bank.bankName || '').trim() && String(bank.ifsc || '').trim() && String(bank.accountNumber || '').trim());
+  data.surveyorPaymentDetails = populated.workflowType === 'direct_surveyor' ? {
+    ready: bankReady,
+    bankName: bankReady ? String(bank.bankName || '') : '',
+    ifsc: bankReady ? String(bank.ifsc || '') : '',
+    accountNumber: bankReady ? String(bank.accountNumber || '') : '',
+    verificationStatus: surveyorVerification?.bankVerification?.status || 'pending',
+    updatedAt: surveyorVerification?.updatedAt || null,
+  } : null;
   data.permissions = {
     landlord: req.user.role === 'admin' || sameId(data.client, req.user._id),
     surveyor: req.user.role === 'admin' || sameId(data.surveyor, req.user._id),
@@ -1084,19 +1112,17 @@ export const attachSurveyReportFile = asyncHandler(async (req, res) => {
     report.lockedBy = undefined;
     report.updatedBy = req.user._id;
     await report.save();
-    const secondMilestone = directMilestoneForOrder(project, 2);
-    const secondPayment = await ensureDirectMilestonePayment(project, secondMilestone, req.user._id);
     project.report = report._id;
     project.workflowStage = 'approved';
-    project.status = 'awaiting_second_payment';
+    project.status = 'client_review';
     project.reportUploadRequestedAt = now;
     project.updatedBy = req.user._id;
     await project.save();
     await Promise.all([
-      createNotification({ user: project.client, title: 'Survey report ready — second milestone payment needed', message: `${project.projectNumber} has submitted the survey report for your review. Read it, then submit milestone 2 payment proof.`, category: 'payment', actionUrl: `/app/survey-projects/${project._id}`, metadata: { projectId: project._id, reportId: report._id, paymentId: secondPayment._id, milestoneId: secondMilestone._id, event: 'direct_second_milestone_payment_requested' } }),
-      writeAudit(req, { action: 'direct-survey:report-submitted-for-review', module: 'survey-projects', recordId: project._id, previousValue: previous, updatedValue: { reportId: report._id, fileId: file._id, secondPaymentId: secondPayment._id, submittedAt: now } }),
+      createNotification({ user: project.client, title: 'Survey report ready for approval', message: `${project.projectNumber} has submitted the survey report. Review and approve it before milestone 2 payment is opened.`, category: 'survey', actionUrl: `/app/survey-projects/${project._id}`, metadata: { projectId: project._id, reportId: report._id, event: 'direct_report_ready_for_landlord_approval' } }),
+      writeAudit(req, { action: 'direct-survey:report-submitted-for-review', module: 'survey-projects', recordId: project._id, previousValue: previous, updatedValue: { reportId: report._id, fileId: file._id, submittedAt: now, nextStep: 'landlord_report_approval' } }),
     ]);
-    return res.status(201).json({ success: true, data: await projectBundle(project, req), message: 'Survey report submitted for landlord review. Milestone 2 payment is now ready.' });
+    return res.status(201).json({ success: true, data: await projectBundle(project, req), message: 'Survey report submitted. The landlord must review and approve it before milestone 2 payment.' });
   }
   if (project.fieldworkReview?.status !== 'approved') throw new ApiError(409, 'A recorded landlord fieldwork approval is required before the final report can be uploaded');
   const finalPayment = project.finalPayment
@@ -1153,8 +1179,29 @@ export const submitSurveyReport = submitSurveyFieldworkForReview;
 
 export const requestSurveyRevision = asyncHandler(async (req, res) => {
   const { project } = await workflowProject(req, 'landlord', { allowClosed: false });
-  if (project.workflowStage !== 'submitted' || !['awaiting_landlord_review', 'client_review'].includes(project.status)) throw new ApiError(409, 'Only submitted fieldwork can be returned for revision');
   const reason = String(req.body.reason || '').trim();
+  if (project.workflowType === 'direct_surveyor' && project.status === 'client_review') {
+    if (reason.length < 5 || reason.length > 1200) throw new ApiError(422, 'Explain the required report changes in 5 to 1200 characters');
+    const report = project.report ? await SurveyReport.findById(project.report) : null;
+    if (!report || !['client_preview', 'submitted', 'approved'].includes(report.status)) throw new ApiError(409, 'No submitted survey report is available for revision');
+    const now = new Date();
+    report.revisionNumber = Number(report.revisionNumber || 0) + 1;
+    report.revisions.push({ revision: report.revisionNumber, previousSnapshot: report.toObject(), reason, revisedBy: req.user._id, revisedAt: now, clientComments: reason });
+    report.status = 'revision_requested';
+    report.updatedBy = req.user._id;
+    await report.save();
+    project.status = 'report_upload_requested';
+    project.workflowStage = 'approved';
+    project.updatedBy = req.user._id;
+    await project.save();
+    await Promise.all([
+      createNotification({ user: project.surveyor, title: 'Survey report needs revision', message: reason.slice(0, 500), category: 'survey', actionUrl: `/app/survey-projects/${project._id}`, metadata: { projectId: project._id, reportId: report._id, event: 'direct_report_revision_requested' } }),
+      writeAudit(req, { action: 'direct-survey:report-revision-requested', module: 'survey-projects', recordId: project._id, updatedValue: { reportId: report._id, reason, revisionNumber: report.revisionNumber } }),
+    ]);
+    return res.json({ success: true, data: await projectBundle(project, req), message: 'Report revision requested. Milestone 2 remains locked until the revised report is approved.' });
+  }
+  if (project.workflowStage !== 'submitted' || !['awaiting_landlord_review', 'client_review'].includes(project.status)) throw new ApiError(409, 'Only submitted fieldwork can be returned for revision');
+
   if (reason.length < 5 || reason.length > 1200) throw new ApiError(422, 'Explain the required fieldwork changes in 5 to 1200 characters');
   const now = new Date();
   const activeReview = asPlain(project.fieldworkReview);
@@ -1221,7 +1268,7 @@ export const acceptSurveyPayment = asyncHandler(async (req, res) => {
     }
     if (current && order === 2) {
       const report = current.report ? await SurveyReport.findById(current.report) : null;
-      if (!report || !['client_preview', 'submitted', 'approved', 'final'].includes(report.status)) throw new ApiError(409, 'The Surveyor must submit the survey report before milestone 2 can be accepted');
+      if (!report || !['approved', 'final'].includes(report.status)) throw new ApiError(409, 'The landlord must approve the submitted survey report before milestone 2 can be accepted');
       report.status = 'locked'; report.lockedAt = now; report.lockedBy = req.user._id; report.updatedBy = req.user._id; await report.save();
       current.workflowStage = 'completed'; current.status = 'completed'; current.verificationStatus = 'fully_verified'; current.completedAt = now; current.updatedBy = req.user._id; await current.save();
       await Promise.all([
@@ -1409,6 +1456,8 @@ export const submitSurveyMilestonePayment = asyncHandler(async (req, res) => {
   if (![1, 2].includes(order)) throw new ApiError(422, 'Only the two direct-hiring milestones can receive payment proof');
   const expectedStatus = order === 1 ? 'awaiting_first_payment' : 'awaiting_second_payment';
   if (project.status !== expectedStatus) throw new ApiError(409, `Milestone ${order} payment is not awaiting landlord submission`);
+  const bankDetails = await directSurveyorBankDetails(project);
+  if (!bankDetails.ready) throw new ApiError(409, 'The assigned Surveyor must update bank name, account number and IFSC before the landlord can submit this milestone payment');
   const payment = await ensureDirectMilestonePayment(project, milestone, req.user._id);
   if (!['pending', 'partial', 'overdue'].includes(payment.status)) throw new ApiError(409, 'This milestone payment cannot be submitted');
   const transactionId = String(req.body.transactionId || '').trim();
@@ -1570,4 +1619,27 @@ export const streamSurveyPaymentProof = asyncHandler(async (req, res) => {
 // Retain the prior route name for clients that have not refreshed yet, but
 // enforce the v164 order: landlord review first, final payment next, then
 // final report upload and property verification.
-export const approveSurveyReport = reviewSurveyFieldwork;
+export const approveSurveyReport = asyncHandler(async (req, res) => {
+  const { project } = await workflowProject(req, 'landlord', { allowClosed: false });
+  if (project.workflowType !== 'direct_surveyor') return reviewSurveyFieldwork(req, res);
+  if (project.status !== 'client_review') throw new ApiError(409, 'The survey report is not waiting for landlord approval');
+  const report = project.report ? await SurveyReport.findById(project.report) : null;
+  if (!report || !['client_preview', 'submitted', 'revised'].includes(report.status)) throw new ApiError(409, 'No submitted survey report is available for approval');
+  const secondMilestone = directMilestoneForOrder(project, 2);
+  if (!secondMilestone || !['accepted', 'approved'].includes(String(secondMilestone.status || ''))) throw new ApiError(409, 'Milestone 2 must be agreed by both parties before report approval');
+  const secondPayment = await ensureDirectMilestonePayment(project, secondMilestone, req.user._id);
+  const now = new Date();
+  report.status = 'approved';
+  report.updatedBy = req.user._id;
+  await report.save();
+  project.workflowStage = 'approved';
+  project.status = 'awaiting_second_payment';
+  project.updatedBy = req.user._id;
+  await project.save();
+  await Promise.all([
+    createNotification({ user: project.surveyor, title: 'Survey report approved', message: `${project.projectNumber} report was approved by the landlord. Milestone 2 payment is now open.`, category: 'survey', actionUrl: `/app/survey-projects/${project._id}`, metadata: { projectId: project._id, reportId: report._id, paymentId: secondPayment._id, event: 'direct_report_approved' } }),
+    createNotification({ user: project.client, title: 'Milestone 2 payment ready', message: `Pay milestone 2 using the Surveyor's current bank details, then submit transaction ID and payment proof.`, category: 'payment', actionUrl: `/app/survey-projects/${project._id}`, metadata: { projectId: project._id, paymentId: secondPayment._id, milestoneId: secondMilestone._id, event: 'direct_second_milestone_payment_requested' } }),
+    writeAudit(req, { action: 'direct-survey:report-approved', module: 'survey-projects', recordId: project._id, updatedValue: { reportId: report._id, paymentId: secondPayment._id, milestoneId: secondMilestone._id, approvedAt: now } }),
+  ]);
+  res.json({ success: true, data: await projectBundle(project, req), message: 'Survey report approved. Milestone 2 payment is now available.' });
+});
