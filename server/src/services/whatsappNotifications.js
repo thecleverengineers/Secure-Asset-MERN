@@ -156,7 +156,7 @@ export async function notifyRentReminder(invoice) {
     title: 'Rent payment reminder',
     message: `${invoice.invoiceNumber || 'Your rent invoice'} for ${money(invoice.balanceAmount || invoice.totalAmount)} is due on ${dateTime(invoice.dueDate)}.`,
     category: 'payment',
-    actionUrl: '/app/payments?type=rent',
+    actionUrl: invoice.tenancy ? `/app/my-property/${invoice.tenancy}/rent-cycle` : '/app/my-property',
   });
 }
 
@@ -172,7 +172,7 @@ export async function notifyRentReceipt(invoice, payment) {
     title: 'Rent receipt confirmed',
     message: `Your rent payment of ${money(payment?.paidAmount || payment?.amount)} has been received successfully.`,
     category: 'payment',
-    actionUrl: '/app/payments?status=paid',
+    actionUrl: invoice.tenancy ? `/app/my-property/${invoice.tenancy}/rent-cycle` : '/app/my-property',
   });
 }
 

@@ -193,7 +193,9 @@ export async function applyPaidPayment(paymentOrId, actor = {}) {
         title: userId.toString() === invoice.tenant.toString() ? 'Rent payment accepted' : 'Rent payment recorded',
         message: `${invoice.invoiceNumber} is ${invoice.status === 'paid' ? 'paid in full' : 'partially paid'} for ₹${acceptedAmount.toLocaleString('en-IN')}.`,
         category: 'payment',
-        actionUrl: userId.toString() === invoice.tenant.toString() ? '/app/payments?status=paid' : '/app/rental-invoices?status=paid',
+        actionUrl: userId.toString() === invoice.tenant.toString()
+          ? `/app/my-property/${invoice.tenancy}/rent-cycle`
+          : `/app/tenancy_details/${invoice.tenancy}?tab=rent`,
         metadata: { paymentId: payment._id, invoiceId: invoice._id, event: 'rental_payment_approved' },
       } },
       { upsert: true, new: true },

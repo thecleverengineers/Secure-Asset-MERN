@@ -16,7 +16,7 @@ import ScheduleRounded from '@mui/icons-material/ScheduleRounded';
 import VerifiedRounded from '@mui/icons-material/VerifiedRounded';
 import WarningAmberRounded from '@mui/icons-material/WarningAmberRounded';
 import UploadFileRounded from '@mui/icons-material/UploadFileRounded';
-import { fetchAgreementPreviewBlob, getMyPropertyRentCycle, submitRentalInvoicePayment, uploadRentalPaymentProof } from '../../services/api';
+import { downloadRentalPaymentReceipt, fetchAgreementPreviewBlob, getMyPropertyRentCycle, submitRentalInvoicePayment, uploadRentalPaymentProof } from '../../services/api';
 import { safeRecord, safeRecordArray } from '../../utils/runtimeData';
 
 const DAY = 86_400_000;
@@ -107,6 +107,7 @@ export default function MyRentCyclePage() {
   const [paymentBusy, setPaymentBusy] = useState(false);
   const [paymentError, setPaymentError] = useState('');
   const [paymentNotice, setPaymentNotice] = useState('');
+  const [receiptBusy, setReceiptBusy] = useState('');
   const query = useQuery({
     queryKey: ['my-property-rent-cycle', tenancyId],
     queryFn: () => getMyPropertyRentCycle(tenancyId),
@@ -150,6 +151,21 @@ export default function MyRentCyclePage() {
       setPreviewing(false);
     }
   };
+
+  async function downloadReceipt(payment: Record<string, any>, invoiceNumber = '') {
+    const paymentId = String(payment.id || payment._id || '');
+    if (!paymentId) return;
+    setReceiptBusy(paymentId);
+    setPaymentError('');
+    try {
+      const safeInvoice = String(invoiceNumber || 'rent-payment').replace(/[^a-z0-9_-]+/gi, '-');
+      await downloadRentalPaymentReceipt(paymentId, `rent-receipt-${safeInvoice}.pdf`);
+    } catch (error) {
+      setPaymentError(error instanceof Error ? error.message : 'Could not download payment receipt.');
+    } finally {
+      setReceiptBusy('');
+    }
+  }
 
   const submitRentPayment = async () => {
     if (!invoice.id) return;
@@ -206,7 +222,7 @@ export default function MyRentCyclePage() {
   const paymentSubmitted = paymentStage === 'submitted';
   const canPayRent = Boolean(invoice.id) && !paid && ['awaiting_tenant', 'rejected', ''].includes(paymentStage);
 
-  return <Box data-secureasset-my-rent-cycle="tenant-rent-payment-proof-v222" sx={{ maxWidth: 1080, mx: 'auto', px: { xs: 1.5, sm: 2.5, lg: 0 }, pb: 6 }}>
+  return <Box data-secureasset-my-rent-cycle="tenant-rent-receipt-v224" sx={{ maxWidth: 1080, mx: 'auto', px: { xs: 1.5, sm: 2.5, lg: 0 }, pb: 6 }}>
     <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.3 }}>
       <Button size="small" startIcon={<ArrowBackRounded />} onClick={() => navigate('/app/my-property')} sx={{ borderRadius: 2.5, textTransform: 'none' }}>My Property</Button>
       <IconButton size="small" aria-label="Refresh rent cycle" onClick={() => void query.refetch()} disabled={query.isFetching}><RefreshRounded fontSize="small" /></IconButton>
@@ -277,6 +293,16 @@ export default function MyRentCyclePage() {
       {paid && invoice.id && <Alert severity="success" sx={{ mt: 1.4 }}>
         Rent paid{currentPayment.paidAt ? <> on {dateText(currentPayment.paidAt)}</> : null}{currentPayment.transactionId ? <> · Transaction {currentPayment.transactionId}</> : null}.
       </Alert>}
+      {paid && currentPayment.id && <Stack direction="row" justifyContent="flex-end" sx={{ mt: 1.2 }}>
+        <Button
+          variant="outlined"
+          startIcon={receiptBusy === String(currentPayment.id) ? <CircularProgress size={14} /> : <DownloadRounded />}
+          disabled={Boolean(receiptBusy)}
+          onClick={() => void downloadReceipt(currentPayment, String(invoice.invoiceNumber || invoice.billingMonth || 'rent-payment'))}
+        >
+          {receiptBusy === String(currentPayment.id) ? 'Preparing Receipt…' : 'Download Payment Receipt'}
+        </Button>
+      </Stack>}
 
       {canPayRent && <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="flex-end" sx={{ mt: 1.5 }}>
         <Button variant="contained" startIcon={<PaymentsRounded />} onClick={() => { setPaymentError(''); setPaymentOpen(true); }} sx={{ borderRadius: 2.5 }}>
@@ -322,10 +348,21 @@ export default function MyRentCyclePage() {
                 {itemPayment.transactionId && <Typography color="text.secondary" sx={{ fontSize: 10.8, mt: .2 }}>Transaction: {itemPayment.transactionId}</Typography>}
                 {itemPayment.rejectionReason && <Typography color="error.main" sx={{ fontSize: 10.8, mt: .2 }}>Reason: {itemPayment.rejectionReason}</Typography>}
               </Box>
-              <Stack direction="row" spacing={{ xs: 2.2, sm: 3 }} sx={{ flexShrink: 0 }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: .8, sm: 2.2 }} alignItems={{ sm: 'center' }} sx={{ flexShrink: 0 }}>
+                {(String(item.status || '') === 'paid' || String(itemPayment.verificationStatus || '') === 'approved') && itemPayment.id && <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={receiptBusy === String(itemPayment.id) ? <CircularProgress size={13} /> : <DownloadRounded />}
+                  disabled={Boolean(receiptBusy)}
+                  onClick={() => void downloadReceipt(itemPayment, String(item.invoiceNumber || item.billingMonth || 'rent-payment'))}
+                >
+                  {receiptBusy === String(itemPayment.id) ? 'Preparing…' : 'Download Receipt'}
+                </Button>}
+                <Stack direction="row" spacing={{ xs: 2.2, sm: 3 }}>
                 <Box><Typography color="text.secondary" sx={{ fontSize: 9.8 }}>Total</Typography><Typography sx={{ fontSize: 12.5, fontWeight: 800 }}>{money(item.totalAmount)}</Typography></Box>
                 <Box><Typography color="text.secondary" sx={{ fontSize: 9.8 }}>Paid</Typography><Typography sx={{ fontSize: 12.5, fontWeight: 800, color: Number(item.paidAmount || 0) > 0 ? 'success.main' : 'text.primary' }}>{money(item.paidAmount)}</Typography></Box>
                 <Box><Typography color="text.secondary" sx={{ fontSize: 9.8 }}>Balance</Typography><Typography sx={{ fontSize: 12.5, fontWeight: 850 }}>{money(item.balanceAmount)}</Typography></Box>
+                </Stack>
               </Stack>
             </Stack>
           </Paper>;

@@ -662,6 +662,18 @@ export async function submitRentalInvoicePayment(invoiceId: string, body: Rental
 export async function fetchRentalPaymentProofBlob(paymentId: string) {
   return fetchAuthenticatedBlob(`/rentals/payments/${encodeURIComponent(paymentId)}/proof`, 'Could not open rent payment proof');
 }
+
+export async function downloadRentalPaymentReceipt(paymentId: string, filename = 'rent-payment-receipt.pdf') {
+  const blob = await fetchAuthenticatedBlob(`/rentals/payments/${encodeURIComponent(paymentId)}/receipt`, 'Could not download rent payment receipt');
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename.toLowerCase().endsWith('.pdf') ? filename : `${filename}.pdf`;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
 export async function getLandlordTransactions(params: Record<string, string | number> = {}) {
   const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value !== '' && value !== undefined && value !== null).map(([key, value]) => [key, String(value)]));
   return request<{ success: boolean; data: Record<string, any>[]; summary: Record<string, number>; pagination: { page: number; limit: number; total: number; pages: number } }>(`/rentals/landlord-transactions${query.size ? `?${query}` : ''}`);

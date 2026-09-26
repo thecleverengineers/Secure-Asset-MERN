@@ -1,3 +1,4 @@
+import PDFDocument from 'pdfkit';
 import { DriveFile, Payment, RentalInvoice, Tenancy, User } from '../models/index.js';
 import { writeAudit } from '../middleware/audit.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
@@ -30,6 +31,22 @@ function cleanText(value, label, maxLength) {
   const text = String(value).trim();
   if (text.length > maxLength) throw new ApiError(422, `${label} must be ${maxLength} characters or fewer.`);
   return text || undefined;
+}
+
+function receiptMoney(value) {
+  return `INR ${Math.max(0, Number(value || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function receiptDate(value) {
+  if (!value) return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
+}
+
+function receiptPropertyAddress(property) {
+  const address = property?.address || {};
+  return [property?.title || property?.name, address.line1, address.line2, address.locality, address.city, address.state, address.postalCode || address.pincode]
+    .map((value) => String(value || '').trim()).filter(Boolean).join(', ') || 'Property';
 }
 
 function openPaymentStatus(invoice, now) {
@@ -278,4 +295,104 @@ export const listLandlordTransactions = asyncHandler(async (req, res) => {
     summary,
     pagination: { page, limit, total, pages: Math.max(1, Math.ceil(total / limit)) },
   });
+});
+
+
+export const downloadRentalPaymentReceipt = asyncHandler(async (req, res) => {
+  const payment = await Payment.findOne({
+    _id: req.params.paymentId,
+    rentalInvoice: { $exists: true },
+    status: 'paid',
+    'paymentVerification.status': 'approved',
+  })
+    .populate('payer', 'name email phone')
+    .populate('payee', 'name email phone')
+    .populate('property', 'title name address')
+    .populate('rentalUnit', 'name roomNumber floor floorLabel')
+    .populate('tenancy', 'tenancyNumber status')
+    .lean();
+
+  if (!payment) throw new ApiError(404, 'Approved rent payment receipt is not available.');
+  const participant = sameId(payment.payer, req.user._id) || sameId(payment.payee, req.user._id);
+  if (!participant) throw new ApiError(403, 'Only the paying tenant or receiving landlord can download this receipt.');
+
+  const invoice = await RentalInvoice.findById(payment.rentalInvoice).lean();
+  if (!invoice) throw new ApiError(404, 'Linked rental invoice not found.');
+
+  const receiptNumber = `RCP-${String(payment._id).slice(-10).toUpperCase()}`;
+  const filename = `rent-receipt-${String(invoice.invoiceNumber || receiptNumber).replace(/[^a-z0-9_-]+/gi, '-')}.pdf`;
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+  const doc = new PDFDocument({
+    size: 'A4',
+    margin: 48,
+    info: {
+      Title: `SecureAsset Rent Payment Receipt ${receiptNumber}`,
+      Subject: 'Verified monthly rent payment receipt',
+      Author: 'SecureAsset',
+      Creator: 'SecureAsset',
+    },
+  });
+  doc.pipe(res);
+
+  const pageWidth = doc.page.width;
+  const contentWidth = pageWidth - 96;
+  const left = 48;
+  const teal = '#0B6278';
+  const navy = '#143E4D';
+  const green = '#087443';
+  const muted = '#667085';
+  const border = '#D8E1E6';
+
+  doc.roundedRect(left, 48, contentWidth, 88, 10).fill(navy);
+  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(21).text('SECUREASSET', left + 20, 69);
+  doc.font('Helvetica').fontSize(10).fillColor('#D7EEF3').text('Verified Rent Payment Receipt', left + 20, 99);
+  doc.font('Helvetica-Bold').fontSize(11).fillColor('#FFFFFF').text(receiptNumber, pageWidth - 230, 73, { width: 160, align: 'right' });
+  doc.font('Helvetica').fontSize(9).fillColor('#D7EEF3').text(receiptDate(payment.paidAt), pageWidth - 230, 96, { width: 160, align: 'right' });
+
+  let y = 160;
+  doc.fillColor(green).font('Helvetica-Bold').fontSize(13).text('PAYMENT RECEIVED', left, y);
+  doc.fillColor(muted).font('Helvetica').fontSize(9.5).text('This receipt confirms that the receiving landlord approved the rent payment.', left, y + 20);
+  y += 54;
+
+  const row = (label, value, rightLabel, rightValue) => {
+    doc.roundedRect(left, y, contentWidth, 48, 6).lineWidth(0.7).strokeColor(border).stroke();
+    doc.fillColor(muted).font('Helvetica').fontSize(8.5).text(label, left + 14, y + 9);
+    doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(10.5).text(String(value || '-'), left + 14, y + 23, { width: 220 });
+    if (rightLabel) {
+      doc.fillColor(muted).font('Helvetica').fontSize(8.5).text(rightLabel, left + 285, y + 9);
+      doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(10.5).text(String(rightValue || '-'), left + 285, y + 23, { width: contentWidth - 300 });
+    }
+    y += 58;
+  };
+
+  row('Amount paid', receiptMoney(payment.paidAmount || payment.amount), 'Payment status', 'PAID - VERIFIED');
+  row('Billing month', invoice.billingMonth || '-', 'Invoice number', invoice.invoiceNumber || '-');
+  row('Payment method', String(payment.method || '-').replaceAll('_', ' ').toUpperCase(), 'Transaction ID', payment.transactionId || '-');
+  row('Tenant', payment.payer?.name || payment.payer?.email || 'Tenant', 'Landlord', payment.payee?.name || payment.payee?.email || 'Landlord');
+  row('Tenancy number', payment.tenancy?.tenancyNumber || '-', 'Room / Unit', payment.rentalUnit?.name || payment.rentalUnit?.roomNumber || '-');
+
+  doc.roundedRect(left, y, contentWidth, 72, 6).fill('#F7FAFB');
+  doc.fillColor(muted).font('Helvetica').fontSize(8.5).text('Property', left + 14, y + 12);
+  doc.fillColor('#1F2937').font('Helvetica-Bold').fontSize(10.5).text(receiptPropertyAddress(payment.property), left + 14, y + 28, { width: contentWidth - 28 });
+  y += 92;
+
+  doc.moveTo(left, y).lineTo(left + contentWidth, y).strokeColor(border).lineWidth(0.7).stroke();
+  doc.fillColor(teal).font('Helvetica-Bold').fontSize(9.5).text('SecureAsset payment verification record', left, y + 17);
+  doc.fillColor(muted).font('Helvetica').fontSize(8.5).text(
+    `Approved on ${receiptDate(payment.paymentVerification?.approvedAt || payment.paidAt)}. This system-generated receipt is valid for the payment record shown above.`,
+    left,
+    y + 35,
+    { width: contentWidth, lineGap: 2 },
+  );
+  doc.fillColor('#98A2B3').font('Helvetica').fontSize(7.5).text(
+    `Generated ${receiptDate(new Date())} | Payment ID: ${payment._id}`,
+    left,
+    doc.page.height - 62,
+    { width: contentWidth, align: 'center' },
+  );
+
+  doc.end();
 });
