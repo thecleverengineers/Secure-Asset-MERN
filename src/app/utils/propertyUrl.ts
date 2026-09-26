@@ -14,3 +14,9 @@ export function propertyOverviewPath(property: any) {
   const slug = property?.slug || property?.publicSlug || propertyNameSlug(property?.title || property?.name);
   return `/marketplace/property_overview/${encodeURIComponent(String(slug))}`;
 }
+
+
+export function propertyAllRoomsPath(property: any) {
+  const slug = property?.slug || property?.publicSlug || propertyNameSlug(property?.title || property?.name);
+  return `/all_rooms/${encodeURIComponent(String(slug))}`;
+}

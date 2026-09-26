@@ -61,6 +61,7 @@ import InteractivePropertyTour from '../components/property/InteractivePropertyT
 import PremiumPropertyHero from '../components/property/PremiumPropertyHero';
 import { WorkspaceSkeleton } from '../components/shared/PremiumSkeleton';
 import { sharePublicListing } from '../utils/publicShare';
+import { propertyAllRoomsPath } from '../utils/propertyUrl';
 
 const fallback = 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1400&q=85';
 const money = (value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value || 0);
@@ -398,7 +399,11 @@ export default function PropertyDetailPage() {
   const roomPreviewUnits = activeRoomFloorGroup?.units || rentalUnits;
   const roomSlideCount = Math.max(1, roomPreviewUnits.length);
   const roomSlideItems = roomPreviewUnits.length
-    ? [roomPreviewUnits[roomSlideIndex % roomSlideCount], roomPreviewUnits[(roomSlideIndex + 1) % roomSlideCount]].filter(Boolean)
+    ? [
+        roomPreviewUnits[roomSlideIndex % roomSlideCount],
+        roomPreviewUnits[(roomSlideIndex + 1) % roomSlideCount],
+        roomPreviewUnits[(roomSlideIndex + 2) % roomSlideCount],
+      ].filter((unit, index, items) => unit && items.findIndex((item) => String(item?._id) === String(unit?._id)) === index)
     : [];
   const showPreviousRoom = () => setRoomSlideIndex((current) => roomPreviewUnits.length ? (current - 1 + roomPreviewUnits.length) % roomPreviewUnits.length : 0);
   const showNextRoom = () => setRoomSlideIndex((current) => roomPreviewUnits.length ? (current + 1) % roomPreviewUnits.length : 0);
@@ -584,7 +589,7 @@ export default function PropertyDetailPage() {
             <Paper id="rooms" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography sx={{ color: '#102a43', fontSize: 15, fontWeight: 800 }}>Rooms & Floor Plan</Typography>
-                {rentalUnits.length > 0 && <Button size="small" onClick={() => roomPreviewUnits[0] && navigate(`/room_details/${roomPreviewUnits[0]._id}`)} sx={{ textTransform: 'none', fontSize: 10.5 }}>View Floor Rooms →</Button>}
+                {rentalUnits.length > 0 && <Button size="small" onClick={() => navigate(`${propertyAllRoomsPath(property)}${activeRoomFloorKey ? `?floor=${encodeURIComponent(activeRoomFloorKey)}` : ''}`)} sx={{ textTransform: 'none', fontSize: 10.5, fontWeight: 750 }}>View All Rooms →</Button>}
               </Stack>
 
               {rentalFloorGroups.length > 0 && <Box sx={{ mt: 1, overflowX: 'auto', pb: .25 }}>
@@ -673,8 +678,8 @@ export default function PropertyDetailPage() {
                       : '';
                     return <Grid
                       key={`${unit._id}-${slidePosition}`}
-                      size={{ xs: 12, sm: 6 }}
-                      sx={{ display: slidePosition === 1 ? { xs: 'none', sm: 'block' } : 'block' }}
+                      size={{ xs: 12, sm: 6, lg: 4 }}
+                      sx={{ display: slidePosition === 1 ? { xs: 'none', sm: 'block' } : slidePosition === 2 ? { xs: 'none', sm: 'none', lg: 'block' } : 'block' }}
                     >
                       <Paper
                         component="button"
@@ -734,7 +739,7 @@ export default function PropertyDetailPage() {
                         </Box>
                       </Paper>
                     </Grid>;
-                  }) : displayImages.slice(1,3).map((image:string,index:number) => <Grid key={image} size={{ xs: 12, sm: 6 }} sx={{ display: index === 1 ? { xs: 'none', sm: 'block' } : 'block' }}>
+                  }) : displayImages.slice(1,4).map((image:string,index:number) => <Grid key={image} size={{ xs: 12, sm: 6, lg: 4 }} sx={{ display: index === 1 ? { xs: 'none', sm: 'block' } : index === 2 ? { xs: 'none', sm: 'none', lg: 'block' } : 'block' }}>
                     <Paper elevation={0} sx={{ height: { xs: 102, sm: 108 }, p: .7, display: 'flex', gap: .9, alignItems: 'stretch', border: '1px solid #E3E9EE', borderRadius: 2, bgcolor: '#fff' }}>
                       <Box sx={{ width: { xs: 108, sm: 120 }, minWidth: { xs: 108, sm: 120 }, height: '100%', overflow: 'hidden', borderRadius: '5px', bgcolor: '#EDF2F5' }}>
                         <OptimizedImage src={image} alt={`Room ${index+1}`} width={360} height={280} style={{ width:'100%',height:'100%',objectFit:'cover',borderRadius:'5px',display:'block' }} />

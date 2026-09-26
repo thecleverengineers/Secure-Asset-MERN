@@ -18,6 +18,7 @@ const PublicSearchPage = lazyWithRetry(() => import('./pages/PublicSearchPage'))
 const WishlistPage = lazyWithRetry(() => import('./pages/WishlistPage'));
 const PropertyDetailPage = lazyWithRetry(() => import('./pages/PropertyDetailPage'));
 const RentalRoomDetailsPage = lazyWithRetry(() => import('./pages/RentalRoomDetailsPage'));
+const AllRoomsPage = lazyWithRetry(() => import('./pages/AllRoomsPage'));
 const SurveyorMarketplacePage = lazyWithRetry(() => import('./pages/SurveyorMarketplacePage'));
 const SurveyorPublicProfilePage = lazyWithRetry(() => import('./pages/SurveyorPublicProfilePage'));
 const SurveyorQuotePage = lazyWithRetry(() => import('./pages/SurveyorQuotePage'));
@@ -63,6 +64,7 @@ export const router = createBrowserRouter([
       { path: 'wishlist', Component: WishlistPage },
       { path: 'room-details/:id', Component: RentalRoomDetailsPage },
       { path: 'room_details/:id', Component: RentalRoomDetailsPage },
+      { path: 'all_rooms/:slug', Component: AllRoomsPage },
       { path: 'marketplace/property_overview/:slug', Component: PropertyDetailPage },
       { path: 'marketplace/:id', Component: PropertyDetailPage },
       { path: 'surveyors', Component: SurveyorMarketplacePage },

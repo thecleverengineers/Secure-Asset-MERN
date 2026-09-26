@@ -15,7 +15,7 @@ import ShareRounded from '@mui/icons-material/ShareRounded';
 import { publicRentalUnitQueryOptions } from '../queries/propertyQueries';
 import OptimizedImage from '../components/shared/OptimizedImage';
 import { WorkspaceSkeleton } from '../components/shared/PremiumSkeleton';
-import { propertyOverviewPath } from '../utils/propertyUrl';
+import { propertyAllRoomsPath, propertyOverviewPath } from '../utils/propertyUrl';
 import { sharePublicListing } from '../utils/publicShare';
 
 const fallback = 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1400&q=85';
@@ -96,7 +96,7 @@ export default function RentalRoomDetailsPage() {
             {room.isLocked && <Alert severity="warning" sx={{ mb: 2 }}>This room is locked because another booking or active tenancy is already using it. You can still view every room detail.</Alert>}
             {room.applicationInProgress && <Alert severity="info" sx={{ mb: 2 }}>An application is in progress. The room remains visible while the landlord reviews it.</Alert>}
             <Button fullWidth size="large" variant="contained" disabled={!canBook} onClick={() => navigate(`/app/apply_property/${property._id}?rentalUnit=${room._id}`)}>{canBook ? 'Book Now' : 'Locked'}</Button>
-            <Button fullWidth variant="outlined" sx={{ mt: 1 }} onClick={() => navigate(propertyOverviewPath(property))}>View all rooms</Button>
+            <Button fullWidth variant="outlined" sx={{ mt: 1 }} onClick={() => navigate(propertyAllRoomsPath(property))}>View all rooms</Button>
             <Stack direction="row" gap={1} mt={2} alignItems="center"><BedRounded color="disabled" /><Typography variant="body2" color="text.secondary">{specs.bedroomCount || 0} bedroom{Number(specs.bedroomCount) === 1 ? '' : 's'}</Typography><BathtubRounded color="disabled" /><Typography variant="body2" color="text.secondary">{specs.bathroomCount || 0} bath</Typography></Stack>
             {specs.kitchenAvailable && <Stack direction="row" gap={1} mt={1} alignItems="center"><KitchenRounded color="disabled" /><Typography variant="body2" color="text.secondary">Kitchen enabled</Typography></Stack>}
             {specs.balcony && <Stack direction="row" gap={1} mt={1} alignItems="center"><BalconyRounded color="disabled" /><Typography variant="body2" color="text.secondary">Balcony enabled</Typography></Stack>}
