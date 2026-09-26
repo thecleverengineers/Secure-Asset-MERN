@@ -19,6 +19,7 @@ import {
 import ArrowBackRounded from '@mui/icons-material/ArrowBackRounded';
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
 import HomeWorkRounded from '@mui/icons-material/HomeWorkRounded';
+import ApartmentRounded from '@mui/icons-material/ApartmentRounded';
 import LocationOnRounded from '@mui/icons-material/LocationOnRounded';
 import SecurityRounded from '@mui/icons-material/SecurityRounded';
 import TuneRounded from '@mui/icons-material/TuneRounded';
