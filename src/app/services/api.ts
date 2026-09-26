@@ -659,6 +659,13 @@ export type RentalPaymentSubmission = {
 export async function submitRentalInvoicePayment(invoiceId: string, body: RentalPaymentSubmission) {
   return request<ApiResponse<Record<string, any>>>(`/rentals/invoices/${encodeURIComponent(invoiceId)}/payment`, { method: 'POST', body: JSON.stringify(body) });
 }
+export async function fetchRentalPaymentProofBlob(paymentId: string) {
+  return fetchAuthenticatedBlob(`/rentals/payments/${encodeURIComponent(paymentId)}/proof`, 'Could not open rent payment proof');
+}
+export async function getLandlordTransactions(params: Record<string, string | number> = {}) {
+  const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value !== '' && value !== undefined && value !== null).map(([key, value]) => [key, String(value)]));
+  return request<{ success: boolean; data: Record<string, any>[]; summary: Record<string, number>; pagination: { page: number; limit: number; total: number; pages: number } }>(`/rentals/landlord-transactions${query.size ? `?${query}` : ''}`);
+}
 export async function acceptRentalPayment(paymentId: string) {
   return request<ApiResponse<Record<string, any>>>(`/rentals/payments/${encodeURIComponent(paymentId)}/accept`, { method: 'POST' });
 }
