@@ -4,8 +4,8 @@ import fs from 'node:fs';
 
 const shell = fs.readFileSync('src/app/components/layout/AppShell.tsx', 'utf8');
 
-test('sidebar orders General then Surveyor features then Tenancy', () => {
-  assert.match(shell, /general: 10/);
+test('sidebar orders General first, then Surveyor features, then Tenancy', () => {
+  assert.match(shell, /const sectionPriority:[\s\S]*general: 0/);
   assert.match(shell, /surveyor_features: 20/);
   assert.match(shell, /tenancy: 30/);
   assert.match(shell, /sectionPriority\[leftSection\]/);
