@@ -573,21 +573,81 @@ export default function PropertyDetailPage() {
                 <Typography sx={{ color: '#102a43', fontSize: 15, fontWeight: 800 }}>Rooms & Floor Plan</Typography>
                 {rentalUnits.length > 0 && <Button size="small" onClick={() => roomPreviewUnits[0] && navigate(`/room_details/${roomPreviewUnits[0]._id}`)} sx={{ textTransform: 'none', fontSize: 10.5 }}>View All Rooms →</Button>}
               </Stack>
-              <Stack direction="row" spacing={1} sx={{ mt: 1, overflowX: 'auto', pb: .5 }}>
+              <Grid container spacing={{ xs: .9, sm: 1.1 }} sx={{ mt: .35 }}>
                 {roomPreviewUnits.length ? roomPreviewUnits.map((unit: any) => {
                   const roomImage = unit.primaryImage?.url || unit.gallery?.find((item: any) => item?.url)?.url || shareImage;
-                  return <Paper component="button" type="button" onClick={() => navigate(`/room_details/${unit._id}`)} key={unit._id} elevation={0} sx={{ p: 0, flex: '0 0 205px', textAlign: 'left', border: '1px solid #e8edf1', borderRadius: 2, overflow: 'hidden', bgcolor: '#fff', cursor: 'pointer' }}>
-                    <Box sx={{ height: 112, overflow: 'hidden' }}><OptimizedImage src={roomImage} alt={unit.name || `Room ${unit.roomNumber}`} width={460} height={260} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /></Box>
-                    <Box sx={{ p: .9 }}><Typography sx={{ fontSize: 11.5, fontWeight: 800, color: '#173B55' }}>{unit.name || `Room ${unit.roomNumber}`}</Typography><Typography sx={{ mt: .15, fontSize: 9.5, color: '#8291a0' }}>{unit.specifications?.roomSize?.value ? `Approx. ${unit.specifications.roomSize.value} ${unit.specifications.roomSize.unit || 'sqft'}` : sentence(unit.specifications?.roomType || 'Private room')}</Typography><Typography sx={{ mt: .55, fontSize: 10.5, fontWeight: 800, color: '#087f5b' }}>{money(Number(unit.pricing?.monthlyRent || 0))} / month</Typography></Box>
-                  </Paper>;
-                }) : displayImages.slice(1,4).map((image:string,index:number) => <Paper key={image} elevation={0} sx={{ flex: '0 0 205px', border: '1px solid #e8edf1', borderRadius: 2, overflow: 'hidden' }}><Box sx={{ height: 112 }}><OptimizedImage src={image} alt={`Room ${index+1}`} width={460} height={260} style={{ width:'100%',height:'100%',objectFit:'cover' }} /></Box><Box sx={{ p:.9 }}><Typography sx={{ fontSize:11.5,fontWeight:800 }}>Room {index+1}</Typography><Typography sx={{ fontSize:9.5,color:'#8291a0' }}>Property interior</Typography></Box></Paper>)}
-                <Paper elevation={0} sx={{ flex: '0 0 225px', border: '1px solid #e8edf1', borderRadius: 2, overflow: 'hidden', p: 1, bgcolor: '#fbfcfd' }}>
-                  <Typography sx={{ fontSize: 11.5, fontWeight: 800, color: '#173B55' }}>{heroBedrooms ? `${heroBedrooms} BHK Floor Plan` : 'Floor Plan'}</Typography>
-                  <Box sx={{ height: 125, mt: .65, borderRadius: 1.5, overflow: 'hidden', bgcolor: '#f1f4f6', display: 'grid', placeItems: 'center' }}>
-                    {floorPlanMedia[0]?.url ? <OptimizedImage src={floorPlanMedia[0].url} alt="Floor plan" width={520} height={320} style={{ width:'100%',height:'100%',objectFit:'contain' }} /> : <GridViewRounded sx={{ fontSize: 44, color: '#9aabb9' }} />}
+                  const rawStatus = String(unit.availabilityStatus || '').toUpperCase();
+                  const available = unit.canBook !== false && !unit.isLocked && !unit.applicationInProgress && !['OCCUPIED','BLOCKED','ARCHIVED'].includes(rawStatus);
+                  const statusLabel = unit.availabilityLabel || (unit.isLocked ? 'Occupied' : unit.applicationInProgress ? 'Application Pending' : rawStatus ? sentence(rawStatus) : 'Available');
+                  const statusTone = available
+                    ? { bg: '#DCFCE7', color: '#087443', dot: '#12B76A' }
+                    : unit.applicationInProgress || ['APPLICATION_PENDING','AGREEMENT_PENDING','PAYMENT_PENDING','NOTICE_PERIOD','VACATING'].includes(rawStatus)
+                      ? { bg: '#FFF7E6', color: '#B54708', dot: '#F79009' }
+                      : { bg: '#FEECEC', color: '#B42318', dot: '#F04438' };
+                  const floorText = unit.floor?.floorName || (unit.floor?.floorNumber !== undefined ? `Floor ${unit.floor.floorNumber}` : '');
+                  const roomType = sentence(unit.specifications?.roomType || unit.roomType || 'Private room');
+                  const roomSize = unit.specifications?.roomSize?.value
+                    ? `${unit.specifications.roomSize.value} ${unit.specifications.roomSize.unit || 'sqft'}`
+                    : '';
+                  return <Grid key={unit._id} size={{ xs: 6, sm: 4, md: 3 }}>
+                    <Paper
+                      component="button"
+                      type="button"
+                      onClick={() => navigate(`/room_details/${unit._id}`)}
+                      elevation={0}
+                      sx={{
+                        width: '100%', height: '100%', p: 0, textAlign: 'left', overflow: 'hidden',
+                        border: '1px solid #E2E9EF', borderRadius: 2.5, bgcolor: '#fff', cursor: 'pointer',
+                        boxShadow: '0 5px 16px rgba(25,55,80,.035)',
+                        transition: 'transform .18s ease, box-shadow .18s ease, border-color .18s ease',
+                        '&:hover': { transform: 'translateY(-2px)', borderColor: '#C9D8E3', boxShadow: '0 12px 26px rgba(25,55,80,.09)' },
+                      }}
+                    >
+                      <Box sx={{ position: 'relative', width: '100%', aspectRatio: '4 / 3', overflow: 'hidden', bgcolor: '#EDF2F5' }}>
+                        <OptimizedImage src={roomImage} alt={unit.name || `Room ${unit.roomNumber}`} width={520} height={390} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <Chip
+                          size="small"
+                          label={<Stack component="span" direction="row" spacing={.55} alignItems="center"><Box component="span" sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: statusTone.dot }} />{statusLabel}</Stack>}
+                          sx={{ position: 'absolute', left: 9, top: 9, height: 24, bgcolor: statusTone.bg, color: statusTone.color, fontSize: 9.5, fontWeight: 800, border: '1px solid rgba(255,255,255,.72)', backdropFilter: 'blur(8px)' }}
+                        />
+                      </Box>
+                      <Box sx={{ p: { xs: 1, sm: 1.15 } }}>
+                        <Typography noWrap sx={{ fontSize: { xs: 11.5, sm: 12.5 }, fontWeight: 800, color: '#173B55' }}>{unit.name || `Room ${unit.roomNumber}`}</Typography>
+                        <Stack direction="row" spacing={.55} alignItems="center" sx={{ mt: .45, minWidth: 0 }}>
+                          <BedRounded sx={{ fontSize: 14, color: '#8291A0', flexShrink: 0 }} />
+                          <Typography noWrap sx={{ fontSize: 9.5, color: '#75889A' }}>{[roomType, floorText].filter(Boolean).join(' · ')}</Typography>
+                        </Stack>
+                        {roomSize && <Typography sx={{ mt: .35, fontSize: 9.5, color: '#8A98A6' }}>Approx. {roomSize}</Typography>}
+                        <Box sx={{ mt: .9, pt: .8, borderTop: '1px solid #EEF2F5' }}>
+                          <Typography sx={{ fontSize: { xs: 12, sm: 13 }, fontWeight: 800, color: '#087F5B' }}>{money(Number(unit.pricing?.monthlyRent || 0))}</Typography>
+                          <Typography sx={{ mt: .05, fontSize: 8.8, color: '#8A98A6' }}>per month</Typography>
+                        </Box>
+                      </Box>
+                    </Paper>
+                  </Grid>;
+                }) : displayImages.slice(1,5).map((image:string,index:number) => <Grid key={image} size={{ xs: 6, sm: 4, md: 3 }}>
+                  <Paper elevation={0} sx={{ height: '100%', border: '1px solid #E2E9EF', borderRadius: 2.5, overflow: 'hidden', bgcolor: '#fff' }}>
+                    <Box sx={{ position: 'relative', aspectRatio: '4 / 3', overflow: 'hidden' }}>
+                      <OptimizedImage src={image} alt={`Room ${index+1}`} width={520} height={390} style={{ width:'100%',height:'100%',objectFit:'cover' }} />
+                      <Chip size="small" label="Available" sx={{ position:'absolute',left:9,top:9,height:24,bgcolor:'#DCFCE7',color:'#087443',fontSize:9.5,fontWeight:800 }} />
+                    </Box>
+                    <Box sx={{ p:1.05 }}><Typography sx={{ fontSize:12,fontWeight:800,color:'#173B55' }}>Room {index+1}</Typography><Typography sx={{ mt:.3,fontSize:9.5,color:'#8291A0' }}>Property interior</Typography></Box>
+                  </Paper>
+                </Grid>)}
+              </Grid>
+
+              <Paper elevation={0} sx={{ mt: 1.1, border: '1px solid #E2E9EF', borderRadius: 2.5, overflow: 'hidden', p: { xs: 1.1, sm: 1.3 }, bgcolor: '#FBFCFD' }}>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.2} alignItems={{ sm: 'center' }}>
+                  <Box sx={{ width: { xs: '100%', sm: 210 }, height: { xs: 145, sm: 120 }, borderRadius: 2, overflow: 'hidden', bgcolor: '#F1F4F6', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                    {floorPlanMedia[0]?.url ? <OptimizedImage src={floorPlanMedia[0].url} alt="Floor plan" width={520} height={320} style={{ width:'100%',height:'100%',objectFit:'contain' }} /> : <GridViewRounded sx={{ fontSize: 44, color: '#9AABB9' }} />}
                   </Box>
-                </Paper>
-              </Stack>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: '#173B55' }}>{heroBedrooms ? `${heroBedrooms} BHK Floor Plan` : 'Floor Plan'}</Typography>
+                    <Typography sx={{ mt: .35, fontSize: 10, color: '#8291A0' }}>Review the available layout and room positioning before applying.</Typography>
+                    <Button size="small" startIcon={<GridViewRounded />} onClick={() => floorPlanMedia[0]?.url ? window.open(floorPlanMedia[0].url, '_blank', 'noopener,noreferrer') : undefined} disabled={!floorPlanMedia[0]?.url} sx={{ mt: .7, px: 0, textTransform: 'none', fontSize: 10.5, fontWeight: 700 }}>View Floor Plan</Button>
+                  </Box>
+                </Stack>
+              </Paper>
             </Paper>
 
             <Paper id="nearby" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
