@@ -719,8 +719,8 @@ export default function PropertyDetailPage() {
                       : '';
                     return <Grid
                       key={`${unit._id}-${slidePosition}`}
-                      size={{ xs: 12, sm: 6, lg: 4 }}
-                      sx={{ display: slidePosition === 1 ? { xs: 'none', sm: 'block' } : slidePosition === 2 ? { xs: 'none', sm: 'none', lg: 'block' } : 'block' }}
+                      size={{ xs: 6, sm: 6, lg: 4 }}
+                      sx={{ display: slidePosition === 2 ? { xs: 'none', sm: 'none', lg: 'block' } : 'block' }}
                     >
                       <Paper
                         component="button"
@@ -728,8 +728,8 @@ export default function PropertyDetailPage() {
                         onClick={() => navigate(`/room_details/${unit._id}`)}
                         elevation={0}
                         sx={{
-                          width: '100%', height: { xs: 102, sm: 108 }, p: .7,
-                          display: 'flex', alignItems: 'stretch', gap: .9,
+                          width: '100%', height: { xs: 94, sm: 108 }, p: { xs: .5, sm: .7 },
+                          display: 'flex', alignItems: 'stretch', gap: { xs: .5, sm: .9 },
                           textAlign: 'left', border: '1px solid #E3E9EE', borderRadius: 2,
                           bgcolor: '#fff', cursor: 'pointer', overflow: 'hidden',
                           boxShadow: '0 4px 13px rgba(25,55,80,.025)',
@@ -738,7 +738,8 @@ export default function PropertyDetailPage() {
                         }}
                       >
                         <Box sx={{
-                          width: { xs: 108, sm: 120 }, minWidth: { xs: 108, sm: 120 },
+                          position: 'relative',
+                          width: { xs: 72, sm: 120 }, minWidth: { xs: 72, sm: 120 },
                           height: '100%', overflow: 'hidden', bgcolor: '#EDF2F5',
                           borderRadius: '5px', flexShrink: 0,
                         }}>
@@ -749,40 +750,40 @@ export default function PropertyDetailPage() {
                             height={280}
                             style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '5px', display: 'block' }}
                           />
+                          <Chip
+                            size="small"
+                            label={statusLabel}
+                            sx={{
+                              position: 'absolute', left: 4, right: 4, bottom: 4, height: { xs: 17, sm: 19 },
+                              maxWidth: 'calc(100% - 8px)', bgcolor: statusTone.bg, color: statusTone.color,
+                              fontSize: { xs: 6.4, sm: 7.6 }, fontWeight: 800,
+                              '& .MuiChip-label': { px: .45, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+                            }}
+                          />
                         </Box>
 
                         <Box sx={{ flex: 1, minWidth: 0, py: .1, pr: .15, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                           <Box>
-                            <Stack direction="row" justifyContent="space-between" spacing={.55} alignItems="flex-start">
-                              <Typography noWrap sx={{ minWidth: 0, flex: 1, fontSize: { xs: 11.3, sm: 12.2 }, lineHeight: 1.15, fontWeight: 800, color: '#173B55' }}>
-                                {unit.name || `Room ${unit.roomNumber}`}
-                              </Typography>
-                              <Chip
-                                size="small"
-                                label={<Stack component="span" direction="row" spacing={.4} alignItems="center"><Box component="span" sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: statusTone.dot }} />{statusLabel}</Stack>}
-                                sx={{
-                                  height: 20, maxWidth: 120, flexShrink: 0, bgcolor: statusTone.bg, color: statusTone.color,
-                                  fontSize: 8.2, fontWeight: 800, '& .MuiChip-label': { px: .65, overflow: 'hidden', textOverflow: 'ellipsis' },
-                                }}
-                              />
-                            </Stack>
-                            <Typography noWrap sx={{ mt: .35, fontSize: 9.1, color: '#75889A' }}>{[roomType, floorText].filter(Boolean).join(' · ')}</Typography>
-                            {roomSize && <Typography noWrap sx={{ mt: .2, fontSize: 8.9, color: '#8A98A6' }}>Approx. {roomSize}</Typography>}
+                            <Typography noWrap sx={{ minWidth: 0, fontSize: { xs: 9.5, sm: 12.2 }, lineHeight: 1.15, fontWeight: 800, color: '#173B55' }}>
+                              {unit.name || `Room ${unit.roomNumber}`}
+                            </Typography>
+                            <Typography noWrap sx={{ mt: .3, fontSize: { xs: 7.7, sm: 9.1 }, color: '#75889A' }}>{[roomType, floorText].filter(Boolean).join(' · ')}</Typography>
+                            {roomSize && <Typography noWrap sx={{ mt: .15, fontSize: { xs: 7.3, sm: 8.9 }, color: '#8A98A6' }}>Approx. {roomSize}</Typography>}
                           </Box>
 
                           <Stack direction="row" justifyContent="space-between" alignItems="flex-end" spacing={.7}>
                             <Box>
-                              <Typography sx={{ fontSize: { xs: 11.8, sm: 12.7 }, lineHeight: 1, fontWeight: 800, color: '#087F5B' }}>{money(Number(unit.pricing?.monthlyRent || 0))}</Typography>
-                              <Typography sx={{ mt: .1, fontSize: 8, color: '#8A98A6' }}>per month</Typography>
+                              <Typography sx={{ fontSize: { xs: 9.5, sm: 12.7 }, lineHeight: 1, fontWeight: 800, color: '#087F5B' }}>{money(Number(unit.pricing?.monthlyRent || 0))}</Typography>
+                              <Typography sx={{ mt: .1, fontSize: { xs: 6.7, sm: 8 }, color: '#8A98A6' }}>per month</Typography>
                             </Box>
-                            <Typography sx={{ pb: .05, fontSize: 8.5, color: '#4E6A80', fontWeight: 700 }}>View →</Typography>
+                            <Typography sx={{ pb: .05, display: { xs: 'none', sm: 'block' }, fontSize: 8.5, color: '#4E6A80', fontWeight: 700 }}>View →</Typography>
                           </Stack>
                         </Box>
                       </Paper>
                     </Grid>;
-                  }) : displayImages.slice(1,4).map((image:string,index:number) => <Grid key={image} size={{ xs: 12, sm: 6, lg: 4 }} sx={{ display: index === 1 ? { xs: 'none', sm: 'block' } : index === 2 ? { xs: 'none', sm: 'none', lg: 'block' } : 'block' }}>
-                    <Paper elevation={0} sx={{ height: { xs: 102, sm: 108 }, p: .7, display: 'flex', gap: .9, alignItems: 'stretch', border: '1px solid #E3E9EE', borderRadius: 2, bgcolor: '#fff' }}>
-                      <Box sx={{ width: { xs: 108, sm: 120 }, minWidth: { xs: 108, sm: 120 }, height: '100%', overflow: 'hidden', borderRadius: '5px', bgcolor: '#EDF2F5' }}>
+                  }) : displayImages.slice(1,4).map((image:string,index:number) => <Grid key={image} size={{ xs: 6, sm: 6, lg: 4 }} sx={{ display: index === 2 ? { xs: 'none', sm: 'none', lg: 'block' } : 'block' }}>
+                    <Paper elevation={0} sx={{ height: { xs: 94, sm: 108 }, p: { xs: .5, sm: .7 }, display: 'flex', gap: { xs: .5, sm: .9 }, alignItems: 'stretch', border: '1px solid #E3E9EE', borderRadius: 2, bgcolor: '#fff' }}>
+                      <Box sx={{ width: { xs: 72, sm: 120 }, minWidth: { xs: 72, sm: 120 }, height: '100%', overflow: 'hidden', borderRadius: '5px', bgcolor: '#EDF2F5' }}>
                         <OptimizedImage src={image} alt={`Room ${index+1}`} width={360} height={280} style={{ width:'100%',height:'100%',objectFit:'cover',borderRadius:'5px',display:'block' }} />
                       </Box>
                       <Box sx={{ flex: 1, minWidth: 0, py: .2 }}>
