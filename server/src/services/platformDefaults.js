@@ -144,6 +144,7 @@ const RAW_PLATFORM_MODULES = [
   appModule('utility-readings', 'Meter Readings', 'electricmeter', tenant, landlord, 150, { section: 'finance' }),
   appModule('reminder-rules', 'Payment Reminders', 'notifications', tenant, landlord, 160, { section: 'finance' }),
   appModule('payments', 'Payments', 'payments', tenant, landlord, 180, { section: 'finance' }),
+  appModule('transactions', 'Transactions', 'receiptlong', tenant, landlord, 185, { section: 'finance', path: '/app/transactions', kind: 'system' }),
   appModule('complaints', 'Complaints & Maintenance', 'build', tenant, landlord, 190, { section: 'operations' }),
   appModule('facilities', 'Facilities', 'accountbalance', tenant, landlord, 200, { section: 'operations' }),
   appModule('facility-bookings', 'Facility Bookings', 'calendarmonth', tenant, landlord, 210, { section: 'operations' }),
