@@ -78,6 +78,7 @@ export default function PropertyDetailPage() {
   const [tourExpanded, setTourExpanded] = useState(false);
   const [roomSlideIndex, setRoomSlideIndex] = useState(0);
   const [roomFloorKey, setRoomFloorKey] = useState('');
+  const [nearbySlideIndex, setNearbySlideIndex] = useState(0);
   const propertyQuery = useQuery(publicPropertyQueryOptions(slug || id));
   const listing = propertyQuery.data?.listing || null;
   const structure = propertyQuery.data?.structure || null;
@@ -257,6 +258,14 @@ export default function PropertyDetailPage() {
     ['Occupancy certificate', legal.occupancyCertificate], ['Completion certificate', legal.completionCertificate],
   ];
   const nearbyRows = Object.entries(nearby).map(([key, value]) => [sentence(key), value] as [string, unknown]);
+  const nearbyCarouselRows: Array<[string, unknown]> = nearbyRows.length
+    ? nearbyRows
+    : [['Supermarket','Nearby'],['School','Nearby'],['Hospital','Nearby'],['Metro Station','Nearby'],['Restaurant','Nearby']];
+  const nearbySlideItems = nearbyCarouselRows.length
+    ? [0,1,2,3].map((offset) => nearbyCarouselRows[(nearbySlideIndex + offset) % nearbyCarouselRows.length])
+    : [];
+  const showPreviousNearby = () => setNearbySlideIndex((current) => nearbyCarouselRows.length ? (current - 1 + nearbyCarouselRows.length) % nearbyCarouselRows.length : 0);
+  const showNextNearby = () => setNearbySlideIndex((current) => nearbyCarouselRows.length ? (current + 1) % nearbyCarouselRows.length : 0);
   const hasValue = (value: unknown) => value !== undefined && value !== null && value !== '';
   const detailSectionSx = usePremiumPropertyDetails ? {
     p: { xs: 2, md: 3 },
@@ -824,14 +833,87 @@ export default function PropertyDetailPage() {
               </Paper>
             </Paper>
 
-            <Paper id="nearby" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center"><Typography sx={{ color: '#102a43', fontSize: 15, fontWeight: 800 }}>Nearby Places</Typography><Button size="small" sx={{ textTransform:'none', fontSize:10.5 }}>View All →</Button></Stack>
-              <Stack direction="row" spacing={.8} sx={{ mt: 1, overflowX: 'auto', pb: .35 }}>
-                {(nearbyRows.length ? nearbyRows : [['Supermarket','Nearby'],['School','Nearby'],['Hospital','Nearby'],['Metro Station','Nearby'],['Restaurant','Nearby']]).slice(0,7).map(([name,value],index) => <Box key={String(name)} sx={{ flex:'0 0 145px', border:'1px solid #e8edf1', borderRadius:2, overflow:'hidden', bgcolor:'#fff' }}>
-                  <Box sx={{ height:58, bgcolor:'#eef3f5', overflow:'hidden' }}>{displayImages[index % Math.max(1,displayImages.length)] && <OptimizedImage src={displayImages[index % displayImages.length]} alt="" width={320} height={150} style={{width:'100%',height:'100%',objectFit:'cover'}} />}</Box>
-                  <Box sx={{ p:.7 }}><Typography sx={{ fontSize:10.5,fontWeight:800,color:'#183a55' }}>{String(name)}</Typography><Typography sx={{ fontSize:9.2,color:'#8190a0' }}>{String(value || 'Nearby')}</Typography></Box>
-                </Box>)}
+            <Paper id="nearby" elevation={0} sx={{ ...sectionCard, p: { xs: 1.35, md: 1.7 } }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
+                <Box>
+                  <Typography sx={{ color: '#102A43', fontSize: 15, fontWeight: 800 }}>Nearby Places</Typography>
+                  <Typography sx={{ mt: .2, color: '#8190A0', fontSize: 9.5 }}>Useful places around this property</Typography>
+                </Box>
+                <Stack direction="row" spacing={.55}>
+                  <IconButton
+                    aria-label="Previous nearby place"
+                    onClick={showPreviousNearby}
+                    disabled={nearbyCarouselRows.length <= 1}
+                    size="small"
+                    sx={{
+                      width: 30, height: 30, border: '1px solid #DCE5EC', borderRadius: '50%',
+                      color: '#173B55', bgcolor: '#FFFFFF', boxShadow: '0 3px 10px rgba(25,55,80,.04)',
+                      '&:hover': { bgcolor: '#F6F9FB', borderColor: '#C8D7E2' },
+                    }}
+                  >
+                    <ArrowBackIosNewRounded sx={{ fontSize: 13 }} />
+                  </IconButton>
+                  <IconButton
+                    aria-label="Next nearby place"
+                    onClick={showNextNearby}
+                    disabled={nearbyCarouselRows.length <= 1}
+                    size="small"
+                    sx={{
+                      width: 30, height: 30, border: '1px solid #DCE5EC', borderRadius: '50%',
+                      color: '#173B55', bgcolor: '#FFFFFF', boxShadow: '0 3px 10px rgba(25,55,80,.04)',
+                      '&:hover': { bgcolor: '#F6F9FB', borderColor: '#C8D7E2' },
+                    }}
+                  >
+                    <ArrowForwardIosRounded sx={{ fontSize: 13 }} />
+                  </IconButton>
+                </Stack>
               </Stack>
+
+              <Grid container spacing={.75} sx={{ mt: .55 }}>
+                {nearbySlideItems.map(([name,value], index) => <Grid
+                  key={`${String(name)}-${index}`}
+                  size={{ xs: 6, sm: 6, md: 3 }}
+                  sx={{ display: index > 1 ? { xs: 'none', md: 'block' } : 'block' }}
+                >
+                  <Paper elevation={0} sx={{
+                    p: .55, minHeight: 62, display: 'flex', alignItems: 'center', gap: .65,
+                    border: '1px solid #E5EBF0', borderRadius: 2, bgcolor: '#FFFFFF',
+                    boxShadow: '0 3px 10px rgba(25,55,80,.02)',
+                  }}>
+                    <Box sx={{
+                      width: 48, minWidth: 48, height: 48, borderRadius: '8px',
+                      overflow: 'hidden', bgcolor: '#EEF3F5', flexShrink: 0,
+                    }}>
+                      <OptimizedImage
+                        src={displayImages[index % Math.max(1, displayImages.length)] || shareImage}
+                        alt={String(name)}
+                        width={160}
+                        height={160}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', display: 'block' }}
+                      />
+                    </Box>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography noWrap sx={{ color: '#183A55', fontSize: { xs: 9.2, sm: 10.2 }, lineHeight: 1.2, fontWeight: 800 }}>{String(name)}</Typography>
+                      <Typography noWrap sx={{ mt: .25, color: '#8190A0', fontSize: { xs: 7.7, sm: 8.8 } }}>{String(value || 'Nearby')}</Typography>
+                    </Box>
+                  </Paper>
+                </Grid>)}
+              </Grid>
+
+              {nearbyCarouselRows.length > 1 && <Stack direction="row" justifyContent="center" spacing={.4} sx={{ mt: .7 }}>
+                {nearbyCarouselRows.slice(0, Math.min(nearbyCarouselRows.length, 8)).map(([name], index) => <Box
+                  component="button"
+                  type="button"
+                  aria-label={`Show nearby place ${String(name)}`}
+                  key={`${String(name)}-${index}`}
+                  onClick={() => setNearbySlideIndex(index)}
+                  sx={{
+                    width: nearbySlideIndex === index ? 16 : 5, height: 4, p: 0, border: 0, borderRadius: 99,
+                    bgcolor: nearbySlideIndex === index ? '#087F5B' : '#D2DCE4', cursor: 'pointer',
+                    transition: 'width .18s ease, background-color .18s ease',
+                  }}
+                />)}
+              </Stack>}
             </Paper>
 
             <Paper id="related-properties" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
