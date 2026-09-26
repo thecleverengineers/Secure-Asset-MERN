@@ -145,13 +145,13 @@ export default function AgreementTemplatesPage() {
             {records.length ? records.map((template) => <Box key={template._id} sx={{ py: .75, borderBottom: '1px solid', borderColor: 'divider', '&:last-child': { borderBottom: 0 } }}>
               <ButtonBase
                 onClick={() => openPreview(template)}
-                aria-label={`Preview ${labels[type]} template ${template.name}`}
+                aria-label={`Preview ${labels[type]} agreement paper ${template.name}`}
                 sx={{ display: 'block', width: '100%', p: 1, mx: -1, textAlign: 'left', borderRadius: 2, '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 } }}
               >
                 <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
                   <Box sx={{ minWidth: 0 }}>
                     <Typography sx={{ fontWeight: 800, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{template.name}</Typography>
-                    <Typography variant="caption" color="text.secondary" display="block" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{template.title} · v{template.version || 1}</Typography>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{template.title} · v{template.version || 1} · Private to your landlord account</Typography>
                   </Box>
                   <VisibilityRounded fontSize="small" color="action" />
                 </Stack>
@@ -201,7 +201,7 @@ export default function AgreementTemplatesPage() {
               </Typography>
             </Box>
           </Paper>
-          <Alert severity="info">Placeholders such as tenant, landlord, property, space and amount are filled automatically when this template is selected for an accepted application.</Alert>
+          <Alert severity="info">Placeholders such as tenant, landlord, property, room and amount are filled automatically when this agreement paper is selected for an accepted application.</Alert>
         </Stack>}
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
@@ -221,7 +221,7 @@ export default function AgreementTemplatesPage() {
               <TextField required fullWidth label="Agreement paper name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
             </Stack>
             <TextField required label="Document title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
-            <TextField required label="Agreement body" value={form.body} onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))} multiline minRows={12} helperText={'Supported placeholders: ' + placeholderHelp} />
+            <TextField required label="Agreement paper content" value={form.body} onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))} multiline minRows={12} helperText={'Supported placeholders: ' + placeholderHelp} />
             <Typography sx={{ fontSize: 12, fontWeight: 850 }}>Stamp-paper settings</Typography>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.3}>
               <TextField fullWidth label="State" value={form.stampPaper.state} onChange={(event) => setStamp('state', event.target.value)} />
