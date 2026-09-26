@@ -1045,6 +1045,9 @@ export async function fetchPropertyImageBlob(source: string, propertyId = '') {
 export async function submitTenantKyc(body: Record<string, any>) {
   return request<ApiResponse<Record<string, any>>>('/property-management/kyc/submit', { method: 'POST', body: JSON.stringify(body) });
 }
+export async function updateTenantKycWhatsapp(whatsappNumber: string) {
+  return request<ApiResponse<Record<string, any>>>('/property-management/kyc/whatsapp', { method: 'PATCH', body: JSON.stringify({ whatsappNumber }) });
+}
 export async function reviewPropertyPublicListing(propertyId: string, body: { status: 'approved' | 'rejected'; reason?: string }) {
   return request<ApiResponse<Record<string, any>>>(`/property-management/properties/${encodeURIComponent(propertyId)}/public-listing-approval`, { method: 'POST', body: JSON.stringify(body) });
 }
