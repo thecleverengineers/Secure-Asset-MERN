@@ -9,7 +9,7 @@ const categoryKey = {
 
 export async function createNotification({ user: userId, title, message, category = 'system', actionUrl, metadata = {} }) {
   const [user, preference] = await Promise.all([
-    User.findById(userId).select('email phone status').lean(),
+    User.findById(userId).select('email phone whatsappNumber status').lean(),
     NotificationPreference.findOne({ user: userId }).lean(),
   ]);
   if (!user || user.status !== 'active') return null;
@@ -28,7 +28,11 @@ export async function createNotification({ user: userId, title, message, categor
     // preference exists, while an explicit user opt-out is always respected.
     const channelEnabled = channels[channel] || (channel === 'whatsapp' && whatsappTemplate && channels.whatsapp !== false);
     if (!channelEnabled) continue;
-    const destination = channel === 'email' ? user.email : user.phone;
+    const destination = channel === 'email'
+      ? user.email
+      : channel === 'whatsapp'
+        ? (user.whatsappNumber || user.phone)
+        : user.phone;
     // A template delivery is deliberately queued even if the provider is
     // currently disabled. The worker will mark it skipped with a clear reason;
     // this avoids a race when an admin enables WhatsApp after the event fires.
@@ -39,7 +43,7 @@ export async function createNotification({ user: userId, title, message, categor
       channel,
       destination,
       status: configured && destination ? 'pending' : 'skipped',
-      lastError: !destination ? `User has no ${channel === 'email' ? 'email address' : 'phone number'}` : configured ? '' : `${channel} provider is not configured`,
+      lastError: !destination ? `User has no ${channel === 'email' ? 'email address' : channel === 'whatsapp' ? 'WhatsApp number' : 'phone number'}` : configured ? '' : `${channel} provider is not configured`,
       metadata: commonMetadata,
     });
   }
