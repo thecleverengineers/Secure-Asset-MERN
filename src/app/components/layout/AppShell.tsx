@@ -470,10 +470,11 @@ export default function AppShell() {
       groups.set(section, [...(groups.get(section) || []), item]);
     }
     const sectionPriority: Record<string, number> = {
-      general: 10,
-      workspace: 10,
-      'tenant-workspace': 10,
-      landlord_workspace: 10,
+      // General is the canonical first sidebar section for every workspace.
+      general: 0,
+      workspace: 0,
+      'tenant-workspace': 0,
+      landlord_workspace: 0,
       surveyor_features: 20,
       tenancy: 30,
       landlord_features: 30,
