@@ -2,7 +2,7 @@ import { listTenancyHistoryProperties, getPropertyTenancyHistory } from '../cont
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
 import { requireCapabilityPermission, requireFeaturePermission } from '../middleware/rolePermission.js';
-import { getPropertyTree, streamPropertyMedia, streamPropertyMediaForProperty, streamLegacyPropertyImage, getLandlordOverview, submitTenantKyc, reviewTenantKyc, streamTenantKycDocument, createRentalApplication, decideApplication, createTenancyFromApplication, calculateUtility, exportProperty, getPropertyVisitNavigation, reviewPublicListingApproval, getApplicationDetails, updateApplicationPrivateNotes, reviewApplicationDocument, streamApplicationDocument } from '../controllers/propertyManagementController.js';
+import { getPropertyTree, streamPropertyMedia, streamPropertyMediaForProperty, streamLegacyPropertyImage, getLandlordOverview, submitTenantKyc, updateTenantKycWhatsapp, reviewTenantKyc, streamTenantKycDocument, createRentalApplication, decideApplication, createTenancyFromApplication, calculateUtility, exportProperty, getPropertyVisitNavigation, reviewPublicListingApproval, getApplicationDetails, updateApplicationPrivateNotes, reviewApplicationDocument, streamApplicationDocument } from '../controllers/propertyManagementController.js';
 import {
   applyRentalUnitPricing,
   archivePropertyFloor,
@@ -60,6 +60,7 @@ router.get('/properties/:propertyId/export', requireFeaturePermission('module:pr
 router.get('/property-visits/:visitId/navigation', requireFeaturePermission('module:property-visits', 'view'), getPropertyVisitNavigation);
 router.post('/properties/:propertyId/public-listing-approval', reviewPublicListingApproval);
 router.post('/kyc/submit', requireFeaturePermission('module:tenant-kyc', 'create'), submitTenantKyc);
+router.patch('/kyc/whatsapp', requireFeaturePermission('module:tenant-kyc', 'edit'), updateTenantKycWhatsapp);
 router.post('/kyc/:id/review', requireFeaturePermission('module:tenant-kyc', 'edit'), reviewTenantKyc);
 router.get('/kyc/documents/:documentId/content', requireFeaturePermission('module:tenant-kyc', 'view'), streamTenantKycDocument);
 router.post('/applications', requireFeaturePermission('module:applications', 'create'), createRentalApplication);
