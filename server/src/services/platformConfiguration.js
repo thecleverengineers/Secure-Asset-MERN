@@ -16,10 +16,10 @@ const SURVEYOR_WORKFLOW_MODULE_KEYS = new Set(['surveyor-dashboard', 'survey-job
 const TENANT_ONLY_ACTIVATION_MODULE_KEYS = new Set(['subscription', 'surveyor-subscription']);
 const LANDLORD_SIDEBAR_KEYS = new Set([
   'dashboard', 'my-listings', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices',
-  'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects',
+  'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-jobs', 'survey-projects', 'active-projects',
   'documents',
 ]);
-const LANDLORD_RETIRED_SURVEY_MODULE_KEYS = new Set(['survey-jobs', 'survey-quotations']);
+const LANDLORD_RETIRED_SURVEY_MODULE_KEYS = new Set(['survey-quotations']);
 
 export async function ensurePlatformConfiguration() {
   if (!bootstrapPromise) bootstrapPromise = (async () => {
@@ -153,9 +153,8 @@ export async function ensurePlatformConfiguration() {
       { scope: 'app', key: { $in: RETIRED_SURVEYOR_MODULE_KEYS } },
       { $set: { enabled: false, 'metadata.sidebarVisible': false } },
     );
-    // Existing installations may have landlord rules persisted in the same
-    // module records used by Surveyors. Remove only landlord access so the
-    // public-directory hiring flow is the landlord entry point.
+    // Existing installations may have landlord rules persisted in legacy
+    // proposal modules. My Survey Quotes is active and must keep landlord access.
     const legacyLandlordSurveyModules = await PlatformModule.find({ scope: 'app', key: { $in: [...LANDLORD_RETIRED_SURVEY_MODULE_KEYS] } }).select('_id roles accessRules').lean();
     await Promise.all(legacyLandlordSurveyModules.map((module) => {
       const accessRules = (module.accessRules || []).filter((rule) => {

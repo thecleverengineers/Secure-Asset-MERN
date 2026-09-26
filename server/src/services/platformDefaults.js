@@ -151,6 +151,7 @@ const RAW_PLATFORM_MODULES = [
   appModule('messages', 'Messages', 'message', tenant, landlord, 230, { section: 'communication', kind: 'system', mobilePrimary: true }),
   appModule('notifications', 'Notifications', 'notifications', tenant, landlord, 240, { section: 'communication', kind: 'system' }),
   appModule('profile', 'Profile', 'person', tenant, landlord, 250, { section: 'account', kind: 'system' }),
+  appModule('survey-jobs', 'My Survey Quotes', 'requestquote', tenant, landlord, 270, { section: 'general', path: '/app/survey-jobs', kind: 'system' }),
   appModule('survey-projects', 'Manage Hired Surveyors', 'assignment', tenant, landlord, 280, { section: 'projects', path: '/app/survey-projects', mobilePrimary: true }),
   appModule('active-projects', 'Active Projects', 'assignment', tenant, landlord, 290, { section: 'projects', path: '/app/survey-projects' }),
 

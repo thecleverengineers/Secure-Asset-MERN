@@ -93,6 +93,9 @@ export default function ModulePage() {
     if (TENANT_ONLY_ACTIVATION_MODULES.has(module)) return user?.role === 'tenant';
     if (module === 'my-applications') return user?.role === 'tenant';
     if (module === 'surveyor-subscription' && hasSurveyorFeatures) return true;
+    // My Survey Quotes is a capability workspace, not a generic resource.
+    // The API itself returns only the authenticated landlord's own requests.
+    if (module === 'survey-jobs' && hasLandlordFeatures) return true;
     const adminOnly = ['approvals', 'drive-admin', 'backup-recovery', 'site-admin', 'settings', 'integration-settings', 'platform-modules', 'design-studio', 'role-permissions', 'subscription-payment-approvals'];
     if (adminOnly.includes(module)) return user?.role === 'admin';
     // Keep the workspace usable while the catalog is refreshed. Every
