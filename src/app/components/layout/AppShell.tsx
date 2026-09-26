@@ -392,7 +392,7 @@ export default function AppShell() {
         return entry ? { ...item, label: item.key === 'agreement-templates' ? 'Agreement Papers' : entry.label || item.label, path: entry.path || item.path, section: entry.section || item.section, sortOrder: entry.order, mobilePrimary: entry.mobilePrimary, badge: entry.badge, placement: (entry.placement || 'sidebar') as MenuDef['placement'], icon: resolveIconComponent(entry.icon) } : item;
       })
       .filter((item): item is MenuDef => Boolean(item));
-    const custom = design.navigation.filter((entry) => entry.enabled && !base.some((item) => item.key === entry.key) && allowedKeys.has(entry.key)).map((entry) => ({ key: entry.key, label: entry.key === 'agreement-templates' ? 'Manage Templates' : entry.label, path: entry.path, section: entry.section, sortOrder: entry.order, mobilePrimary: entry.mobilePrimary, badge: entry.badge, placement: (entry.placement || 'sidebar') as MenuDef['placement'], icon: resolveIconComponent(entry.icon) }));
+    const custom = design.navigation.filter((entry) => entry.enabled && !base.some((item) => item.key === entry.key) && allowedKeys.has(entry.key)).map((entry) => ({ key: entry.key, label: entry.key === 'agreement-templates' ? 'Agreement Papers' : entry.label, path: entry.path, section: entry.section, sortOrder: entry.order, mobilePrimary: entry.mobilePrimary, badge: entry.badge, placement: (entry.placement || 'sidebar') as MenuDef['placement'], icon: resolveIconComponent(entry.icon) }));
     return [...base, ...custom].sort((left, right) => Number(left.sortOrder ?? 0) - Number(right.sortOrder ?? 0));
   }, [configuredMenu, design.navigation, fallbackMenu, isRegularTenant]);
   const tenantCapabilityMenu = useMemo(() => {
