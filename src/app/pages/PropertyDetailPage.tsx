@@ -75,6 +75,7 @@ export default function PropertyDetailPage() {
   const [detailsTab, setDetailsTab] = useState(0);
   const [tourExpanded, setTourExpanded] = useState(false);
   const [roomSlideIndex, setRoomSlideIndex] = useState(0);
+  const [roomFloorKey, setRoomFloorKey] = useState('');
   const propertyQuery = useQuery(publicPropertyQueryOptions(slug || id));
   const listing = propertyQuery.data?.listing || null;
   const structure = propertyQuery.data?.structure || null;
@@ -392,7 +393,9 @@ export default function PropertyDetailPage() {
   ].filter(Boolean) as Array<[string, any]>;
 
   const scrollToSection = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  const roomPreviewUnits = rentalUnits;
+  const activeRoomFloorGroup = rentalFloorGroups.find((group) => group.key === roomFloorKey) || rentalFloorGroups[0] || null;
+  const activeRoomFloorKey = activeRoomFloorGroup?.key || '';
+  const roomPreviewUnits = activeRoomFloorGroup?.units || rentalUnits;
   const roomSlideCount = Math.max(1, roomPreviewUnits.length);
   const roomSlideItems = roomPreviewUnits.length
     ? [roomPreviewUnits[roomSlideIndex % roomSlideCount], roomPreviewUnits[(roomSlideIndex + 1) % roomSlideCount]].filter(Boolean)
@@ -581,12 +584,46 @@ export default function PropertyDetailPage() {
             <Paper id="rooms" elevation={0} sx={{ ...sectionCard, p: { xs: 1.6, md: 2 } }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography sx={{ color: '#102a43', fontSize: 15, fontWeight: 800 }}>Rooms & Floor Plan</Typography>
-                {rentalUnits.length > 0 && <Button size="small" onClick={() => roomPreviewUnits[0] && navigate(`/room_details/${roomPreviewUnits[0]._id}`)} sx={{ textTransform: 'none', fontSize: 10.5 }}>View All Rooms →</Button>}
+                {rentalUnits.length > 0 && <Button size="small" onClick={() => roomPreviewUnits[0] && navigate(`/room_details/${roomPreviewUnits[0]._id}`)} sx={{ textTransform: 'none', fontSize: 10.5 }}>View Floor Rooms →</Button>}
               </Stack>
+
+              {rentalFloorGroups.length > 0 && <Box sx={{ mt: 1, overflowX: 'auto', pb: .25 }}>
+                <Stack direction="row" spacing={.65} sx={{ minWidth: 'max-content' }}>
+                  {rentalFloorGroups.map((group) => {
+                    const floor = group.floor;
+                    const selectedFloorTab = group.key === activeRoomFloorKey;
+                    const floorLabel = floor?.floorName
+                      || floor?.name
+                      || floor?.floorCode
+                      || (floor?.floorNumber !== undefined ? `Floor ${floor.floorNumber}` : 'Other Rooms');
+                    return <Button
+                      key={group.key}
+                      size="small"
+                      onClick={() => { setRoomFloorKey(group.key); setRoomSlideIndex(0); }}
+                      sx={{
+                        minHeight: 34, px: 1.35, borderRadius: 2,
+                        border: selectedFloorTab ? '1px solid #087F5B' : '1px solid #DFE7ED',
+                        bgcolor: selectedFloorTab ? '#EAF8F2' : '#FFFFFF',
+                        color: selectedFloorTab ? '#087F5B' : '#587083',
+                        textTransform: 'none', fontSize: 10.5, fontWeight: selectedFloorTab ? 800 : 700,
+                        boxShadow: selectedFloorTab ? '0 4px 12px rgba(8,127,91,.08)' : 'none',
+                        '&:hover': { bgcolor: selectedFloorTab ? '#E3F6ED' : '#F8FAFB', borderColor: selectedFloorTab ? '#087F5B' : '#CCD9E2' },
+                      }}
+                    >
+                      {floorLabel}
+                      <Box component="span" sx={{
+                        ml: .65, minWidth: 18, height: 18, px: .5, borderRadius: 99, display: 'inline-grid', placeItems: 'center',
+                        bgcolor: selectedFloorTab ? '#087F5B' : '#EEF3F6', color: selectedFloorTab ? '#FFFFFF' : '#708596',
+                        fontSize: 8.5, fontWeight: 800,
+                      }}>{group.units.length}</Box>
+                    </Button>;
+                  })}
+                </Stack>
+              </Box>
               <Box sx={{ mt: .65 }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1} sx={{ mb: .75 }}>
                   <Typography sx={{ fontSize: 10.5, color: '#7A8D9E' }}>
-                    {roomPreviewUnits.length ? `${roomSlideIndex + 1} of ${roomPreviewUnits.length} rooms` : 'Room previews'}
+                    {roomPreviewUnits.length ? `${roomSlideIndex + 1} of ${roomPreviewUnits.length} rooms on this floor` : 'No rooms on this floor'}
                   </Typography>
                   <Stack direction="row" spacing={.55}>
                     <IconButton
