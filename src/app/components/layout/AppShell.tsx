@@ -237,7 +237,7 @@ const LANDLORD_FEATURE_LABELS: Record<string, string> = {
   leases: 'Lease Management',
   payments: 'Track Payments',
   transactions: 'Transactions',
-  'agreement-templates': 'Manage Templates',
+  'agreement-templates': 'Agreement Papers',
   'survey-projects': 'Manage Hired Surveyors',
   'active-projects': 'Active Projects',
 };
@@ -388,7 +388,7 @@ export default function AppShell() {
       .map((item) => {
         const entry = overrides.get(item.key);
         if (entry?.enabled === false) return null;
-        return entry ? { ...item, label: item.key === 'agreement-templates' ? 'Manage Templates' : entry.label || item.label, path: entry.path || item.path, section: entry.section || item.section, sortOrder: entry.order, mobilePrimary: entry.mobilePrimary, badge: entry.badge, placement: (entry.placement || 'sidebar') as MenuDef['placement'], icon: resolveIconComponent(entry.icon) } : item;
+        return entry ? { ...item, label: item.key === 'agreement-templates' ? 'Agreement Papers' : entry.label || item.label, path: entry.path || item.path, section: entry.section || item.section, sortOrder: entry.order, mobilePrimary: entry.mobilePrimary, badge: entry.badge, placement: (entry.placement || 'sidebar') as MenuDef['placement'], icon: resolveIconComponent(entry.icon) } : item;
       })
       .filter((item): item is MenuDef => Boolean(item));
     const custom = design.navigation.filter((entry) => entry.enabled && !base.some((item) => item.key === entry.key) && allowedKeys.has(entry.key)).map((entry) => ({ key: entry.key, label: entry.key === 'agreement-templates' ? 'Manage Templates' : entry.label, path: entry.path, section: entry.section, sortOrder: entry.order, mobilePrimary: entry.mobilePrimary, badge: entry.badge, placement: (entry.placement || 'sidebar') as MenuDef['placement'], icon: resolveIconComponent(entry.icon) }));
@@ -400,7 +400,7 @@ export default function AppShell() {
     // catalogue. The API configuration is the authoritative, role-filtered
     // list; using `items[key]` here previously displayed routes that the
     // server correctly rejected with "Access denied".
-    const source = new Map(designedMenu.map((item) => [item.key, item.key === 'agreement-templates' ? { ...item, label: 'Manage Templates', path: '/app/agreement-templates' } : item]));
+    const source = new Map(designedMenu.map((item) => [item.key, item.key === 'agreement-templates' ? { ...item, label: 'Agreement Papers', path: '/app/agreement-templates' } : item]));
     if (!hasLandlordSubscription) [...LANDLORD_FEATURE_MENU_KEYS].forEach((key) => source.delete(key));
     // Keep only the requested landlord features available during the short
     // interval in which an older PlatformModule cache has not yet refreshed.
