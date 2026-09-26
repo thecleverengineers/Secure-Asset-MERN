@@ -102,6 +102,7 @@ const items: Record<string, MenuDef> = {
   applications: { key: 'applications', label: 'Applications', icon: FactCheckRounded },
   'my-applications': { key: 'my-applications', label: 'My Applications', icon: FactCheckRounded },
   payments: { key: 'payments', label: 'Payments & Invoices', icon: PaymentsRounded },
+  transactions: { key: 'transactions', label: 'Transactions', icon: ReceiptLongRounded, path: '/app/transactions' },
   complaints: { key: 'complaints', label: 'Complaints & Maintenance', icon: BuildRounded },
   approvals: { key: 'approvals', label: 'Approval Center', icon: ApprovalRounded },
   notifications: { key: 'notifications', label: 'Notifications', icon: NotificationsRounded },
@@ -188,7 +189,7 @@ function tenantCapabilityEnabled(user: any, capability: 'landlord' | 'surveyor')
 const roleMenus: Record<UserRole, string[]> = {
   admin: ['dashboard', 'approvals', 'design-studio', 'role-permissions', 'site-admin', 'site-enquiries', 'users', 'properties', 'tenant-profiles', 'occupants', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'reminder-rules', 'leases', 'surveys', 'applications', 'payments', 'complaints', 'surveyor-plans', 'surveyor-profiles', 'survey-services', 'survey-jobs', 'survey-quotations', 'survey-projects', 'survey-reports', 'survey-disputes', 'survey-promotions', 'facilities', 'facility-bookings', 'documents', 'drive-admin', 'notifications', 'messages', 'reports', 'audit-logs', 'settings'],
   manager: ['dashboard', 'properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'applications', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'leases', 'surveys', 'payments', 'complaints', 'attendance', 'facilities', 'facility-bookings', 'documents', 'messages', 'notifications', 'reports'],
-  landlord: ['dashboard', 'my-listings', 'survey-jobs', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects', 'documents'],
+  landlord: ['dashboard', 'my-listings', 'survey-jobs', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'transactions', 'agreement-templates', 'survey-projects', 'active-projects', 'documents'],
   tenant: ['dashboard', 'marketplace', 'rent-properties', 'lease-properties', 'sale-properties', 'saved-properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'my-applications', 'property-visits', 'tenancies', 'subscription', 'surveyor-subscription', 'my-property', 'leases', 'complaints', 'documents', 'facilities', 'facility-bookings', 'messages', 'notifications', 'profile'],
   user: ['dashboard', 'marketplace', 'rent-properties', 'lease-properties', 'sale-properties', 'saved-properties', 'applications', 'payments', 'complaints', 'facilities', 'facility-bookings', 'documents', 'messages', 'notifications', 'profile'],
   surveyor: ['surveyor-dashboard', 'survey-job-marketplace', 'survey-quotations', 'survey-projects', 'surveyor-profile', 'surveyor-verification'],
@@ -211,7 +212,7 @@ const regularTenantPropertyMenu: MenuDef[] = [
 
 const regularTenantMenu: MenuDef[] = [...regularTenantWorkspaceMenu, ...regularTenantPropertyMenu, ...regularTenantFinanceMenu];
 
-const LANDLORD_FEATURE_MENU_KEYS = ['my-listings', 'survey-jobs', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'agreement-templates', 'survey-projects', 'active-projects'] as const;
+const LANDLORD_FEATURE_MENU_KEYS = ['my-listings', 'survey-jobs', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'transactions', 'agreement-templates', 'survey-projects', 'active-projects'] as const;
 const LANDLORD_SUBSCRIBER_WORKSPACE: Array<Pick<MenuDef, 'key' | 'label' | 'path' | 'icon' | 'section' | 'sectionOrder' | 'sortOrder'>> = [
   { key: 'dashboard', label: 'Dashboard', path: '/app/dashboard', icon: DashboardRounded, section: 'general', sectionOrder: 10, sortOrder: 10 },
   { key: 'my-listings', label: 'My Listings', path: '/app/my-listings', icon: ApartmentRounded, section: 'general', sectionOrder: 10, sortOrder: 20 },
@@ -221,6 +222,7 @@ const LANDLORD_SUBSCRIBER_WORKSPACE: Array<Pick<MenuDef, 'key' | 'label' | 'path
   { key: 'tenants', label: 'Manage Tenants', path: '/app/tenants', icon: PeopleRounded, section: 'tenancy', sectionOrder: 30, sortOrder: 20 },
   { key: 'tenancies', label: 'Tenancies', path: '/app/tenancies', icon: HomeWorkRounded, section: 'tenancy', sectionOrder: 30, sortOrder: 30 },
   { key: 'tenancy-history', label: 'Tenancy History', path: '/app/tenancy-history', icon: HistoryRounded, section: 'tenancy', sectionOrder: 30, sortOrder: 40 },
+  { key: 'transactions', label: 'Transactions', path: '/app/transactions', icon: ReceiptLongRounded, section: 'finance', sectionOrder: 40, sortOrder: 10 },
 ];
 const LANDLORD_FEATURE_LABELS: Record<string, string> = {
   'my-listings': 'My Listings',
@@ -234,6 +236,7 @@ const LANDLORD_FEATURE_LABELS: Record<string, string> = {
   'utility-readings': 'Meter Readings',
   leases: 'Lease Management',
   payments: 'Track Payments',
+  transactions: 'Transactions',
   'agreement-templates': 'Manage Templates',
   'survey-projects': 'Manage Hired Surveyors',
   'active-projects': 'Active Projects',
