@@ -98,24 +98,24 @@ export default function AgreementTemplatesPage() {
       if (editing?._id) await updateAgreementTemplate(editing._id, payload);
       else await createAgreementTemplate(payload);
       closeEditor();
-      setNotice('Agreement template saved');
+      setNotice(editing?._id ? 'Agreement paper updated' : 'Agreement paper added');
       await load();
     } catch (err) {
-      setError((err as Error).message || 'Could not save agreement template');
+      setError((err as Error).message || 'Could not save agreement paper');
     } finally {
       setBusy('');
     }
   }
 
   async function remove(template: any) {
-    if (!await actions.askConfirmation('Delete this template? Active signed requests keep their saved agreement, but an active request template cannot be deleted.', { title: 'Delete agreement template', danger: true })) return;
+    if (!await actions.askConfirmation('Delete this agreement paper? Existing signed agreements keep their saved paper, but a paper used by an active agreement cannot be deleted.', { title: 'Delete agreement paper', danger: true })) return;
     setBusy('delete-' + template._id);
     try {
       await deleteAgreementTemplate(template._id);
-      setNotice('Agreement template deleted');
+      setNotice('Agreement paper deleted');
       await load();
     } catch (err) {
-      setError((err as Error).message || 'Could not delete agreement template');
+      setError((err as Error).message || 'Could not delete agreement paper');
     } finally {
       setBusy('');
     }
@@ -123,23 +123,23 @@ export default function AgreementTemplatesPage() {
 
   const setStamp = (key: string, value: string | boolean) => setForm((current) => ({ ...current, stampPaper: { ...current.stampPaper, [key]: value } }));
 
-  return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }} data-secureasset-agreement-templates="templates-v77" data-secureasset-agreement-template-preview="clickable-preview-v77">
+  return <Box sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }} data-secureasset-agreement-templates="landlord-agreement-papers-v226" data-secureasset-agreement-template-preview="clickable-preview-v77">
     <CompactPageToolbar
       marker="agreement-templates-toolbar-v153"
-      title="Agreement Templates"
-      description="Manage rent, lease and sale templates for the two-party signature workflow."
-      actions={<Button variant="contained" startIcon={<AddRounded />} onClick={() => openEditor()}>New template</Button>}
+      title="Agreement Papers"
+      description="Create and update your own rent, lease and sale agreement papers for the two-party signature workflow."
+      actions={<Button variant="contained" startIcon={<AddRounded />} onClick={() => openEditor()}>Add Agreement Paper</Button>}
     />
     {error && <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>{error}</Alert>}
-    <Alert severity="info" sx={{ mb: 2 }}>Templates are rendered into a private stamp-paper PDF with property, party, amount and space details. The first party uploads a signature or stamp/seal before it is sent to the second party.</Alert>
+    <Alert severity="info" sx={{ mb: 2 }}>Agreement papers are private to your landlord account. Property, tenant, landlord, room, rent and deposit details are filled automatically when the paper is used. Updating a paper creates a new version without changing already-rendered agreements.</Alert>
     {loading ? <Box sx={{ py: 10, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box> : <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' }, gap: 1.7 }}>
       {agreementTypes.map((type) => {
         const records = templates.filter((template) => template.agreementType === type);
         return <Paper key={type} elevation={0} className="sa-surface-card" sx={{ p: 2.1, borderRadius: 3 }}>
           <Stack spacing={1.25}>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
-              <Typography sx={{ fontWeight: 900 }}>{labels[type]} agreements</Typography>
-              <Chip size="small" variant="outlined" label={records.length + (records.length === 1 ? ' template' : ' templates')} />
+              <Typography sx={{ fontWeight: 900 }}>{labels[type]} papers</Typography>
+              <Chip size="small" variant="outlined" label={records.length + (records.length === 1 ? ' paper' : ' papers')} />
             </Stack>
             <Divider />
             {records.length ? records.map((template) => <Box key={template._id} sx={{ py: .75, borderBottom: '1px solid', borderColor: 'divider', '&:last-child': { borderBottom: 0 } }}>
@@ -161,7 +161,7 @@ export default function AgreementTemplatesPage() {
                 <Button size="small" startIcon={<EditRounded />} onClick={() => openEditor(template)}>Edit</Button>
                 <Button size="small" color="error" startIcon={<DeleteOutlineRounded />} disabled={busy === 'delete-' + template._id} onClick={() => void remove(template)}>Delete</Button>
               </Stack>
-            </Box>) : <Typography variant="body2" color="text.secondary">No {labels[type].toLowerCase()} template yet.</Typography>}
+            </Box>) : <Typography variant="body2" color="text.secondary">No {labels[type].toLowerCase()} agreement paper yet.</Typography>}
           </Stack>
         </Paper>;
       })}
@@ -172,8 +172,8 @@ export default function AgreementTemplatesPage() {
       onClose={() => setPreviewing(null)}
       fullWidth
       maxWidth="md"
-      professionalTitle={previewing ? `${labels[previewing.agreementType as AgreementType] || 'Agreement'} template preview` : 'Agreement template preview'}
-      professionalSubtitle="Review the template layout and stamp-paper settings before using it for an accepted application."
+      professionalTitle={previewing ? `${labels[previewing.agreementType as AgreementType] || 'Agreement'} paper preview` : 'Agreement paper preview'}
+      professionalSubtitle="Review your agreement paper and stamp-paper settings before using it for an accepted application."
       enableMinimize={false}
     >
       <DialogContent dividers>
@@ -181,7 +181,7 @@ export default function AgreementTemplatesPage() {
           <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={1}>
             <Box sx={{ minWidth: 0 }}>
               <Typography sx={{ fontWeight: 900, fontSize: { xs: 18, sm: 21 } }}>{previewing.name}</Typography>
-              <Typography variant="body2" color="text.secondary">Version {previewing.version || 1} · {labels[previewing.agreementType as AgreementType] || 'Agreement'} template</Typography>
+              <Typography variant="body2" color="text.secondary">Version {previewing.version || 1} · {labels[previewing.agreementType as AgreementType] || 'Agreement'} paper</Typography>
             </Box>
             <Chip size="small" variant="outlined" label={previewing.active === false ? 'Inactive' : 'Active'} color={previewing.active === false ? 'default' : 'success'} />
           </Stack>
@@ -206,11 +206,11 @@ export default function AgreementTemplatesPage() {
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
         <Button variant="outlined" color="inherit" onClick={() => setPreviewing(null)}>Close</Button>
-        <Button variant="contained" startIcon={<EditRounded />} onClick={() => { const template = previewing; setPreviewing(null); if (template) openEditor(template); }}>Edit template</Button>
+        <Button variant="contained" startIcon={<EditRounded />} onClick={() => { const template = previewing; setPreviewing(null); if (template) openEditor(template); }}>Update Agreement Paper</Button>
       </DialogActions>
     </ProfessionalDialog>
 
-    <ProfessionalDialog open={Boolean(editing)} onClose={closeEditor} fullWidth maxWidth="md" professionalTitle={editing?._id ? 'Edit agreement template' : 'New agreement template'} professionalSubtitle="The selected template is rendered per accepted application." enableMinimize={false}>
+    <ProfessionalDialog open={Boolean(editing)} onClose={closeEditor} fullWidth maxWidth="md" professionalTitle={editing?._id ? 'Update Agreement Paper' : 'Add Agreement Paper'} professionalSubtitle="This paper belongs to your landlord account and is rendered separately for each accepted application." enableMinimize={false}>
       <Box component="form" onSubmit={save}>
         <DialogContent dividers>
           <Stack spacing={1.7}>
@@ -218,7 +218,7 @@ export default function AgreementTemplatesPage() {
               <TextField select fullWidth label="Agreement type" value={form.agreementType} onChange={(event) => setForm((current) => ({ ...current, agreementType: event.target.value as AgreementType }))} disabled={Boolean(editing?._id)}>
                 {agreementTypes.map((type) => <MenuItem key={type} value={type}>{labels[type]}</MenuItem>)}
               </TextField>
-              <TextField required fullWidth label="Template name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
+              <TextField required fullWidth label="Agreement paper name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
             </Stack>
             <TextField required label="Document title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
             <TextField required label="Agreement body" value={form.body} onChange={(event) => setForm((current) => ({ ...current, body: event.target.value }))} multiline minRows={12} helperText={'Supported placeholders: ' + placeholderHelp} />
@@ -233,7 +233,7 @@ export default function AgreementTemplatesPage() {
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button variant="outlined" color="inherit" onClick={closeEditor} disabled={Boolean(busy)}>Cancel</Button>
-          <Button variant="contained" type="submit" startIcon={<SaveRounded />} disabled={Boolean(busy)}>{busy === 'save' ? 'Saving…' : 'Save template'}</Button>
+          <Button variant="contained" type="submit" startIcon={<SaveRounded />} disabled={Boolean(busy)}>{busy === 'save' ? 'Saving…' : editing?._id ? 'Update Agreement Paper' : 'Add Agreement Paper'}</Button>
         </DialogActions>
       </Box>
     </ProfessionalDialog>
