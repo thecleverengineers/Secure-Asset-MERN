@@ -71,6 +71,7 @@ const UserSchema = new Schema({
   emailNormalized: { type: String, lowercase: true, trim: true, select: false },
   phone: { type: String, trim: true, index: true, sparse: true },
   phoneNormalized: { type: String, trim: true, select: false },
+  whatsappNumber: { type: String, trim: true, index: true, sparse: true },
   password: { type: String, required: true, minlength: 8, select: false },
   role: { type: String, enum: ['admin', 'manager', 'landlord', 'tenant', 'user', 'surveyor'], default: 'tenant', index: true },
   avatar: String,
@@ -133,6 +134,14 @@ UserSchema.pre('validate', function normalizeIdentityFields() {
   }
   this.phone = mobile;
   this.phoneNormalized = mobile;
+
+  if (this.whatsappNumber !== undefined && this.whatsappNumber !== null && String(this.whatsappNumber).trim() !== '') {
+    const whatsapp = normalizeIndianMobile(this.whatsappNumber);
+    if (!whatsapp) this.invalidate('whatsappNumber', 'Enter a valid 10-digit Indian WhatsApp number');
+    else this.whatsappNumber = whatsapp;
+  } else {
+    this.whatsappNumber = undefined;
+  }
 });
 UserSchema.pre('save', async function next() {
   if (!this.isModified('password')) return;
