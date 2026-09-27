@@ -4,23 +4,18 @@ import test from 'node:test';
 
 const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf8');
 
-test('application agreement keeps Contract and Templates always visible below selector', () => {
+test('application agreement setup keeps only selector and prepare action', () => {
   const panel = read('src/app/components/application/ApplicationAgreementPanel.tsx');
-  assert.match(panel, /data-secureasset-agreement-actions="always-visible-v234"/);
-  assert.match(panel, /data-secureasset-agreement-paper-dropdown="templates-only-v234"/);
-  assert.match(panel, /handleAgreementPaperSelection\('__contract__'\)/);
-  assert.match(panel, /handleAgreementPaperSelection\('__manage_templates__'\)/);
-  assert.match(panel, />Contract<\/Typography>/);
-  assert.match(panel, />Templates<\/Typography>/);
-  assert.doesNotMatch(panel, /<MenuItem[\s\S]{0,300}value="__contract__"/);
-  assert.doesNotMatch(panel, /<MenuItem[\s\S]{0,300}value="__manage_templates__"/);
+  assert.match(panel, /data-secureasset-agreement-actions="selector-only-v235"/);
+  assert.match(panel, /data-secureasset-agreement-paper-dropdown="templates-only-v235"/);
+  assert.doesNotMatch(panel, />Contract<\/Typography>/);
+  assert.doesNotMatch(panel, />Templates<\/Typography>/);
+  assert.doesNotMatch(panel, /handleAgreementPaperSelection/);
 });
 
-test('Contract action opens the selected agreement paper preview', () => {
+test('renewal agreement no longer shows Contract or Templates actions', () => {
   const panel = read('src/app/components/application/ApplicationAgreementPanel.tsx');
-  const page = read('src/app/pages/app/AgreementTemplatesPage.tsx');
-  assert.match(panel, /agreement-templates\?preview=/);
-  assert.match(page, /useSearchParams/);
-  assert.match(page, /searchParams\.get\('preview'\)/);
-  assert.match(page, /setPreviewing\(match\)/);
+  assert.match(panel, /Prepare renewal/);
+  assert.doesNotMatch(panel, /__contract__/);
+  assert.doesNotMatch(panel, /__manage_templates__/);
 });
