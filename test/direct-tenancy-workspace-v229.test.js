@@ -12,10 +12,14 @@ test('tenancies page opens the dedicated direct tenancy workspace', () => {
   assert.match(routes, /path: 'add\/tenancy', Component: AddTenancyPage/);
 });
 
-test('direct tenancy options are restricted to landlord-added tenants, own available rent listings and AVAILABLE rooms', () => {
+test('direct tenancy options include landlord-added and tenancy-holder tenants while listings/rooms stay owner-scoped', () => {
   const controller = read('server/src/controllers/rentalUnitController.js');
   assert.match(controller, /createdBy: landlordId/);
   assert.match(controller, /invitationStatus: 'registered'/);
+  assert.match(controller, /Tenancy\.find\(\{/);
+  assert.match(controller, /landlord: landlordId/);
+  assert.match(controller, /isTenancyHolder = true/);
+  assert.match(controller, /!ownAddedContact && !holderTenancy/);
   assert.match(controller, /owner: landlordId/);
   assert.match(controller, /status: \{ \$in: \['available', 'partially_occupied'\] \}/);
   assert.match(controller, /\$or: \[\{ listingType: 'rent' \}, \{ purpose: 'rent' \}\]/);

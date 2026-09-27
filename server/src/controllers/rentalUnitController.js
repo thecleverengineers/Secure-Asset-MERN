@@ -470,7 +470,7 @@ export const getDirectTenancyOptions = asyncHandler(async (req, res) => {
   assertDirectTenancyLandlord(req.user);
   const landlordId = req.user._id;
 
-  const [contacts, listings] = await Promise.all([
+  const [contacts, holderTenancies, listings] = await Promise.all([
     Tenant.find({
       createdBy: landlordId,
       invitationStatus: 'registered',
@@ -481,11 +481,61 @@ export const getDirectTenancyOptions = asyncHandler(async (req, res) => {
       .populate('user', 'name email phone avatar kycStatus status mobileVerifiedAt')
       .sort({ createdAt: -1 })
       .lean(),
+    Tenancy.find({
+      landlord: landlordId,
+      status: { $ne: 'cancelled' },
+      tenant: { $type: 'objectId' },
+    })
+      .select('tenant property rentalUnit status createdAt')
+      .populate('tenant', 'name email phone avatar kycStatus status mobileVerifiedAt')
+      .populate('property', 'title')
+      .populate('rentalUnit', 'name roomNumber')
+      .sort({ createdAt: -1 })
+      .lean(),
     Property.find(directTenancyListingFilter(landlordId))
       .select('title referenceNumber address status listingType purpose rentalSummary pricing galleryCover images createdAt')
       .sort({ createdAt: -1 })
       .lean(),
   ]);
+
+  const tenantOptions = new Map();
+  for (const contact of contacts) {
+    if (!contact.user || String(contact.user.status || 'active') !== 'active') continue;
+    const key = String(contact.user._id || contact.user);
+    tenantOptions.set(key, {
+      _id: contact.user._id || contact.user,
+      user: contact.user,
+      contactId: contact._id,
+      name: contact.name,
+      email: contact.email,
+      phone: contact.phone,
+      isAddedByYou: true,
+      isTenancyHolder: false,
+      holderTenancies: [],
+    });
+  }
+  for (const tenancy of holderTenancies) {
+    if (!tenancy.tenant || String(tenancy.tenant.status || 'active') !== 'active') continue;
+    const key = String(tenancy.tenant._id || tenancy.tenant);
+    const existing = tenantOptions.get(key) || {
+      _id: tenancy.tenant._id || tenancy.tenant,
+      user: tenancy.tenant,
+      isAddedByYou: false,
+      isTenancyHolder: false,
+      holderTenancies: [],
+    };
+    existing.isTenancyHolder = true;
+    existing.holderTenancies.push({
+      _id: tenancy._id,
+      status: tenancy.status,
+      property: tenancy.property,
+      rentalUnit: tenancy.rentalUnit,
+    });
+    tenantOptions.set(key, existing);
+  }
+  const selectableTenants = [...tenantOptions.values()].sort((left, right) =>
+    String(left.user?.name || left.name || '').localeCompare(String(right.user?.name || right.name || ''), 'en-IN')
+  );
 
   const propertyId = String(req.query.propertyId || '').trim();
   let rooms = [];
@@ -512,7 +562,7 @@ export const getDirectTenancyOptions = asyncHandler(async (req, res) => {
   res.json({
     success: true,
     data: {
-      tenants: contacts.filter((contact) => contact.user && String(contact.user.status || 'active') === 'active'),
+      tenants: selectableTenants,
       listings,
       rooms,
     },
@@ -522,24 +572,32 @@ export const getDirectTenancyOptions = asyncHandler(async (req, res) => {
 export const createDirectTenancy = asyncHandler(async (req, res) => {
   assertDirectTenancyLandlord(req.user);
   const landlordId = req.user._id;
-  const tenantContactId = String(req.body.tenantContactId || '').trim();
+  const tenantUserId = String(req.body.tenantUserId || '').trim();
   const propertyId = String(req.body.propertyId || '').trim();
   const rentalUnitId = String(req.body.rentalUnitId || '').trim();
 
-  if (![tenantContactId, propertyId, rentalUnitId].every((id) => mongoose.isValidObjectId(id))) {
+  if (![tenantUserId, propertyId, rentalUnitId].every((id) => mongoose.isValidObjectId(id))) {
     throw new ApiError(422, 'Choose a valid tenant, rental listing and available room');
   }
 
-  const contact = await Tenant.findOne({
-    _id: tenantContactId,
-    createdBy: landlordId,
-    invitationStatus: 'registered',
-    user: { $type: 'objectId' },
-    status: { $ne: 'rejected' },
-  }).lean();
-  if (!contact) throw new ApiError(403, 'Choose a tenant that you added and that has completed Secure Asset registration');
+  const [ownAddedContact, holderTenancy] = await Promise.all([
+    Tenant.exists({
+      createdBy: landlordId,
+      invitationStatus: 'registered',
+      user: tenantUserId,
+      status: { $ne: 'rejected' },
+    }),
+    Tenancy.exists({
+      landlord: landlordId,
+      tenant: tenantUserId,
+      status: { $ne: 'cancelled' },
+    }),
+  ]);
+  if (!ownAddedContact && !holderTenancy) {
+    throw new ApiError(403, 'Choose either a tenant you added or one of your tenancy-holder tenants');
+  }
 
-  const tenantUser = await User.findOne({ _id: contact.user, role: 'tenant', status: 'active' }).select('_id name email phone').lean();
+  const tenantUser = await User.findOne({ _id: tenantUserId, role: 'tenant', status: 'active' }).select('_id name email phone').lean();
   if (!tenantUser) throw new ApiError(409, 'The selected tenant account is not active');
 
   const property = await Property.findOne({ _id: propertyId, ...directTenancyListingFilter(landlordId) });
@@ -606,7 +664,7 @@ export const createDirectTenancy = asyncHandler(async (req, res) => {
       dueTime,
       statusHistory: [{
         to: 'active',
-        reason: 'Tenancy added directly by landlord from own tenant and available rental room',
+        reason: 'Tenancy added directly by landlord from eligible added/tenancy-holder tenant and available rental room',
         changedBy: landlordId,
         changedAt: now,
       }],

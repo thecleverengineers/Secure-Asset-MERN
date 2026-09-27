@@ -1002,7 +1002,7 @@ export async function getDirectTenancyOptions(propertyId = '') {
   return request<ApiResponse<{ tenants: Record<string, any>[]; listings: Record<string, any>[]; rooms: Record<string, any>[] }>>(`/property-management/tenancies/direct/options${query}`);
 }
 export async function createDirectTenancy(body: {
-  tenantContactId: string;
+  tenantUserId: string;
   propertyId: string;
   rentalUnitId: string;
   startDate: string;

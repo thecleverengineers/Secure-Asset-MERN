@@ -25,7 +25,7 @@ import { createDirectTenancy, getDirectTenancyOptions } from '../../services/api
 type RecordValue = Record<string, any>;
 
 type DirectTenancyForm = {
-  tenantContactId: string;
+  tenantUserId: string;
   propertyId: string;
   rentalUnitId: string;
   startDate: string;
@@ -56,7 +56,12 @@ function tenantLabel(row: RecordValue) {
   const user = row.user || {};
   const name = user.name || row.name || 'Tenant';
   const phone = user.phone || row.phone || '';
-  return phone ? `${name} · ${phone}` : name;
+  const source = row.isAddedByYou && row.isTenancyHolder
+    ? 'Added by you + tenancy holder'
+    : row.isTenancyHolder
+      ? 'Tenancy holder'
+      : 'Added by you';
+  return `${name}${phone ? ` · ${phone}` : ''} · ${source}`;
 }
 
 function listingLabel(row: RecordValue) {
@@ -80,7 +85,7 @@ export default function AddTenancyPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState<DirectTenancyForm>({
-    tenantContactId: '',
+    tenantUserId: '',
     propertyId: '',
     rentalUnitId: '',
     startDate: todayInput(),
@@ -133,7 +138,7 @@ export default function AddTenancyPage() {
     }));
   }
 
-  const selectedTenant = useMemo(() => tenants.find((item) => idOf(item) === form.tenantContactId), [tenants, form.tenantContactId]);
+  const selectedTenant = useMemo(() => tenants.find((item) => idOf(item) === form.tenantUserId), [tenants, form.tenantUserId]);
   const selectedListing = useMemo(() => listings.find((item) => idOf(item) === form.propertyId), [listings, form.propertyId]);
   const selectedRoom = useMemo(() => rooms.find((item) => idOf(item) === form.rentalUnitId), [rooms, form.rentalUnitId]);
 
@@ -143,7 +148,7 @@ export default function AddTenancyPage() {
     setSaving(true);
     try {
       const result = await createDirectTenancy({
-        tenantContactId: form.tenantContactId,
+        tenantUserId: form.tenantUserId,
         propertyId: form.propertyId,
         rentalUnitId: form.rentalUnitId,
         startDate: form.startDate,
@@ -164,18 +169,18 @@ export default function AddTenancyPage() {
   }
 
   return <Box
-    data-secureasset-direct-tenancy="own-tenant-own-available-listing-room-v229"
+    data-secureasset-direct-tenancy="added-or-holder-own-available-listing-room-v230"
     sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}
   >
     <CompactPageToolbar
       title="Add Tenancy"
-      description="Create a tenancy directly from a tenant you added and one of your own available rental rooms."
+      description="Create a tenancy directly for a tenant you added or an existing tenancy-holder tenant, using one of your own available rental rooms."
       actions={<Button startIcon={<ArrowBackRounded />} onClick={() => navigate('/app/tenancies')} sx={{ textTransform: 'none' }}>Back to tenancies</Button>}
     />
 
     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
     <Alert severity="info" sx={{ mb: 2 }}>
-      Only tenants added by you who completed registration, your own available rental listings, and rooms with AVAILABLE status can be selected. Creating the tenancy locks the room as occupied.
+      You can select either a registered tenant added by you or an existing tenancy-holder tenant under your landlord account. Only your own available rental listings and rooms with AVAILABLE status can be used. Creating the tenancy locks the selected room as occupied.
     </Alert>
 
     {loading ? <Box sx={{ py: 8, display: 'grid', placeItems: 'center' }}><CircularProgress size={30} /></Box> : (
@@ -185,21 +190,26 @@ export default function AddTenancyPage() {
             <CardContent>
               <Stack direction="row" spacing={1.2} alignItems="center" sx={{ mb: 2 }}>
                 <PersonRounded color="primary" />
-                <Box><Typography sx={{ fontSize: 16, fontWeight: 700 }}>1. Select tenant</Typography><Typography color="text.secondary" sx={{ fontSize: 12.5 }}>Only tenant contacts added by your landlord account and fully registered.</Typography></Box>
+                <Box><Typography sx={{ fontSize: 16, fontWeight: 700 }}>1. Select tenant</Typography><Typography color="text.secondary" sx={{ fontSize: 12.5 }}>Choose a tenant added by you or an existing tenancy-holder tenant under your account.</Typography></Box>
               </Stack>
               <TextField
                 select
                 fullWidth
                 required
                 size="small"
-                label="Your added tenant"
-                value={form.tenantContactId}
-                onChange={(event) => setForm({ ...form, tenantContactId: event.target.value })}
-                helperText={tenants.length ? 'Select the registered tenant who will hold this tenancy.' : 'No registered tenant added by you is available yet. Add a tenant from Manage Tenants first.'}
+                label="Added / tenancy-holder tenant"
+                value={form.tenantUserId}
+                onChange={(event) => setForm({ ...form, tenantUserId: event.target.value })}
+                helperText={tenants.length ? 'Added-by-you and tenancy-holder tenants are combined here; duplicates are merged automatically.' : 'No eligible added or tenancy-holder tenant is available yet.'}
               >
                 {tenants.map((tenant) => <MenuItem key={idOf(tenant)} value={idOf(tenant)}>{tenantLabel(tenant)}</MenuItem>)}
               </TextField>
-              {selectedTenant && <Typography sx={{ mt: 1, fontSize: 12, color: 'text.secondary' }}>KYC: {String(selectedTenant.user?.kycStatus || 'not started').replaceAll('_', ' ')}</Typography>}
+              {selectedTenant && <Typography sx={{ mt: 1, fontSize: 12, color: 'text.secondary' }}>
+                {selectedTenant.isAddedByYou ? 'Added by you' : ''}
+                {selectedTenant.isAddedByYou && selectedTenant.isTenancyHolder ? ' · ' : ''}
+                {selectedTenant.isTenancyHolder ? 'Tenancy holder' : ''}
+                {' · '}KYC: {String(selectedTenant.user?.kycStatus || 'not started').replaceAll('_', ' ')}
+              </Typography>}
             </CardContent>
           </Card>
 
@@ -290,7 +300,7 @@ export default function AddTenancyPage() {
                   type="submit"
                   variant="contained"
                   startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <AddHomeWorkRounded />}
-                  disabled={saving || !form.tenantContactId || !form.propertyId || !form.rentalUnitId || !form.monthlyRent}
+                  disabled={saving || !form.tenantUserId || !form.propertyId || !form.rentalUnitId || !form.monthlyRent}
                   sx={{ textTransform: 'none', minWidth: 150 }}
                 >
                   {saving ? 'Creating…' : 'Add tenancy'}
