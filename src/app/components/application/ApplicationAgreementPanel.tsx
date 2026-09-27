@@ -567,56 +567,59 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
         {firstPartySide && !inProgress && <Stack spacing={1.1} data-secureasset-first-party-agreement-setup="first-party-upload-before-request-v85">
           <Typography sx={{ fontSize: 12, fontWeight: 800, color: 'text.secondary' }}>First-party agreement setup</Typography>
           {agreementTermFields()}
-          {loading && !templates.length ? <CircularProgress size={22} /> : templates.length ? <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <Select
-              size="small"
-              fullWidth
-              value={templateId}
-              onChange={(event) => handleAgreementPaperSelection(String(event.target.value))}
-              displayEmpty
-              aria-label={`${typeLabel(type)} agreement paper`}
-              data-secureasset-agreement-paper-dropdown="premium-footer-actions-v233"
-            >
-              <MenuItem value="" disabled>Select an agreement paper</MenuItem>
-              {templates.map((template) => <MenuItem key={idOf(template)} value={idOf(template)}>{template.name} · v{template.version || 1}</MenuItem>)}
-              <Divider sx={{ my: 1 }} />
-              <MenuItem
-                value="__contract__"
+          {loading && !templates.length ? <CircularProgress size={22} /> : templates.length ? <Stack spacing={1} data-secureasset-agreement-actions="always-visible-v234">
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+              <Select
+                size="small"
+                fullWidth
+                value={templateId}
+                onChange={(event) => setTemplateId(String(event.target.value))}
+                displayEmpty
+                aria-label={`${typeLabel(type)} agreement paper`}
+                data-secureasset-agreement-paper-dropdown="templates-only-v234"
+              >
+                <MenuItem value="" disabled>Select an agreement paper</MenuItem>
+                {templates.map((template) => <MenuItem key={idOf(template)} value={idOf(template)}>{template.name} · v{template.version || 1}</MenuItem>)}
+              </Select>
+              <Button variant="contained" startIcon={<DescriptionRounded />} disabled={Boolean(busy) || !templateId} onClick={() => void prepareRequest()} sx={{ whiteSpace: 'nowrap', minHeight: 40 }}>{busy === 'prepare' ? 'Preparing…' : 'Prepare agreement'}</Button>
+            </Stack>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<DescriptionRounded />}
                 disabled={!templateId}
+                onClick={() => handleAgreementPaperSelection('__contract__')}
                 sx={{
-                  mx: 1, my: .65, minHeight: 48, borderRadius: 2.2, border: '1px solid', borderColor: 'divider',
-                  bgcolor: 'background.paper', boxShadow: '0 6px 18px rgba(15, 23, 42, .06)',
-                  '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.light', transform: 'translateY(-1px)' },
+                  justifyContent: 'flex-start', minHeight: 50, px: 1.5, borderRadius: 2.2, fontWeight: 850,
+                  borderColor: 'divider', bgcolor: 'background.paper', boxShadow: '0 8px 22px rgba(15, 23, 42, .06)',
+                  '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(11,82,112,.04)', transform: 'translateY(-1px)', boxShadow: '0 10px 26px rgba(15, 23, 42, .10)' },
                   transition: 'all .18s ease',
                 }}
               >
-                <Box sx={{ width: 32, height: 32, borderRadius: 1.8, display: 'grid', placeItems: 'center', bgcolor: 'primary.main', color: 'primary.contrastText', mr: 1.2, flex: '0 0 auto' }}>
-                  <DescriptionRounded fontSize="small" />
+                <Box sx={{ textAlign: 'left' }}>
+                  <Typography sx={{ fontSize: 13, fontWeight: 850, lineHeight: 1.1 }}>Contract</Typography>
+                  <Typography sx={{ fontSize: 10.5, color: 'text.secondary', mt: .25, fontWeight: 500 }}>Preview selected agreement</Typography>
                 </Box>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ fontSize: 13, fontWeight: 850, lineHeight: 1.2 }}>Contract</Typography>
-                  <Typography sx={{ fontSize: 10.5, color: 'text.secondary', mt: .2 }}>Preview the selected agreement paper</Typography>
-                </Box>
-              </MenuItem>
-              <MenuItem
-                value="__manage_templates__"
+              </Button>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<OpenInNewRounded />}
+                onClick={() => handleAgreementPaperSelection('__manage_templates__')}
                 sx={{
-                  mx: 1, my: .65, minHeight: 48, borderRadius: 2.2, border: '1px solid', borderColor: 'divider',
-                  bgcolor: 'background.paper', boxShadow: '0 6px 18px rgba(15, 23, 42, .06)',
-                  '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.light', transform: 'translateY(-1px)' },
+                  justifyContent: 'flex-start', minHeight: 50, px: 1.5, borderRadius: 2.2, fontWeight: 850,
+                  borderColor: 'divider', bgcolor: 'background.paper', boxShadow: '0 8px 22px rgba(15, 23, 42, .06)',
+                  '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(11,82,112,.04)', transform: 'translateY(-1px)', boxShadow: '0 10px 26px rgba(15, 23, 42, .10)' },
                   transition: 'all .18s ease',
                 }}
               >
-                <Box sx={{ width: 32, height: 32, borderRadius: 1.8, display: 'grid', placeItems: 'center', bgcolor: 'action.hover', color: 'primary.main', mr: 1.2, flex: '0 0 auto' }}>
-                  <OpenInNewRounded fontSize="small" />
+                <Box sx={{ textAlign: 'left' }}>
+                  <Typography sx={{ fontSize: 13, fontWeight: 850, lineHeight: 1.1 }}>Templates</Typography>
+                  <Typography sx={{ fontSize: 10.5, color: 'text.secondary', mt: .25, fontWeight: 500 }}>Manage agreement templates</Typography>
                 </Box>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography sx={{ fontSize: 13, fontWeight: 850, lineHeight: 1.2 }}>Templates</Typography>
-                  <Typography sx={{ fontSize: 10.5, color: 'text.secondary', mt: .2 }}>Create and manage agreement templates</Typography>
-                </Box>
-              </MenuItem>
-            </Select>
-            <Button variant="contained" startIcon={<DescriptionRounded />} disabled={Boolean(busy) || !templateId} onClick={() => void prepareRequest()} sx={{ whiteSpace: 'nowrap' }}>{busy === 'prepare' ? 'Preparing…' : 'Prepare agreement'}</Button>
+              </Button>
+            </Stack>
           </Stack> : <Alert severity="info" action={<Button color="inherit" size="small" href="/app/agreement-templates">Add Agreement Paper</Button>}>Add a {typeLabel(type).toLowerCase()} agreement paper before preparing this agreement.</Alert>}
         </Stack>}
 
@@ -855,41 +858,19 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
                           <Stack spacing={1}>
                             <Typography sx={{ fontWeight: 850, fontSize: 12.5 }}>New agreement for this tenancy</Typography>
                             {agreementTermFields()}
-                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={.8}>
-                              <Select size="small" fullWidth value={templateId} onChange={(event) => handleAgreementPaperSelection(String(event.target.value))} displayEmpty aria-label="Renewal agreement template">
-                                <MenuItem value="" disabled>Select a template</MenuItem>
-                                {templates.map((template) => <MenuItem key={idOf(template)} value={idOf(template)}>{template.name} · v{template.version || 1}</MenuItem>)}
-                                <Divider sx={{ my: 1 }} />
-                                <MenuItem
-                                  value="__contract__"
-                                  disabled={!templateId}
-                                  sx={{
-                                    mx: 1, my: .65, minHeight: 48, borderRadius: 2.2, border: '1px solid', borderColor: 'divider',
-                                    bgcolor: 'background.paper', boxShadow: '0 6px 18px rgba(15, 23, 42, .06)',
-                                    '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.light' },
-                                  }}
-                                >
-                                  <Box sx={{ width: 32, height: 32, borderRadius: 1.8, display: 'grid', placeItems: 'center', bgcolor: 'primary.main', color: 'primary.contrastText', mr: 1.2 }}>
-                                    <DescriptionRounded fontSize="small" />
-                                  </Box>
-                                  <Box><Typography sx={{ fontSize: 13, fontWeight: 850 }}>Contract</Typography><Typography sx={{ fontSize: 10.5, color: 'text.secondary' }}>Preview selected agreement</Typography></Box>
-                                </MenuItem>
-                                <MenuItem
-                                  value="__manage_templates__"
-                                  sx={{
-                                    mx: 1, my: .65, minHeight: 48, borderRadius: 2.2, border: '1px solid', borderColor: 'divider',
-                                    bgcolor: 'background.paper', boxShadow: '0 6px 18px rgba(15, 23, 42, .06)',
-                                    '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.light' },
-                                  }}
-                                >
-                                  <Box sx={{ width: 32, height: 32, borderRadius: 1.8, display: 'grid', placeItems: 'center', bgcolor: 'action.hover', color: 'primary.main', mr: 1.2 }}>
-                                    <OpenInNewRounded fontSize="small" />
-                                  </Box>
-                                  <Box><Typography sx={{ fontSize: 13, fontWeight: 850 }}>Templates</Typography><Typography sx={{ fontSize: 10.5, color: 'text.secondary' }}>Manage agreement templates</Typography></Box>
-                                </MenuItem>
-                              </Select>
-                              <Button size="small" variant="contained" disabled={Boolean(busy) || !templateId || !validAgreementTerm} onClick={() => void prepareRequest(requestId)}>{busy === 'prepare' ? 'Preparing…' : 'Prepare renewal'}</Button>
-                              <Button size="small" disabled={Boolean(busy)} onClick={() => setRenewalFor(null)}>Cancel</Button>
+                            <Stack spacing={.8}>
+                              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={.8}>
+                                <Select size="small" fullWidth value={templateId} onChange={(event) => setTemplateId(String(event.target.value))} displayEmpty aria-label="Renewal agreement template">
+                                  <MenuItem value="" disabled>Select a template</MenuItem>
+                                  {templates.map((template) => <MenuItem key={idOf(template)} value={idOf(template)}>{template.name} · v{template.version || 1}</MenuItem>)}
+                                </Select>
+                                <Button size="small" variant="contained" disabled={Boolean(busy) || !templateId || !validAgreementTerm} onClick={() => void prepareRequest(requestId)}>{busy === 'prepare' ? 'Preparing…' : 'Prepare renewal'}</Button>
+                                <Button size="small" disabled={Boolean(busy)} onClick={() => setRenewalFor(null)}>Cancel</Button>
+                              </Stack>
+                              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={.8}>
+                                <Button fullWidth size="small" variant="outlined" startIcon={<DescriptionRounded />} disabled={!templateId} onClick={() => handleAgreementPaperSelection('__contract__')} sx={{ justifyContent: 'flex-start', minHeight: 44, borderRadius: 2, fontWeight: 850 }}>Contract</Button>
+                                <Button fullWidth size="small" variant="outlined" startIcon={<OpenInNewRounded />} onClick={() => handleAgreementPaperSelection('__manage_templates__')} sx={{ justifyContent: 'flex-start', minHeight: 44, borderRadius: 2, fontWeight: 850 }}>Templates</Button>
+                              </Stack>
                             </Stack>
                           </Stack>
                         </Paper>}
