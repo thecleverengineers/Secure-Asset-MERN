@@ -11,6 +11,7 @@ import DownloadRounded from '@mui/icons-material/DownloadRounded';
 import DrawRounded from '@mui/icons-material/DrawRounded';
 import EventAvailableRounded from '@mui/icons-material/EventAvailableRounded';
 import HourglassTopRounded from '@mui/icons-material/HourglassTopRounded';
+import OpenInNewRounded from '@mui/icons-material/OpenInNewRounded';
 import ReplayRounded from '@mui/icons-material/ReplayRounded';
 import SendRounded from '@mui/icons-material/SendRounded';
 import TaskAltRounded from '@mui/icons-material/TaskAltRounded';

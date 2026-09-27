@@ -15,6 +15,17 @@ export default class ApplicationErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('SecureAsset application render error', error, info.componentStack);
+    try {
+      const key = 'secureasset_application_render_recovery';
+      if (window.sessionStorage.getItem(key) !== '1') {
+        window.sessionStorage.setItem(key, '1');
+        const url = new URL(window.location.href);
+        url.searchParams.set('__secureasset_app_recovery', String(Date.now()));
+        window.location.replace(url.toString());
+      }
+    } catch {
+      // Recovery storage can be blocked; the visible fallback remains usable.
+    }
   }
 
   render() {
@@ -26,7 +37,12 @@ export default class ApplicationErrorBoundary extends Component<Props, State> {
           <Typography variant="h4" sx={{ fontWeight: 950, letterSpacing: '-.035em' }}>A safe recovery is available</Typography>
           <Typography color="text.secondary" sx={{ mt: 1.5, lineHeight: 1.75 }}>No changes were saved. Reload the current release or return to the public home page.</Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 4 }}>
-            <Button variant="contained" startIcon={<RefreshRounded />} onClick={() => window.location.reload()}>Reload application</Button>
+            <Button variant="contained" startIcon={<RefreshRounded />} onClick={() => {
+              try { window.sessionStorage.removeItem('secureasset_application_render_recovery'); } catch { /* optional */ }
+              const url = new URL(window.location.href);
+              url.searchParams.set('__secureasset_app_recovery', String(Date.now()));
+              window.location.replace(url.toString());
+            }}>Reload application</Button>
             <Button variant="outlined" startIcon={<HomeRounded />} href="/">Go to home</Button>
           </Stack>
         </Paper>

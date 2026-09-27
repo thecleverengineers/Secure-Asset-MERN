@@ -24,6 +24,10 @@ function run(command, args, extraEnv = {}) {
 }
 
 try {
+  // Vite transpiles TypeScript but does not type-check it. Run tsc first so
+  // undefined JSX symbols, missing imports and incompatible route components
+  // fail the deployment before an invalid frontend release can be activated.
+  run(process.execPath, [path.join(appDir, 'node_modules/typescript/bin/tsc'), '--noEmit']);
   run(process.execPath, [path.join(appDir, 'node_modules/vite/bin/vite.js'), 'build', '--outDir', outputDir, '--emptyOutDir']);
   run(process.execPath, [path.join(appDir, 'scripts/generate-spa-fallbacks.js')], { BUILD_DIST_DIR: outputDir });
   run(process.execPath, [path.join(appDir, 'scripts/verify-production-build.js')], { BUILD_DIST_DIR: outputDir });

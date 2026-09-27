@@ -2,7 +2,7 @@ import { Alert, Box, Button, Paper, Stack, Typography } from '@mui/material';
 import HomeRounded from '@mui/icons-material/HomeRounded';
 import RefreshRounded from '@mui/icons-material/RefreshRounded';
 import { isRouteErrorResponse, useLocation, useRouteError } from 'react-router';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { isChunkLoadError } from '../../utils/lazyWithRetry';
 
 export default function RouteErrorPage() {
@@ -15,17 +15,37 @@ export default function RouteErrorPage() {
     ? 'The application was updated while this browser tab was open. Reload once to use the latest files.'
     : 'Your data has not been changed. Reload the page, or return to the home page and try again.';
   const errorCode = chunkFailure ? 'asset-version' : status ? `route-${status}` : 'route-runtime';
+  const recoveryKey = useMemo(
+    () => `secureasset_route_recovery:${location.pathname}:${errorCode}`,
+    [errorCode, location.pathname],
+  );
 
   useEffect(() => {
     // Keep the visible error safe while leaving a useful route and classified
     // exception in the browser console for support and deployment diagnosis.
     console.error('SecureAsset route error', { path: location.pathname, code: errorCode, error });
-  }, [error, errorCode, location.pathname]);
+
+    // A route-runtime fault can happen when a tab crosses a deployment boundary
+    // or when browser module state is stale. Make one cache-busting recovery
+    // attempt per path/error code, then stop to avoid reload loops if the release
+    // itself is genuinely broken.
+    if (status === 404) return;
+    try {
+      if (window.sessionStorage.getItem(recoveryKey) === '1') return;
+      window.sessionStorage.setItem(recoveryKey, '1');
+      const url = new URL(window.location.href);
+      url.searchParams.set('__secureasset_runtime_recovery', String(Date.now()));
+      window.location.replace(url.toString());
+    } catch {
+      // Storage can be blocked. The manual recovery controls remain available.
+    }
+  }, [error, errorCode, location.pathname, recoveryKey, status]);
 
   const reload = () => {
     try {
       window.sessionStorage.removeItem('secureasset_chunk_reload_count');
       window.sessionStorage.removeItem('__secureasset_chunk_retry');
+      window.sessionStorage.removeItem(recoveryKey);
     } catch { /* A strict storage policy must not block recovery. */ }
     const url = new URL(window.location.href);
     url.searchParams.set('__secureasset_asset_refresh', String(Date.now()));
