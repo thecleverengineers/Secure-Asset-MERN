@@ -55,6 +55,16 @@ export const FAST2SMS_WHATSAPP_TEMPLATES = Object.freeze({
     messageId: '27057', category: 'payment', variableCount: 4, variables: ['name', 'amount', 'propertyAddress', 'dueDate'],
     description: 'Rent due reminder',
   }),
+  security_deposit_request: Object.freeze({
+    messageId: '34218', phoneNumberId: '1202480702956271', category: 'payment', variableCount: 4,
+    variables: ['name', 'amount', 'dueDate', 'paymentLink'],
+    description: 'Security deposit payment request after agreement completion',
+  }),
+  security_deposit_completed: Object.freeze({
+    messageId: '34219', phoneNumberId: '1202480702956271', category: 'payment', variableCount: 5,
+    variables: ['name', 'amount', 'paymentReference', 'paymentDate', 'receiptLink'],
+    description: 'Security deposit verified and completed confirmation',
+  }),
 });
 
 export function listFast2SmsWhatsAppTemplates() {
@@ -147,7 +157,7 @@ export function buildFast2SmsWhatsAppUrl(config, { mobile, templateKey, variable
   url.search = new URLSearchParams({
     authorization: String(config.authorization || ''),
     message_id: String(template.messageId),
-    phone_number_id: String(config.whatsappPhoneNumberId || FAST2SMS_WHATSAPP_DEFAULTS.phoneNumberId),
+    phone_number_id: String(template.phoneNumberId || config.whatsappPhoneNumberId || FAST2SMS_WHATSAPP_DEFAULTS.phoneNumberId),
     numbers: normalized,
     variables_values: values.join('|'),
   }).toString();

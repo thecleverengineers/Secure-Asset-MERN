@@ -3,11 +3,13 @@ import mongoose from 'mongoose';
 import PDFDocument from 'pdfkit';
 import { fileTypeFromBuffer } from 'file-type';
 import {
-  AgreementRequest, AgreementTemplate, Application, DriveFile, DriveFileVersion, Payment, Property, PropertySpace, RentalUnit, Tenancy, User,
+  AgreementRequest, AgreementTemplate, Application, DriveFile, DriveFileVersion, Payment, Property, PropertySpace, RentalUnit, TenantKyc, Tenancy, User,
 } from '../models/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
 import { createNotification } from '../services/notifications.js';
+import { sendFast2SmsWhatsApp } from '../services/fast2sms.js';
+import { env } from '../config/env.js';
 import { capabilityRolesForUser } from '../services/rbac.js';
 import { writeAudit } from '../middleware/audit.js';
 import { isApplicationAccepted, sameId } from '../services/applicationWorkflow.js';
@@ -436,6 +438,60 @@ function depositVerificationStatus(payment) {
   return String(payment?.paymentVerification?.status || (payment ? 'awaiting_tenant' : 'not_required'));
 }
 
+function securityDepositDueDate(request, now = new Date()) {
+  const preferred = validDate(request?.startDate) || validDate(request?.application?.moveInDate);
+  return preferred && preferred.getTime() > now.getTime() ? preferred : now;
+}
+
+function whatsappDate(value) {
+  const date = validDate(value) || new Date();
+  return date.toLocaleDateString('en-IN', { dateStyle: 'long', timeZone: 'Asia/Kolkata' });
+}
+
+function whatsappAmount(value) {
+  return Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+}
+
+function publicAppLink(pathname) {
+  try {
+    return new URL(pathname, env.PUBLIC_APP_URL).toString();
+  } catch {
+    return `https://secure-asset-mern.onrender.com${pathname}`;
+  }
+}
+
+async function sendSecurityDepositWhatsApp(request, templateKey, variables) {
+  const tenantId = request?.tenant?._id || request?.tenant;
+  if (!mongoose.isValidObjectId(tenantId)) return { status: 'skipped', reason: 'tenant unavailable' };
+  const kyc = await TenantKyc.findOne({ user: tenantId }).select('whatsappNumber status').lean();
+  const mobile = cleanText(kyc?.whatsappNumber);
+  if (!mobile) {
+    console.warn('Security deposit WhatsApp skipped: tenant KYC WhatsApp number missing', {
+      agreementRequest: String(request?._id || ''),
+      templateKey,
+    });
+    return { status: 'skipped', reason: 'tenant KYC WhatsApp number missing' };
+  }
+  try {
+    const result = await sendFast2SmsWhatsApp({ mobile, templateKey, variables });
+    console.log('Security deposit WhatsApp accepted by Fast2SMS', {
+      agreementRequest: String(request?._id || ''),
+      templateKey,
+      destinationLast4: mobile.slice(-4),
+      providerMessageId: String(result?.messageId || result?.id || result?.request_id || ''),
+    });
+    return { status: 'accepted', result };
+  } catch (error) {
+    console.error('Security deposit WhatsApp failed', {
+      agreementRequest: String(request?._id || ''),
+      templateKey,
+      destinationLast4: mobile.slice(-4),
+      reason: error instanceof Error ? error.message : String(error),
+    });
+    return { status: 'failed', reason: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 async function ensureSecurityDepositPayment(request, actorId) {
   const amount = securityDepositAmount(request);
   if (amount <= 0) return null;
@@ -443,6 +499,7 @@ async function ensureSecurityDepositPayment(request, actorId) {
   const applicationId = request?.application?._id || request?.application;
   const payer = request?.tenant?._id || request?.tenant;
   const payee = request?.landlord?._id || request?.landlord;
+  const dueDate = securityDepositDueDate(request);
   let payment = null;
 
   const linkedId = request?.securityDepositPayment?._id || request?.securityDepositPayment;
@@ -470,16 +527,27 @@ async function ensureSecurityDepositPayment(request, actorId) {
       amount,
       paidAmount: 0,
       status: 'pending',
+      dueDate,
       method: 'bank_transfer',
       gateway: { source: 'security_deposit', agreementRequest: String(request._id), approvalRequired: 'landlord' },
       paymentVerification: { status: 'awaiting_tenant', submissionCount: 0 },
       createdBy: actorId,
       updatedBy: actorId,
     });
-  } else if (Number(payment.amount || 0) !== amount && depositVerificationStatus(payment) !== 'approved') {
-    payment.amount = amount;
-    payment.updatedBy = actorId;
-    await payment.save();
+  } else if (depositVerificationStatus(payment) !== 'approved') {
+    let changed = false;
+    if (Number(payment.amount || 0) !== amount) {
+      payment.amount = amount;
+      changed = true;
+    }
+    if (!validDate(payment.dueDate)) {
+      payment.dueDate = dueDate;
+      changed = true;
+    }
+    if (changed) {
+      payment.updatedBy = actorId;
+      await payment.save();
+    }
   }
 
   request.securityDepositPayment = payment._id;
@@ -1117,6 +1185,12 @@ export const uploadSecondPartySignature = asyncHandler(async (req, res) => {
       actionUrl: `/app/my-applications?record=${request.application?._id || request.application}`,
       metadata: { agreementRequest: request._id, paymentId: securityDepositPayment._id, event: 'security_deposit_required' },
     });
+    await sendSecurityDepositWhatsApp(request, 'security_deposit_request', [
+      request.tenantName || request.tenant?.name || 'Tenant',
+      whatsappAmount(securityDepositPayment.amount),
+      whatsappDate(securityDepositPayment.dueDate || securityDepositDueDate(request)),
+      publicAppLink(`/app/my-applications?record=${request.application?._id || request.application}`),
+    ]);
   }
 
   await createNotification({
@@ -1416,6 +1490,18 @@ export const approveAgreementRequest = asyncHandler(async (req, res) => {
       })));
     }
   }
+  if (securityDepositPayment && requiredDepositAmount > 0) {
+    await sendSecurityDepositWhatsApp(request, 'security_deposit_completed', [
+      request.tenantName || request.tenant?.name || 'Tenant',
+      whatsappAmount(requiredDepositAmount),
+      securityDepositPayment.transactionId || securityDepositPayment.invoiceNumber || String(securityDepositPayment._id),
+      whatsappDate(securityDepositPayment.paidAt || now),
+      publicAppLink(tenancy?._id
+        ? `/app/my-property/${tenancy._id}/rent-cycle`
+        : `/app/my-applications?record=${request.application?._id || request.application}`),
+    ]);
+  }
+
   const cycleMessage = request.rentalUnit
     ? `${requiredDepositAmount > 0 ? 'Security deposit verified and agreement approved.' : 'Agreement approved.'} The rent workflow is now started. The initial room rent invoice is due ${dueAt.toLocaleDateString('en-IN', { dateStyle: 'long' })}.`
     : ACTIVE_CYCLE_AGREEMENT_TYPES.has(request.agreementType)
