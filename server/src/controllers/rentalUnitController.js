@@ -8,7 +8,9 @@ import {
   RentCycle,
   RentalInvoice,
   RentalUnit,
+  Tenant,
   Tenancy,
+  User,
   DriveFile,
 } from '../models/index.js';
 import { writeAudit } from '../middleware/audit.js';
@@ -18,6 +20,8 @@ import { createNotification } from '../services/notifications.js';
 import { emitRealtime } from '../services/realtime.js';
 import { buildScope, normalizeQueryFilter } from '../services/scope.js';
 import { assertLandlordLimit } from '../services/landlordSubscription.js';
+import { capabilityRolesForUser } from '../services/rbac.js';
+import { ensureMonthlyRentalInvoice, ensureRentalInvoicePayment } from '../services/rentalBilling.js';
 import { sendStoredFile } from '../utils/httpFile.js';
 import {
   propertyManagedBy,
@@ -434,6 +438,235 @@ export const getPropertyOccupancy = asyncHandler(async (req, res) => {
     };
   });
   res.json({ success: true, data: { property: property.toObject(), rows } });
+});
+
+function directTenancyListingFilter(landlordId) {
+  return {
+    owner: landlordId,
+    deletedAt: null,
+    status: { $in: ['available', 'partially_occupied'] },
+    $or: [{ listingType: 'rent' }, { purpose: 'rent' }],
+  };
+}
+
+function assertDirectTenancyLandlord(user) {
+  if (!capabilityRolesForUser(user).includes('landlord')) {
+    throw new ApiError(403, 'An active Landlord subscription is required to add a tenancy directly');
+  }
+}
+
+function addCalendarMonths(value, months) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) throw new ApiError(422, 'Choose a valid tenancy start date');
+  const originalDay = date.getDate();
+  date.setDate(1);
+  date.setMonth(date.getMonth() + months);
+  const finalDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  date.setDate(Math.min(originalDay, finalDay));
+  return date;
+}
+
+export const getDirectTenancyOptions = asyncHandler(async (req, res) => {
+  assertDirectTenancyLandlord(req.user);
+  const landlordId = req.user._id;
+
+  const [contacts, listings] = await Promise.all([
+    Tenant.find({
+      createdBy: landlordId,
+      invitationStatus: 'registered',
+      user: { $type: 'objectId' },
+      status: { $ne: 'rejected' },
+    })
+      .select('name email phone user property unitName invitationStatus status createdAt')
+      .populate('user', 'name email phone avatar kycStatus status mobileVerifiedAt')
+      .sort({ createdAt: -1 })
+      .lean(),
+    Property.find(directTenancyListingFilter(landlordId))
+      .select('title referenceNumber address status listingType purpose rentalSummary pricing galleryCover images createdAt')
+      .sort({ createdAt: -1 })
+      .lean(),
+  ]);
+
+  const propertyId = String(req.query.propertyId || '').trim();
+  let rooms = [];
+  if (propertyId) {
+    if (!mongoose.isValidObjectId(propertyId)) throw new ApiError(404, 'Rental listing not found');
+    const listing = listings.find((item) => sameId(item._id, propertyId));
+    if (!listing) throw new ApiError(403, 'You can only use your own available rental listings');
+
+    rooms = await RentalUnit.find({
+      property: listing._id,
+      landlord: landlordId,
+      availabilityStatus: 'AVAILABLE',
+      currentTenancyId: null,
+      currentTenantId: null,
+      publicationStatus: { $ne: 'archived' },
+    })
+      .select('property floor roomNumber name referenceNumber pricing specifications availabilityStatus visibility publicationStatus')
+      .populate('floor', 'floorNumber floorName floorCode')
+      .sort({ roomNumberKey: 1 })
+      .lean();
+  }
+
+  res.set('Cache-Control', 'no-store');
+  res.json({
+    success: true,
+    data: {
+      tenants: contacts.filter((contact) => contact.user && String(contact.user.status || 'active') === 'active'),
+      listings,
+      rooms,
+    },
+  });
+});
+
+export const createDirectTenancy = asyncHandler(async (req, res) => {
+  assertDirectTenancyLandlord(req.user);
+  const landlordId = req.user._id;
+  const tenantContactId = String(req.body.tenantContactId || '').trim();
+  const propertyId = String(req.body.propertyId || '').trim();
+  const rentalUnitId = String(req.body.rentalUnitId || '').trim();
+
+  if (![tenantContactId, propertyId, rentalUnitId].every((id) => mongoose.isValidObjectId(id))) {
+    throw new ApiError(422, 'Choose a valid tenant, rental listing and available room');
+  }
+
+  const contact = await Tenant.findOne({
+    _id: tenantContactId,
+    createdBy: landlordId,
+    invitationStatus: 'registered',
+    user: { $type: 'objectId' },
+    status: { $ne: 'rejected' },
+  }).lean();
+  if (!contact) throw new ApiError(403, 'Choose a tenant that you added and that has completed Secure Asset registration');
+
+  const tenantUser = await User.findOne({ _id: contact.user, role: 'tenant', status: 'active' }).select('_id name email phone').lean();
+  if (!tenantUser) throw new ApiError(409, 'The selected tenant account is not active');
+
+  const property = await Property.findOne({ _id: propertyId, ...directTenancyListingFilter(landlordId) });
+  if (!property) throw new ApiError(403, 'Choose one of your own available rental listings');
+
+  const unit = await RentalUnit.findOne({
+    _id: rentalUnitId,
+    property: property._id,
+    landlord: landlordId,
+    availabilityStatus: 'AVAILABLE',
+    currentTenancyId: null,
+    currentTenantId: null,
+    publicationStatus: { $ne: 'archived' },
+  });
+  if (!unit) throw new ApiError(409, 'The selected room is no longer available');
+
+  const liveTenancy = await Tenancy.exists({
+    rentalUnit: unit._id,
+    status: { $in: ['reserved', 'application_pending', 'deposit_pending', 'agreement_pending', 'payment_pending', 'active', 'notice', 'notice_period', 'vacating', 'move_out', 'move_out_inspection', 'final_calculation', 'landlord_review', 'final_payment', 'deposit_settlement'] },
+  });
+  if (liveTenancy) throw new ApiError(409, 'The selected room already has an active tenancy workflow');
+
+  const startDate = new Date(req.body.startDate || new Date());
+  if (Number.isNaN(startDate.getTime())) throw new ApiError(422, 'Choose a valid tenancy start date');
+
+  const durationMonths = Number(req.body.durationMonths || 12);
+  if (!Number.isInteger(durationMonths) || durationMonths < 1 || durationMonths > 120) {
+    throw new ApiError(422, 'Agreement duration must be between 1 and 120 months');
+  }
+  const endDate = addCalendarMonths(startDate, durationMonths);
+
+  const monthlyRent = Number(req.body.monthlyRent ?? unit.pricing?.monthlyRent ?? 0);
+  const securityDeposit = Math.max(0, Number(req.body.securityDeposit ?? unit.pricing?.securityDeposit ?? 0));
+  const maintenanceCharge = Math.max(0, Number(req.body.maintenanceCharge ?? unit.pricing?.maintenanceCharge ?? 0));
+  if (!Number.isFinite(monthlyRent) || monthlyRent <= 0) throw new ApiError(422, 'Monthly rent must be greater than zero');
+
+  const dueDay = Number(req.body.dueDay || 1);
+  if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31) throw new ApiError(422, 'Monthly due day must be between 1 and 31');
+  const dueTime = String(req.body.dueTime || '09:00');
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(dueTime)) throw new ApiError(422, 'Monthly due time must use HH:mm');
+
+  await assertLandlordLimit(landlordId, 'activeTenants');
+
+  const now = new Date();
+  const pricingSnapshot = unit.pricing?.toObject?.() || unit.pricing || {};
+  let tenancy;
+  try {
+    tenancy = await Tenancy.create({
+      tenancyNumber: `TNC-${new Date().getFullYear()}-${Date.now().toString().slice(-8)}`,
+      tenant: tenantUser._id,
+      landlord: landlordId,
+      property: property._id,
+      rentalUnit: unit._id,
+      status: 'active',
+      startDate,
+      endDate,
+      durationMonths,
+      monthlyRent,
+      securityDeposit,
+      maintenanceCharge,
+      bookingAmount: Math.max(0, Number(unit.pricing?.bookingAmount || 0)),
+      pricingSnapshot,
+      dueDay,
+      dueTime,
+      statusHistory: [{
+        to: 'active',
+        reason: 'Tenancy added directly by landlord from own tenant and available rental room',
+        changedBy: landlordId,
+        changedAt: now,
+      }],
+      createdBy: landlordId,
+      updatedBy: landlordId,
+    });
+  } catch (error) {
+    if (error?.code === 11000) throw new ApiError(409, 'The selected room was just assigned to another tenancy');
+    throw error;
+  }
+
+  await transitionRentalUnit(unit, 'OCCUPIED', {
+    actorId: landlordId,
+    tenancyId: tenancy._id,
+    tenantId: tenantUser._id,
+    reason: 'Direct landlord-created tenancy',
+  });
+  await syncPropertyRentalSummary(property._id, landlordId);
+
+  let initialInvoice = null;
+  if (startDate <= now) {
+    const invoiceResult = await ensureMonthlyRentalInvoice(tenancy, now);
+    initialInvoice = invoiceResult.invoice;
+    await ensureRentalInvoicePayment(initialInvoice, tenancy, now);
+  }
+
+  await createNotification({
+    user: tenantUser._id,
+    title: 'Tenancy added',
+    message: `${property.title || 'Your rental'} · ${unit.name || unit.roomNumber} has been added to your tenancy workspace.`,
+    category: 'lease',
+    actionUrl: `/app/tenancy_details/${tenancy._id}`,
+    metadata: { tenancyId: tenancy._id, propertyId: property._id, rentalUnitId: unit._id, event: 'direct_tenancy_created' },
+  });
+  await writeAudit(req, {
+    action: 'direct-create',
+    module: 'tenancies',
+    recordId: tenancy._id,
+    updatedValue: {
+      tenant: tenantUser._id,
+      property: property._id,
+      rentalUnit: unit._id,
+      startDate,
+      endDate,
+      durationMonths,
+      monthlyRent,
+    },
+  });
+
+  const populated = await Tenancy.findById(tenancy._id)
+    .populate('tenant', 'name email phone avatar kycStatus')
+    .populate('property', 'title referenceNumber address')
+    .populate({ path: 'rentalUnit', populate: { path: 'floor', select: 'floorNumber floorName floorCode' } })
+    .lean();
+
+  res.status(201).json({
+    success: true,
+    data: { tenancy: populated, initialInvoice },
+    message: 'Tenancy added and the selected room is now occupied.',
+  });
 });
 
 export const getRentalUnitTenancyDetail = asyncHandler(async (req, res) => {

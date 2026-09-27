@@ -15,6 +15,8 @@ import {
   getPropertyOccupancy,
   getRentalStructure,
   getRentalUnitTenancyDetail,
+  getDirectTenancyOptions,
+  createDirectTenancy,
   getTenancyDetails,
   recordTenancyPayment,
   sendTenancyRentReminder,
@@ -47,6 +49,8 @@ router.post('/properties/:propertyId/rental-units/apply-pricing', requireFeature
 router.get('/rental-units/:unitId/images/:fileId/content', requireFeaturePermission('module:property-management'), streamManagedRentalUnitImage);
 router.get('/properties/:propertyId/occupancy', requireFeaturePermission('module:tenancies', 'view'), getPropertyOccupancy);
 router.get('/rental-units/:unitId/tenancy', requireFeaturePermission('module:tenancies', 'view'), getRentalUnitTenancyDetail);
+router.get('/tenancies/direct/options', requireCapabilityPermission('landlord', 'module:tenancies', 'view'), getDirectTenancyOptions);
+router.post('/tenancies/direct', requireCapabilityPermission('landlord', 'module:tenancies', 'create'), createDirectTenancy);
 router.get('/tenancies/:tenancyId/details', requireFeaturePermission('module:tenancies', 'view'), getTenancyDetails);
 router.post('/tenancies/:tenancyId/reminders', requireFeaturePermission('module:tenancies', 'edit'), sendTenancyRentReminder);
 router.post('/tenancies/:tenancyId/payments', requireFeaturePermission('module:tenancies', 'edit'), recordTenancyPayment);

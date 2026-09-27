@@ -997,6 +997,24 @@ export async function getPropertyTenancyHistory(propertyId: string, params: Reco
   const query = new URLSearchParams(Object.entries(params).map(([key, value]) => [key, String(value)]));
   return request<ApiResponse<Record<string, any>>>('/property-management/properties/' + encodeURIComponent(propertyId) + '/tenancy-history?' + query);
 }
+export async function getDirectTenancyOptions(propertyId = '') {
+  const query = propertyId ? `?propertyId=${encodeURIComponent(propertyId)}` : '';
+  return request<ApiResponse<{ tenants: Record<string, any>[]; listings: Record<string, any>[]; rooms: Record<string, any>[] }>>(`/property-management/tenancies/direct/options${query}`);
+}
+export async function createDirectTenancy(body: {
+  tenantContactId: string;
+  propertyId: string;
+  rentalUnitId: string;
+  startDate: string;
+  durationMonths: number;
+  monthlyRent: number;
+  securityDeposit: number;
+  maintenanceCharge: number;
+  dueDay: number;
+  dueTime: string;
+}) {
+  return request<ApiResponse<{ tenancy: Record<string, any>; initialInvoice?: Record<string, any> | null }>>('/property-management/tenancies/direct', { method: 'POST', body: JSON.stringify(body) });
+}
 export async function getTenancyDetails(tenancyId: string) { return request<ApiResponse<Record<string, any>>>(`/property-management/tenancies/${encodeURIComponent(tenancyId)}/details`); }
 export async function sendTenancyRentReminder(tenancyId: string, invoiceId: string) { return request<ApiResponse<Record<string, any>>>(`/property-management/tenancies/${encodeURIComponent(tenancyId)}/reminders`, { method: 'POST', body: JSON.stringify({ invoiceId }) }); }
 export async function recordTenancyPayment(tenancyId: string, body: Record<string, any>) { return request<ApiResponse<Record<string, any>>>(`/property-management/tenancies/${encodeURIComponent(tenancyId)}/payments`, { method: 'POST', body: JSON.stringify(body) }); }

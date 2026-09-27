@@ -40,6 +40,7 @@ const RentalManagementAdminPage = lazyWithRetry(() => import('./pages/app/Rental
 const SurveyorProfileAdminPage = lazyWithRetry(() => import('./pages/app/SurveyorProfileAdminPage'));
 const TenancyHistoryPage = lazyWithRetry(() => import('./pages/app/TenancyHistoryPage'));
 const TenancyDetailsPage = lazyWithRetry(() => import('./pages/app/TenancyDetailsPage'));
+const AddTenancyPage = lazyWithRetry(() => import('./pages/app/AddTenancyPage'));
 const ApplicationDetailsPage = lazyWithRetry(() => import('./pages/app/ApplicationDetailsPage'));
 const LandlordTransactionsPage = lazyWithRetry(() => import('./pages/app/LandlordTransactionsPage'));
 
@@ -111,6 +112,7 @@ export const router = createBrowserRouter([
         { path: 'surveyor-profiles/:id', Component: SurveyorProfileAdminPage },
         { path: 'property_tenancy_history/:propertyId', Component: TenancyHistoryPage },
         { path: 'tenancy_details/:tenancyId', Component: TenancyDetailsPage },
+        { path: 'add/tenancy', Component: AddTenancyPage },
         { path: 'application_details/:applicationId', Component: ApplicationDetailsPage },
         { path: 'transactions', Component: LandlordTransactionsPage },
         { path: 'notification', element: <Navigate to="/app/notifications" replace /> },
