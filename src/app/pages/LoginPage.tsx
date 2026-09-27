@@ -153,9 +153,9 @@ export default function LoginPage() {
   if (mode === 'two-factor') actionLabel = 'Verify and sign in';
 
   return <AuthExperience
-    eyebrow={content.badge || 'Secure property access'}
-    title={content.headline || 'Every property workflow. One trusted space.'}
-    description={content.description || settings.description || 'Bring properties, tenancy, payments, surveys and important records together in one professionally managed place.'}
+    eyebrow="Property · People · Protection · Progress"
+    title="A safer, smarter asset management world."
+    description="Securely manage your properties, documents and people — all in one trusted platform."
   >
       <Box className="sa-login-panel">
         <Stack className="sa-login-brand-row" direction="row" justifyContent="space-between" alignItems="center" gap={2}>

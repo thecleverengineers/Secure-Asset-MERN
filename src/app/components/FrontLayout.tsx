@@ -244,6 +244,14 @@ export default function FrontLayout() {
     setOpen(false);
   };
 
+  if (isAuthRoute) {
+    return (
+      <Box className="sa-auth-route-shell" sx={{ minHeight: '100dvh', bgcolor: '#03192a' }}>
+        <Suspense fallback={null}><Outlet /></Suspense>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar

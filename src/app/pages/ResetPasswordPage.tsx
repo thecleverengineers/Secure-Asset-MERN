@@ -10,6 +10,7 @@ import AuthExperience from '../components/auth/AuthExperience';
 import { LogoMark } from '../components/premium/LogoMark';
 import { forgotPassword, resetPassword } from '../services/api';
 import { useSite } from '../context/SiteContext';
+import '../../styles/login-premium.css';
 
 export default function ResetPasswordPage() {
   const { data } = useSite();
@@ -56,9 +57,9 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthExperience
-      eyebrow={content.badge || 'Account recovery'}
-      title={content.forgotTitle || 'Regain access with confidence.'}
-      description={content.forgotSubtitle || 'Use the verified mobile number on your account to reset your password. Your property information, documents and payment records remain protected.'}
+      eyebrow="Property · People · Protection · Progress"
+      title="A safer, smarter asset management world."
+      description="Securely manage your properties, documents and people — all in one trusted platform."
     >
       <Box className="sa-login-panel sa-reset-panel">
         <Stack className="sa-login-brand-row" direction="row" justifyContent="space-between" alignItems="center" gap={2}>

@@ -1,382 +1,488 @@
-/* SecureAsset premium authentication */
+/* SecureAsset secured asset-management authentication */
+.sa-auth-route-shell,
+.sa-login-premium-shell,
+.sa-login-premium-shell * {
+  box-sizing: border-box;
+}
 .sa-login-premium-shell {
-  min-height: calc(100dvh - 72px);
+  --sa-navy: #071d31;
+  --sa-navy-2: #0a3551;
+  --sa-navy-3: #0b5270;
+  --sa-teal: #10cdb5;
+  --sa-teal-deep: #008c84;
+  --sa-ink: #071d36;
+  --sa-muted: #667895;
+  min-height: 100dvh;
   width: 100%;
-  padding: 28px;
-  background:
-    radial-gradient(circle at 88% 8%, rgba(0,159,144,.065), transparent 23rem),
-    linear-gradient(180deg,#f7fbff 0%,#f2f8fc 100%);
+  margin: 0;
+  background: #061c2f;
   font-family: 'Open Sans', sans-serif;
+  overflow-x: hidden;
 }
-.sa-login-premium-shell :is(.MuiTypography-root,.MuiButton-root,.MuiChip-root,.MuiInputBase-root,.MuiFormLabel-root) {
-  font-family: 'Open Sans', sans-serif;
+.sa-login-premium-shell :is(.MuiTypography-root,.MuiButton-root,.MuiChip-root,.MuiInputBase-root,.MuiFormLabel-root,.MuiFormHelperText-root) {
+  font-family: 'Open Sans', sans-serif !important;
 }
-.sa-login-premium-wrap {
-  width: min(1180px,100%);
-  min-height: calc(100dvh - 128px);
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-}
-.sa-auth-surface.sa-login-premium-surface {
-  width: 100%;
-  overflow: hidden;
-  border: 1px solid #dfebf5 !important;
-  border-radius: 20px !important;
-  background: #fff !important;
-  box-shadow: 0 18px 48px rgba(20,57,91,.11) !important;
-}
-.sa-login-premium-grid {
+.sa-auth-desktop-frame {
+  min-height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(0,.92fr) minmax(420px,1.08fr);
-  min-height: 650px;
+  grid-template-columns: minmax(0, 58%) minmax(430px, 42%);
+  background: #fff;
 }
-.sa-login-premium-brand {
+.sa-auth-hero {
   position: relative;
+  min-height: 100dvh;
   overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+  background:
+    radial-gradient(circle at 12% 72%, rgba(13,205,181,.13), transparent 23rem),
+    radial-gradient(circle at 78% 20%, rgba(76,169,231,.18), transparent 19rem),
+    linear-gradient(145deg,#061a2d 0%,#0a3551 55%,#071d31 100%);
+}
+.sa-auth-hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  background:
+    linear-gradient(90deg,rgba(3,20,35,.88) 0%,rgba(3,20,35,.63) 45%,rgba(3,20,35,.18) 74%,rgba(3,20,35,.46) 100%),
+    linear-gradient(0deg,rgba(2,16,29,.95) 0%,transparent 42%);
+}
+.sa-auth-sky-glow {
+  position: absolute;
+  left: -8%;
+  right: -8%;
+  top: 34%;
+  height: 34%;
+  z-index: -4;
+  background: radial-gradient(ellipse at center,rgba(255,174,103,.22),rgba(35,94,127,.08) 45%,transparent 72%);
+  filter: blur(8px);
+}
+.sa-auth-building {
+  position: absolute;
+  z-index: -2;
+  top: 5%;
+  right: -5%;
+  width: 48%;
+  height: 78%;
+  clip-path: polygon(28% 0,100% 0,100% 100%,0 100%,0 28%);
+  background:
+    linear-gradient(105deg,rgba(255,255,255,.04),transparent 30%),
+    linear-gradient(90deg,#0a263a 0 10%,#102f45 10% 15%,#071c2b 15% 100%);
+  border-left: 1px solid rgba(255,255,255,.16);
+  box-shadow: -28px 0 70px rgba(0,0,0,.36);
+}
+.sa-auth-building::before {
+  content: '';
+  position: absolute;
+  inset: 3% 4% 4% 16%;
+  background:
+    linear-gradient(90deg,rgba(255,255,255,.18) 1px,transparent 1px),
+    linear-gradient(rgba(255,255,255,.12) 1px,transparent 1px),
+    linear-gradient(135deg,rgba(29,82,112,.72),rgba(5,19,30,.9));
+  background-size: 18% 100%,100% 16%,100% 100%;
+  border: 1px solid rgba(131,206,236,.14);
+}
+.sa-auth-building-edge {
+  position: absolute;
+  left: 7%;
+  top: 2%;
+  width: 4px;
+  height: 95%;
+  background: linear-gradient(180deg,rgba(34,226,208,.65),rgba(255,181,104,.7) 45%,rgba(34,226,208,.22));
+  box-shadow: 0 0 18px rgba(34,226,208,.3);
+}
+.sa-auth-balcony {
+  position: absolute;
+  left: -12%;
+  right: -2%;
+  height: 7%;
+  background: linear-gradient(180deg,#0a2031,#071622);
+  border-top: 2px solid rgba(255,190,113,.72);
+  box-shadow: 0 16px 30px rgba(0,0,0,.42);
+}
+.sa-auth-balcony-one { top: 29%; }
+.sa-auth-balcony-two { top: 50%; }
+.sa-auth-balcony-three { top: 71%; }
+.sa-auth-window-grid {
+  position: absolute;
+  inset: 9% 8% 9% 23%;
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  grid-auto-rows: 1fr;
+  gap: 6px;
+}
+.sa-auth-window {
+  background: linear-gradient(145deg,rgba(22,68,95,.8),rgba(4,20,31,.86));
+  border: 1px solid rgba(143,209,232,.08);
+}
+.sa-auth-window:nth-child(4n+1),
+.sa-auth-window:nth-child(7n) {
+  background: linear-gradient(145deg,rgba(255,192,116,.5),rgba(81,51,29,.34));
+  box-shadow: inset 0 0 20px rgba(255,175,93,.12);
+}
+.sa-auth-skyline {
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  right: 38%;
+  bottom: 7%;
+  height: 22%;
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  padding-left: 3%;
+  opacity: .92;
+}
+.sa-auth-skyline-building {
+  width: 4.8%;
+  min-width: 13px;
+  border: 1px solid rgba(66,146,180,.2);
+  background:
+    repeating-linear-gradient(180deg,transparent 0 8px,rgba(255,195,111,.56) 8px 10px,transparent 10px 17px),
+    linear-gradient(180deg,#102f45,#061827);
+  box-shadow: 0 0 18px rgba(0,0,0,.25);
+}
+.sa-auth-skyline-building-1 { height: 38%; }
+.sa-auth-skyline-building-2 { height: 68%; }
+.sa-auth-skyline-building-3 { height: 49%; }
+.sa-auth-skyline-building-4 { height: 82%; }
+.sa-auth-skyline-building-5 { height: 58%; }
+.sa-auth-skyline-building-6 { height: 91%; }
+.sa-auth-hero-content {
+  position: relative;
+  z-index: 3;
+  width: min(680px,75%);
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: 48px;
-  color: #fff;
+  padding: clamp(28px,4.5vw,72px) clamp(28px,5.2vw,82px) 190px;
 }
-.sa-login-orbit {
-  position: absolute;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,.14);
-  pointer-events: none;
+.sa-auth-hero-logo {
+  width: 220px;
+  margin-bottom: clamp(55px,8vh,110px);
 }
-.sa-login-orbit-one {
-  width: 310px;
-  height: 310px;
-  top: -155px;
-  right: -135px;
-}
-.sa-login-orbit-two {
-  width: 175px;
-  height: 175px;
-  right: -34px;
-  bottom: -80px;
-  background: rgba(255,255,255,.035);
-}
-.sa-login-brand-copy,
-.sa-login-feature-list,
-.sa-login-security-note {
-  position: relative;
-  z-index: 1;
-}
-.sa-login-eyebrow.MuiChip-root {
-  align-self: flex-start;
-  height: 28px;
-  border: 1px solid rgba(255,255,255,.18);
-  background: rgba(255,255,255,.10);
-  color: #fff;
-  font-size: 9.5px;
-  font-weight: 500;
-  backdrop-filter: blur(8px);
+.sa-auth-hero-logo img { max-height: 50px !important; }
+.sa-auth-eyebrow.MuiTypography-root {
+  margin-bottom: 18px;
+  color: rgba(225,244,255,.72);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .38em;
+  text-transform: uppercase;
 }
 .sa-login-brand-title.MuiTypography-root {
-  max-width: 470px;
+  max-width: 620px;
   color: #fff;
-  font-size: clamp(32px,3.4vw,46px);
-  font-weight: 500;
-  line-height: 1.08;
-  letter-spacing: -.05em;
+  font-size: clamp(42px,5vw,76px);
+  font-weight: 700;
+  line-height: 1.03;
+  letter-spacing: -.045em;
+  text-wrap: balance;
+}
+.sa-auth-title-accent {
+  display: inline-block;
+  color: var(--sa-teal);
 }
 .sa-login-brand-description.MuiTypography-root {
-  max-width: 450px;
-  margin-top: 16px;
-  color: rgba(255,255,255,.74);
-  font-size: 12.5px;
-  line-height: 1.75;
-}
-.sa-login-feature-list {
-  margin-top: auto;
-}
-.sa-login-feature-list .MuiTypography-root {
-  color: rgba(255,255,255,.86);
-  font-size: 11.5px;
-  font-weight: 400;
-}
-.sa-login-feature-icon {
-  display: grid;
-  width: 24px;
-  height: 24px;
-  place-items: center;
-  border-radius: 8px;
-  background: rgba(255,255,255,.10);
-  color: #7ee1c7;
-}
-.sa-login-feature-icon .MuiSvgIcon-root {
+  max-width: 510px;
+  margin-top: 24px;
+  color: rgba(232,244,252,.76);
   font-size: 15px;
+  line-height: 1.7;
 }
-.sa-login-security-note {
-  margin-top: 28px;
-  padding-top: 22px;
-  border-top: 1px solid rgba(255,255,255,.14);
+.sa-auth-feature-row {
+  width: min(560px,100%);
+  margin-top: 42px;
+  gap: 0 !important;
 }
-.sa-login-security-icon {
-  display: grid;
-  width: 32px;
-  height: 32px;
-  flex: 0 0 32px;
-  place-items: center;
-  border-radius: 10px;
-  background: rgba(255,255,255,.10);
-  color: #7ee1c7;
+.sa-auth-feature {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 4px 22px 4px 0;
+  margin-right: 22px;
+  border-right: 1px solid rgba(255,255,255,.18);
 }
-.sa-login-security-icon .MuiSvgIcon-root {
-  font-size: 17px;
+.sa-auth-feature:last-child { margin-right: 0; border-right: 0; }
+.sa-auth-feature > .MuiSvgIcon-root {
+  width: 42px;
+  height: 42px;
+  padding: 9px;
+  flex: 0 0 42px;
+  color: #23d9c3;
+  border: 1px solid rgba(38,225,204,.72);
+  border-radius: 50%;
 }
-.sa-login-security-title.MuiTypography-root {
+.sa-auth-feature .MuiTypography-root {
   color: #fff;
   font-size: 11px;
   font-weight: 600;
+  line-height: 1.35;
 }
-.sa-login-security-copy.MuiTypography-root {
-  max-width: 390px;
-  margin-top: 3px;
-  color: rgba(255,255,255,.62);
-  font-size: 9.5px;
-  line-height: 1.55;
+.sa-auth-feature .MuiTypography-root + .MuiTypography-root {
+  color: rgba(255,255,255,.69);
+  font-weight: 400;
 }
+.sa-auth-floating-card {
+  position: absolute;
+  z-index: 4;
+  color: #e9f8ff;
+  border: 1px solid rgba(104,210,230,.36);
+  background: linear-gradient(145deg,rgba(10,46,67,.78),rgba(7,31,47,.72));
+  box-shadow: 0 24px 70px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.sa-auth-records-card {
+  top: 21%;
+  right: 8%;
+  width: 210px;
+  padding: 18px;
+  border-radius: 14px;
+  transform: perspective(900px) rotateY(-5deg);
+}
+.sa-auth-floating-title.MuiTypography-root {
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+.sa-auth-records-card > .MuiStack-root { margin-top: 13px; }
+.sa-auth-records-card .MuiStack-root .MuiTypography-root {
+  font-size: 7.5px;
+  color: rgba(230,246,255,.72);
+}
+.sa-auth-records-card .MuiSvgIcon-root { font-size: 11px; color: #79c5df; }
+.sa-auth-records-card .sa-auth-floating-check { color: #57e0c6; font-size: 13px; }
+.sa-auth-shield-orb {
+  position: absolute;
+  z-index: 5;
+  right: 13%;
+  top: 43%;
+  width: 116px;
+  height: 132px;
+  display: grid;
+  place-items: center;
+  color: #67f5df;
+  border: 1px solid rgba(92,242,220,.38);
+  border-radius: 28px 28px 42px 42px;
+  background: radial-gradient(circle at 50% 35%,rgba(35,218,198,.25),rgba(1,101,109,.28) 58%,rgba(3,39,55,.64));
+  box-shadow: 0 0 0 7px rgba(26,194,185,.05),0 0 50px rgba(29,225,205,.28);
+  backdrop-filter: blur(8px);
+  transform: rotate(45deg);
+}
+.sa-auth-shield-orb .MuiSvgIcon-root {
+  width: 72px;
+  height: 72px;
+  filter: drop-shadow(0 0 12px rgba(78,240,220,.45));
+  transform: rotate(-45deg);
+}
+.sa-auth-vault-card {
+  right: 3%;
+  top: 61%;
+  width: 280px;
+  padding: 16px 17px 14px;
+  border-radius: 13px;
+  transform: perspective(900px) rotateY(5deg);
+}
+.sa-auth-vault-card > .MuiStack-root:first-child > .MuiSvgIcon-root { color: #46dfc8; font-size: 15px; }
+.sa-auth-vault-items { margin-top: 14px; }
+.sa-auth-vault-items > div {
+  width: 23%;
+  text-align: center;
+  color: rgba(230,246,255,.75);
+}
+.sa-auth-vault-items .MuiSvgIcon-root { font-size: 18px; }
+.sa-auth-vault-items .MuiTypography-root { margin-top: 4px; font-size: 6.5px; }
+.sa-auth-metrics {
+  position: absolute;
+  z-index: 6;
+  left: 5%;
+  right: 20%;
+  bottom: 5%;
+  min-height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 14px 22px;
+  border: 1px solid rgba(89,166,195,.2);
+  border-radius: 18px;
+  background: linear-gradient(135deg,rgba(5,27,43,.95),rgba(7,41,59,.91));
+  box-shadow: 0 20px 55px rgba(0,0,0,.28);
+  backdrop-filter: blur(14px);
+}
+.sa-auth-metrics > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 34px auto;
+  column-gap: 10px;
+  align-items: center;
+}
+.sa-auth-metrics .MuiSvgIcon-root { grid-row: 1 / 3; color: #25dbc5; font-size: 30px; }
+.sa-auth-metrics strong.MuiTypography-root { color: #fff; font-size: 18px; font-weight: 700; line-height: 1.1; }
+.sa-auth-metrics .MuiTypography-root:last-child { color: rgba(255,255,255,.62); font-size: 8.5px; margin-top: 3px; }
+.sa-auth-metrics .MuiDivider-root { border-color: rgba(255,255,255,.16); margin: 0 18px; }
+
 .sa-login-premium-form-column {
+  position: relative;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 44px 54px;
+  overflow: auto;
+  padding: 54px clamp(32px,4vw,76px);
   background:
-    radial-gradient(circle at 100% 0%, rgba(0,159,144,.045), transparent 17rem),
-    #fff;
+    radial-gradient(circle at 100% 0%,rgba(0,184,166,.09),transparent 22rem),
+    radial-gradient(circle at 0% 100%,rgba(20,81,117,.06),transparent 22rem),
+    #f8fbfd;
 }
 .sa-login-premium-card {
-  width: min(470px,100%);
+  width: min(520px,100%);
+  padding: clamp(30px,3.4vw,52px);
+  border: 1px solid #e3ebf2;
+  border-radius: 24px;
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 24px 70px rgba(10,41,66,.12),0 2px 8px rgba(10,41,66,.05);
 }
 .sa-login-brand-row {
-  margin-bottom: 24px;
+  margin-bottom: 26px;
 }
 .sa-login-brand-row > div:first-child,
 .sa-login-brand-row > a:first-child {
-  max-width: 176px;
+  max-width: 200px;
 }
 .sa-login-access-chip.MuiChip-root {
-  height: 26px;
-  border-color: #d9e6f0;
-  background: #f8fbfe;
-  color: #0b2057;
+  height: 27px;
+  border-color: #dce7ed;
+  background: #f7fbfc;
+  color: #0a6f69;
   font-size: 9.5px;
+  font-weight: 600;
 }
 .sa-login-title.MuiTypography-root {
-  color: #0b2057;
-  font-size: 28px;
-  font-weight: 500;
-  letter-spacing: -.04em;
+  color: var(--sa-ink);
+  font-size: clamp(29px,3vw,40px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -.035em;
 }
 .sa-login-subtitle.MuiTypography-root {
-  margin: 7px 0 24px;
-  color: #6078a3;
-  font-size: 11.5px;
+  margin: 10px 0 27px;
+  color: #64738d;
+  font-size: 12.5px;
   line-height: 1.65;
 }
 .sa-login-form .MuiAlert-root,
-.sa-login-panel > .MuiAlert-root {
-  border-radius: 10px;
+.sa-login-panel > .MuiAlert-root,
+.sa-reset-panel .MuiAlert-root {
+  border-radius: 11px;
   font-size: 10.5px;
 }
+.sa-login-form .MuiStack-root { width: 100%; }
 .sa-login-field .MuiOutlinedInput-root {
-  min-height: 49px;
+  min-height: 56px;
   border-radius: 11px;
-  background: #f7fbfe;
+  background: #fff;
+  transition: box-shadow .18s ease,background-color .18s ease;
 }
-.sa-login-field .MuiOutlinedInput-notchedOutline {
-  border-color: #dfeaf4;
-}
-.sa-login-field .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-color: #bed7e5;
+.sa-login-field .MuiOutlinedInput-notchedOutline { border-color: #cfdbe5; }
+.sa-login-field .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline { border-color: #9eb8c9; }
+.sa-login-field .MuiOutlinedInput-root.Mui-focused {
+  background: #fbffff;
+  box-shadow: 0 0 0 4px rgba(16,205,181,.08);
 }
 .sa-login-field .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #008f83;
+  border-color: #0cb8a4;
   border-width: 1.5px;
 }
-.sa-login-field .MuiInputLabel-root {
-  color: #6d82a4;
-  font-size: 12px;
-}
-.sa-login-field .MuiInputAdornment-root .MuiSvgIcon-root {
-  color: #7187a7;
-  font-size: 19px;
-}
-.sa-login-field .MuiFormHelperText-root {
-  color: #7a8ca8;
-  font-size: 9px;
-}
+.sa-login-field .MuiInputLabel-root { color: #677993; font-size: 12px; }
+.sa-login-field .MuiInputAdornment-root .MuiSvgIcon-root { color: #6e8199; font-size: 20px; }
+.sa-login-field .MuiFormHelperText-root { color: #7b8aa0; font-size: 9px; }
 .sa-login-forgot {
-  color: #087f76 !important;
+  color: #008d82 !important;
   font-size: 10.5px !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
 }
 .sa-login-panel .sa-submit-button.MuiButton-root {
-  min-height: 47px;
-  border-radius: 11px;
-  background: linear-gradient(120deg,#00aa96,#007987) !important;
+  min-height: 54px;
+  border-radius: 10px;
+  background: linear-gradient(105deg,#057678 0%,#0bc3ab 100%) !important;
   color: #fff;
-  font-size: 12px;
-  font-weight: 600 !important;
+  font-size: 13px;
+  font-weight: 700 !important;
+  letter-spacing: .01em;
   text-transform: none;
-  box-shadow: 0 8px 18px rgba(0,131,132,.16);
+  box-shadow: 0 12px 26px rgba(5,143,137,.22);
 }
 .sa-login-panel .sa-submit-button.MuiButton-root:hover {
-  background: linear-gradient(120deg,#009b89,#006f7c) !important;
+  background: linear-gradient(105deg,#05696d 0%,#08b19d 100%) !important;
   filter: none !important;
+  transform: translateY(-1px);
 }
 .sa-login-mode-nav {
-  margin-top: 26px;
-  padding-top: 20px;
-  border-top: 1px solid #e4edf5;
+  position: relative;
+  margin-top: 30px;
+  padding-top: 29px;
+  border-top: 1px solid #dfe7ed;
+  text-align: center;
 }
-.sa-login-mode-label.MuiTypography-root {
-  margin-bottom: 10px;
-  color: #7b8da8;
-  font-size: 9px;
+.sa-login-mode-nav::before {
+  content: 'OR';
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 12px;
+  background: #fff;
+  color: #7d8ca1;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: .08em;
-  text-transform: uppercase;
 }
+.sa-login-mode-label.MuiTypography-root { display: none; }
+.sa-login-mode-nav > .MuiStack-root { justify-content: center; }
 .sa-login-mode-link {
   position: relative;
   display: inline-flex;
-  min-height: 29px;
+  min-height: 28px;
   align-items: center;
-  padding: 0 10px;
-  border: 1px solid #e0eaf3;
-  border-radius: 9px;
-  background: #f8fbfe;
-  color: #5f7395 !important;
+  padding: 0 3px;
+  border: 0;
+  background: transparent;
+  color: #0a756f !important;
   font-size: 10.5px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
-  transition: background-color .18s ease,border-color .18s ease,color .18s ease;
 }
-.sa-login-mode-link:hover {
-  border-color: #bfdbe3;
-  background: #f2f9f9;
-  color: #087f76 !important;
+.sa-login-mode-link:hover { color: #005c59 !important; text-decoration: underline !important; }
+.sa-login-mode-link.is-active { display: none; }
+.sa-auth-protection-note {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 28px;
+  padding: 15px 17px;
+  border: 1px solid #dff0ee;
+  border-radius: 12px;
+  background: linear-gradient(90deg,#f1fbf9,#f7fcff);
 }
-.sa-login-mode-link.is-active {
-  border-color: rgba(0,143,131,.28);
-  background: #ebf8f6;
-  color: #087f76 !important;
+.sa-auth-protection-note > .MuiSvgIcon-root {
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  color: #087f76;
 }
-.sa-login-support-divider {
-  margin: 30px 0 18px !important;
-  border-color: #e4edf5 !important;
-}
-.sa-login-support .MuiSvgIcon-root {
-  color: #008f83;
-  font-size: 17px;
-}
-.sa-login-support .MuiTypography-root {
-  color: #7386a3;
-  font-size: 9.5px;
-  line-height: 1.5;
-}
-.sa-login-panel :is(button,a,input):focus-visible {
-  outline: 2px solid #008f83;
-  outline-offset: 3px;
-}
-@media (max-width: 959px) {
-  .sa-login-premium-shell {
-    min-height: auto;
-    padding: 18px;
-  }
-  .sa-login-premium-wrap {
-    min-height: auto;
-    align-items: flex-start;
-  }
-  .sa-login-premium-grid {
-    grid-template-columns: 1fr;
-    min-height: 0;
-  }
-  .sa-login-premium-brand {
-    min-height: 290px;
-    padding: 30px;
-  }
-  .sa-login-brand-title.MuiTypography-root {
-    max-width: 620px;
-    font-size: 34px;
-  }
-  .sa-login-brand-description.MuiTypography-root {
-    max-width: 620px;
-  }
-  .sa-login-feature-list {
-    margin-top: 32px;
-  }
-  .sa-login-security-note {
-    display: none;
-  }
-  .sa-login-premium-form-column {
-    padding: 36px 30px;
-  }
-}
-@media (max-width: 599px) {
-  .sa-login-premium-shell {
-    padding: 0;
-    background: #fff;
-  }
-  .sa-login-premium-surface {
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-  }
-  .sa-login-premium-brand {
-    min-height: 238px;
-    padding: 24px 20px;
-  }
-  .sa-login-brand-title.MuiTypography-root {
-    font-size: 29px;
-  }
-  .sa-login-brand-description.MuiTypography-root {
-    margin-top: 12px;
-    font-size: 11px;
-  }
-  .sa-login-feature-list {
-    display: none;
-  }
-  .sa-login-premium-form-column {
-    padding: 28px 20px 34px;
-  }
-  .sa-login-brand-row {
-    margin-bottom: 20px;
-  }
-  .sa-login-title.MuiTypography-root {
-    font-size: 25px;
-  }
-  .sa-login-subtitle.MuiTypography-root {
-    margin-bottom: 20px;
-  }
-  .sa-login-mode-nav {
-    margin-top: 22px;
-    padding-top: 18px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .sa-login-premium-shell *,
-  .sa-login-premium-shell *::before,
-  .sa-login-premium-shell *::after {
-    transition: none !important;
-    animation: none !important;
-  }
-}
+.sa-auth-protection-title.MuiTypography-root { color: #15344f; font-size: 10.5px; font-weight: 700; }
+.sa-auth-protection-copy.MuiTypography-root { margin-top: 2px; color: #72839a; font-size: 9.5px; line-height: 1.45; }
+.sa-auth-support-copy.MuiTypography-root { margin-top: 12px; color: #8b98aa; font-size: 9px; text-align: center; }
+.sa-login-panel :is(button,a,input):focus-visible { outline: 2px solid #0bb8a4; outline-offset: 3px; }
 
-/* Password recovery shares the same premium authentication language. */
-.sa-reset-panel .MuiAlert-root {
-  border-radius: 10px;
-  font-size: 10.5px;
-}
 .sa-reset-form .sa-reset-otp input {
   text-align: center;
   font-size: 15px;
-  font-weight: 600;
-  letter-spacing: .28em;
+  font-weight: 700;
+  letter-spacing: .3em;
 }
 .sa-reset-secondary-action.MuiButton-root,
 .sa-reset-back-action.MuiButton-root {
@@ -384,30 +490,208 @@
   min-height: 34px;
   padding: 5px 8px;
   border-radius: 8px;
-  color: #6078a3;
+  color: #60758f;
   font-size: 10.5px;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: none;
 }
 .sa-reset-secondary-action.MuiButton-root:hover,
-.sa-reset-back-action.MuiButton-root:hover {
-  background: #f1f7fb;
-  color: #087f76;
+.sa-reset-back-action.MuiButton-root:hover { background: #f0f7f8; color: #087f76; }
+.sa-reset-back-action .MuiSvgIcon-root { font-size: 17px; }
+.sa-reset-panel .MuiAlert-standardSuccess { border: 1px solid #d5ece5; background: #f2fbf7; }
+.sa-reset-panel .MuiAlert-standardError { border: 1px solid #f0d9dc; background: #fff7f8; }
+
+@media (max-width: 1199px) {
+  .sa-auth-desktop-frame { grid-template-columns: minmax(0,54%) minmax(430px,46%); }
+  .sa-auth-hero-content { width: 82%; padding-left: 42px; padding-right: 42px; }
+  .sa-auth-records-card { right: 4%; transform: scale(.9); transform-origin: top right; }
+  .sa-auth-vault-card { right: 1%; transform: scale(.88); transform-origin: top right; }
+  .sa-auth-shield-orb { right: 9%; transform: rotate(45deg) scale(.9); }
+  .sa-auth-metrics { right: 8%; left: 4%; }
 }
-.sa-reset-back-action .MuiSvgIcon-root {
-  font-size: 17px;
+
+@media (max-width: 899px) {
+  .sa-auth-desktop-frame {
+    min-height: 100dvh;
+    display: block;
+    background: #fff;
+  }
+  .sa-auth-hero {
+    min-height: 48dvh;
+    height: 48dvh;
+    border-radius: 0 0 28px 28px;
+  }
+  .sa-auth-hero-content {
+    min-height: 48dvh;
+    width: 100%;
+    padding: max(22px,env(safe-area-inset-top)) 24px 62px;
+  }
+  .sa-auth-hero-logo {
+    width: 185px;
+    margin-bottom: auto;
+  }
+  .sa-auth-eyebrow.MuiTypography-root {
+    margin-bottom: 10px;
+    font-size: 8px;
+    letter-spacing: .28em;
+  }
+  .sa-login-brand-title.MuiTypography-root {
+    max-width: 500px;
+    font-size: clamp(36px,8vw,52px);
+  }
+  .sa-login-brand-description.MuiTypography-root {
+    max-width: 520px;
+    margin-top: 13px;
+    font-size: 12px;
+  }
+  .sa-auth-feature-row { display: none !important; }
+  .sa-auth-floating-card,
+  .sa-auth-metrics { display: none; }
+  .sa-auth-shield-orb {
+    right: 9%;
+    top: 25%;
+    width: 82px;
+    height: 94px;
+    border-radius: 22px 22px 31px 31px;
+    opacity: .85;
+    transform: rotate(45deg);
+  }
+  .sa-auth-shield-orb .MuiSvgIcon-root { width: 51px; height: 51px; }
+  .sa-auth-building { width: 54%; right: -8%; top: 0; height: 100%; opacity: .9; }
+  .sa-auth-skyline { right: 24%; bottom: 0; height: 27%; opacity: .74; }
+  .sa-login-premium-form-column {
+    min-height: 52dvh;
+    margin-top: -28px;
+    padding: 0 18px max(28px,env(safe-area-inset-bottom));
+    overflow: visible;
+    background: transparent;
+  }
+  .sa-login-premium-card {
+    width: min(620px,100%);
+    margin: 0 auto;
+    padding: 30px 24px 26px;
+    border: 0;
+    border-radius: 28px 28px 0 0;
+    box-shadow: 0 -14px 44px rgba(4,31,51,.12);
+  }
 }
-.sa-reset-panel .MuiAlert-standardSuccess {
-  border: 1px solid #d5ece5;
-  background: #f2fbf7;
-}
-.sa-reset-panel .MuiAlert-standardError {
-  border: 1px solid #f0d9dc;
-  background: #fff7f8;
-}
+
 @media (max-width: 599px) {
+  .sa-login-premium-shell {
+    min-height: 100dvh;
+    background: #fff;
+  }
+  .sa-auth-hero {
+    height: 43dvh;
+    min-height: 360px;
+    max-height: 470px;
+    border-radius: 0;
+  }
+  .sa-auth-hero-overlay {
+    background:
+      linear-gradient(90deg,rgba(3,20,35,.9) 0%,rgba(3,20,35,.58) 50%,rgba(3,20,35,.22) 100%),
+      linear-gradient(0deg,rgba(2,16,29,.84) 0%,transparent 58%);
+  }
+  .sa-auth-hero-content {
+    min-height: 100%;
+    padding: max(18px,env(safe-area-inset-top)) 20px 38px;
+  }
+  .sa-auth-hero-logo {
+    width: 170px;
+    margin-bottom: auto;
+  }
+  .sa-auth-eyebrow.MuiTypography-root {
+    max-width: 90%;
+    margin-top: 20px;
+    font-size: 7.5px;
+    letter-spacing: .24em;
+  }
+  .sa-login-brand-title.MuiTypography-root {
+    max-width: 94%;
+    font-size: clamp(34px,10.7vw,46px);
+    line-height: 1.04;
+  }
+  .sa-login-brand-description.MuiTypography-root {
+    max-width: 88%;
+    margin-top: 11px;
+    font-size: 11px;
+    line-height: 1.55;
+  }
+  .sa-auth-building { width: 61%; right: -13%; opacity: .87; }
+  .sa-auth-shield-orb {
+    right: 7%;
+    top: 22%;
+    width: 68px;
+    height: 78px;
+    border-radius: 18px 18px 26px 26px;
+    opacity: .72;
+  }
+  .sa-auth-shield-orb .MuiSvgIcon-root { width: 42px; height: 42px; }
+  .sa-auth-skyline { right: 15%; height: 24%; }
+  .sa-login-premium-form-column {
+    min-height: auto;
+    margin-top: -20px;
+    padding: 0 0 max(22px,env(safe-area-inset-bottom));
+    background: #fff;
+  }
+  .sa-login-premium-card {
+    width: 100%;
+    padding: 27px 20px 24px;
+    border-radius: 26px 26px 0 0;
+  }
+  .sa-login-brand-row {
+    margin-bottom: 20px;
+    justify-content: center !important;
+  }
+  .sa-login-brand-row > div:first-child,
+  .sa-login-brand-row > a:first-child { max-width: 178px; }
+  .sa-login-access-chip.MuiChip-root { display: none; }
+  .sa-login-title.MuiTypography-root {
+    text-align: center;
+    font-size: 30px;
+  }
+  .sa-login-subtitle.MuiTypography-root {
+    max-width: 330px;
+    margin: 9px auto 23px;
+    text-align: center;
+    font-size: 11.5px;
+  }
+  .sa-login-field .MuiOutlinedInput-root {
+    min-height: 58px;
+    border-radius: 11px;
+  }
+  .sa-login-panel .sa-submit-button.MuiButton-root {
+    min-height: 56px;
+    border-radius: 11px;
+    font-size: 14px;
+  }
+  .sa-login-forgot { font-size: 11px !important; }
+  .sa-login-mode-nav {
+    margin-top: 28px;
+    padding-top: 27px;
+  }
+  .sa-login-mode-link { font-size: 11px; }
+  .sa-auth-protection-note {
+    margin-top: 26px;
+    padding: 14px 15px;
+  }
+  .sa-auth-protection-title.MuiTypography-root { font-size: 10.5px; }
+  .sa-auth-protection-copy.MuiTypography-root { font-size: 9.5px; }
   .sa-reset-secondary-action.MuiButton-root,
-  .sa-reset-back-action.MuiButton-root {
-    font-size: 10px;
+  .sa-reset-back-action.MuiButton-root { font-size: 10px; }
+}
+
+@media (max-width: 390px) {
+  .sa-auth-hero { min-height: 340px; }
+  .sa-login-brand-title.MuiTypography-root { font-size: 34px; }
+  .sa-login-premium-card { padding-left: 17px; padding-right: 17px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sa-login-premium-shell *,
+  .sa-login-premium-shell *::before,
+  .sa-login-premium-shell *::after {
+    transition: none !important;
+    animation: none !important;
   }
 }
