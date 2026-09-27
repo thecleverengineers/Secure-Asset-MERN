@@ -58,10 +58,10 @@ export function rentCycleReminderVariables(invoice) {
   const tenancy = invoice?.tenancy || {};
   const cycleEndsAt = monthlyRentCycleEnd(invoice);
   const dueAt = rentCyclePaymentDueAt(cycleEndsAt);
-  const tenantName = String(tenant?.name || invoice?.tenantName || '').trim();
-  const propertyName = String(property?.title || '').trim();
+  const tenantName = String(tenant?.name || invoice?.tenantName || 'Tenant').trim() || 'Tenant';
+  const propertyName = String(property?.title || invoice?.propertyName || 'your rental property').trim() || 'your rental property';
   const rentAmount = Number(invoice?.charges?.baseRent ?? invoice?.totalAmount ?? tenancy?.monthlyRent ?? property?.pricing?.monthlyRent ?? property?.price ?? 0);
-  if (!tenantName || !propertyName || !dueAt || !Number.isFinite(rentAmount) || rentAmount <= 0) throw new Error('Monthly rent reminder is missing the tenant, property, amount, or due date.');
+  if (!dueAt || !Number.isFinite(rentAmount) || rentAmount <= 0) throw new Error('Monthly rent reminder is missing a valid rent amount or due date.');
   return normalizeFast2SmsWhatsAppVariables('rent_reminder', [tenantName, money(rentAmount), propertyName, dateLabel(dueAt)]);
 }
 export async function queueRentCycleReminder(invoice, now = new Date(), whatsappNumber = '') {
