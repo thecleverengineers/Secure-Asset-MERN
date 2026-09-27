@@ -13,14 +13,13 @@ import {
   Tenancy,
   User,
   DriveFile,
-  NotificationDelivery,
 } from '../models/index.js';
 import { writeAudit } from '../middleware/audit.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
 import { createNotification } from '../services/notifications.js';
-import { processNotificationDelivery } from '../services/notificationDelivery.js';
 import { rentCycleReminderVariables } from '../services/rentCycleReminders.js';
+import { sendFast2SmsWhatsApp } from '../services/fast2sms.js';
 import { emitRealtime } from '../services/realtime.js';
 import { buildScope, normalizeQueryFilter } from '../services/scope.js';
 import { assertLandlordLimit } from '../services/landlordSubscription.js';
@@ -902,9 +901,36 @@ export const sendTenancyRentReminder = asyncHandler(async (req, res) => {
   }
 
   const now = new Date();
-  const reminderKey = `manual-rent-reminder-${invoice._id}-${now.getTime()}`;
   const variables = rentCycleReminderVariables(invoice);
 
+  let providerResult;
+  try {
+    providerResult = await sendFast2SmsWhatsApp({
+      mobile: whatsappNumber,
+      templateKey: 'rent_reminder',
+      variables,
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    console.error('Manual WhatsApp rent reminder failed', {
+      tenancyId: String(tenancy._id),
+      invoiceId: String(invoice._id),
+      destinationLast4: whatsappNumber.slice(-4),
+      reason,
+    });
+    throw new ApiError(502, `WhatsApp reminder could not be sent: ${reason}`);
+  }
+
+  console.log('Manual WhatsApp rent reminder accepted by Fast2SMS', {
+    tenancyId: String(tenancy._id),
+    invoiceId: String(invoice._id),
+    destinationLast4: whatsappNumber.slice(-4),
+    providerMessageId: String(providerResult?.messageId || providerResult?.id || providerResult?.request_id || ''),
+  });
+
+  // Keep the in-app notification independent from WhatsApp delivery. User
+  // notification preferences must not block an explicit landlord-triggered
+  // transactional rent reminder.
   await createNotification({
     user: tenantId,
     title: 'Rent payment reminder',
@@ -912,37 +938,12 @@ export const sendTenancyRentReminder = asyncHandler(async (req, res) => {
     category: 'payment',
     actionUrl: `/app/tenancy_details/${tenancy._id}?tab=rent`,
     metadata: {
-      key: reminderKey,
       tenancyId: tenancy._id,
       invoiceId: invoice._id,
-      event: 'manual_rent_reminder',
-      whatsappTemplate: 'rent_reminder',
-      whatsappVariables: variables,
-      whatsappDestination: whatsappNumber,
-      fast2smsMessageId: '27057',
-      fast2smsPhoneNumberId: '1202480702956271',
+      event: 'manual_rent_reminder_in_app',
+      whatsappAlreadySent: true,
     },
-  });
-
-  const whatsappDelivery = await NotificationDelivery.findOne({
-    user: tenantId,
-    channel: 'whatsapp',
-    'metadata.key': reminderKey,
-  }).sort({ createdAt: -1 });
-
-  if (!whatsappDelivery) {
-    throw new ApiError(409, 'WhatsApp reminder is disabled for this tenant or could not be queued.');
-  }
-
-  const deliveryResult = await processNotificationDelivery(whatsappDelivery);
-  if (deliveryResult.status !== 'sent') {
-    throw new ApiError(
-      deliveryResult.status === 'deferred' ? 409 : 502,
-      deliveryResult.status === 'deferred'
-        ? 'WhatsApp reminder is deferred by the tenant notification quiet-hours setting.'
-        : `WhatsApp reminder could not be sent: ${deliveryResult.error || whatsappDelivery.lastError || 'Fast2SMS delivery failed'}`,
-    );
-  }
+  }).catch(() => null);
 
   invoice.lastReminderAt = now;
   invoice.updatedBy = req.user._id;
@@ -958,7 +959,7 @@ export const sendTenancyRentReminder = asyncHandler(async (req, res) => {
       channel: 'whatsapp',
       template: 'rent_reminder',
       destinationLast4: whatsappNumber.slice(-4),
-      providerMessageId: whatsappDelivery.providerMessageId || '',
+      providerMessageId: String(providerResult?.messageId || providerResult?.id || providerResult?.request_id || ''),
     },
   });
   emitRealtime('rental-invoices', 'rent-reminder-sent', invoice, { users: [tenantId, tenancy.landlord?._id || tenancy.landlord] });
@@ -968,8 +969,8 @@ export const sendTenancyRentReminder = asyncHandler(async (req, res) => {
     data: {
       invoice,
       delivery: {
-        status: whatsappDelivery.status,
-        providerMessageId: whatsappDelivery.providerMessageId || '',
+        status: 'accepted',
+        providerMessageId: String(providerResult?.messageId || providerResult?.id || providerResult?.request_id || ''),
         destinationLast4: whatsappNumber.slice(-4),
       },
     },
