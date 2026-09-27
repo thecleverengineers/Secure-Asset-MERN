@@ -143,8 +143,8 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
 
   let actionLabel = 'Continue';
   if (mode === 'login') actionLabel = 'Sign in';
-  if (mode === 'register') actionLabel = otpSent ? 'Verify mobile and create account' : 'Send verification OTP';
-  if (mode === 'otp') actionLabel = otpSent ? 'Verify OTP' : 'Send OTP';
+  if (mode === 'register') actionLabel = otpSent ? 'Verify mobile and create account' : 'Continue';
+  if (mode === 'otp') actionLabel = otpSent ? 'Verify OTP' : 'Continue';
   if (mode === 'two-factor') actionLabel = 'Verify and sign in';
 
   return <AuthExperience
