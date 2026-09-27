@@ -6,11 +6,11 @@ const read = (file) => readFileSync(new URL(`../${file}`, import.meta.url), 'utf
 
 test('application agreement selector keeps paper and template management actions at dropdown bottom', () => {
   const panel = read('src/app/components/application/ApplicationAgreementPanel.tsx');
-  assert.match(panel, /data-secureasset-agreement-paper-dropdown="footer-actions-v232"/);
-  assert.match(panel, /value="__paper_agreement__"/);
-  assert.match(panel, />Paper Agreement</);
+  assert.match(panel, /data-secureasset-agreement-paper-dropdown="premium-footer-actions-v233"/);
+  assert.match(panel, /value="__contract__"/);
+  assert.match(panel, />Contract</);
   assert.match(panel, /value="__manage_templates__"/);
-  assert.match(panel, />Manage templates</);
+  assert.match(panel, />Templates</);
   assert.doesNotMatch(panel, />Manage Papers<\/Button>/);
 });
 
