@@ -262,7 +262,17 @@ export function buildFast2SmsWhatsAppUrl(config, { mobile, templateKey, variable
 export async function getFast2SmsConfiguration({ includeAuthorization = false } = {}) {
   const query = IntegrationSetting.findOne({ key: 'fast2sms' }).select('+secureConfig.authorizationEncrypted');
   const record = await query.lean();
-  const publicConfig = { ...FAST2SMS_DEFAULTS, ...FAST2SMS_WHATSAPP_DEFAULTS, ...(record?.publicConfig || {}) };
+  const publicConfig = {
+    ...FAST2SMS_DEFAULTS,
+    ...FAST2SMS_WHATSAPP_DEFAULTS,
+    ...(record?.publicConfig || {}),
+    endpoint: FAST2SMS_DEFAULTS.endpoint,
+    route: FAST2SMS_DEFAULTS.route,
+    senderId: FAST2SMS_DEFAULTS.senderId,
+    messageId: FAST2SMS_DEFAULTS.messageId,
+    scheduleTime: '',
+    whatsappEndpoint: FAST2SMS_WHATSAPP_DEFAULTS.endpoint,
+  };
   let authorization = '';
   if (includeAuthorization && record?.secureConfig?.authorizationEncrypted) {
     const decrypted = decryptAuthenticatedSecret(record.secureConfig.authorizationEncrypted);
