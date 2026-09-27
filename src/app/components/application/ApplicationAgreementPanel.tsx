@@ -156,6 +156,18 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
     }
   }
 
+  function handleAgreementPaperSelection(value: string) {
+    if (value === '__paper_agreement__') {
+      if (templateId) navigate(`/app/agreement-templates?preview=${encodeURIComponent(templateId)}`);
+      return;
+    }
+    if (value === '__manage_templates__') {
+      navigate('/app/agreement-templates');
+      return;
+    }
+    setTemplateId(value);
+  }
+
   async function prepareRequest(renewalOf = '') {
     if (!templateId) {
       onError?.(`Create or select a ${type} agreement paper first`);
@@ -556,12 +568,26 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
           <Typography sx={{ fontSize: 12, fontWeight: 800, color: 'text.secondary' }}>First-party agreement setup</Typography>
           {agreementTermFields()}
           {loading && !templates.length ? <CircularProgress size={22} /> : templates.length ? <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <Select size="small" fullWidth value={templateId} onChange={(event) => setTemplateId(event.target.value)} displayEmpty aria-label={`${typeLabel(type)} agreement paper`}>
+            <Select
+              size="small"
+              fullWidth
+              value={templateId}
+              onChange={(event) => handleAgreementPaperSelection(String(event.target.value))}
+              displayEmpty
+              aria-label={`${typeLabel(type)} agreement paper`}
+              data-secureasset-agreement-paper-dropdown="footer-actions-v232"
+            >
               <MenuItem value="" disabled>Select an agreement paper</MenuItem>
               {templates.map((template) => <MenuItem key={idOf(template)} value={idOf(template)}>{template.name} · v{template.version || 1}</MenuItem>)}
+              <Divider sx={{ my: .5 }} />
+              <MenuItem value="__paper_agreement__" disabled={!templateId} sx={{ fontWeight: 800 }}>
+                <DescriptionRounded fontSize="small" sx={{ mr: 1 }} />Paper Agreement
+              </MenuItem>
+              <MenuItem value="__manage_templates__" sx={{ fontWeight: 800 }}>
+                <OpenInNewRounded fontSize="small" sx={{ mr: 1 }} />Manage templates
+              </MenuItem>
             </Select>
             <Button variant="contained" startIcon={<DescriptionRounded />} disabled={Boolean(busy) || !templateId} onClick={() => void prepareRequest()} sx={{ whiteSpace: 'nowrap' }}>{busy === 'prepare' ? 'Preparing…' : 'Prepare agreement'}</Button>
-            <Button variant="outlined" startIcon={<OpenInNewRounded />} href="/app/agreement-templates" sx={{ whiteSpace: 'nowrap' }}>Manage Papers</Button>
           </Stack> : <Alert severity="info" action={<Button color="inherit" size="small" href="/app/agreement-templates">Add Agreement Paper</Button>}>Add a {typeLabel(type).toLowerCase()} agreement paper before preparing this agreement.</Alert>}
         </Stack>}
 
@@ -801,9 +827,12 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
                             <Typography sx={{ fontWeight: 850, fontSize: 12.5 }}>New agreement for this tenancy</Typography>
                             {agreementTermFields()}
                             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={.8}>
-                              <Select size="small" fullWidth value={templateId} onChange={(event) => setTemplateId(event.target.value)} displayEmpty aria-label="Renewal agreement template">
+                              <Select size="small" fullWidth value={templateId} onChange={(event) => handleAgreementPaperSelection(String(event.target.value))} displayEmpty aria-label="Renewal agreement template">
                                 <MenuItem value="" disabled>Select a template</MenuItem>
                                 {templates.map((template) => <MenuItem key={idOf(template)} value={idOf(template)}>{template.name} · v{template.version || 1}</MenuItem>)}
+                                <Divider sx={{ my: .5 }} />
+                                <MenuItem value="__paper_agreement__" disabled={!templateId} sx={{ fontWeight: 800 }}><DescriptionRounded fontSize="small" sx={{ mr: 1 }} />Paper Agreement</MenuItem>
+                                <MenuItem value="__manage_templates__" sx={{ fontWeight: 800 }}><OpenInNewRounded fontSize="small" sx={{ mr: 1 }} />Manage templates</MenuItem>
                               </Select>
                               <Button size="small" variant="contained" disabled={Boolean(busy) || !templateId || !validAgreementTerm} onClick={() => void prepareRequest(requestId)}>{busy === 'prepare' ? 'Preparing…' : 'Prepare renewal'}</Button>
                               <Button size="small" disabled={Boolean(busy)} onClick={() => setRenewalFor(null)}>Cancel</Button>

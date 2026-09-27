@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router';
 import {
   Alert, Box, Button, ButtonBase, Chip, CircularProgress, DialogActions, DialogContent, Divider, MenuItem, Paper, Select, Snackbar, Stack, TextField, Typography,
 } from '@mui/material';
@@ -52,6 +53,7 @@ function formFrom(template: any): TemplateForm {
 
 export default function AgreementTemplatesPage() {
   const actions = useActionDialog();
+  const [searchParams] = useSearchParams();
   const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
@@ -75,6 +77,13 @@ export default function AgreementTemplatesPage() {
   }
 
   useEffect(() => { void load(); }, []);
+
+  useEffect(() => {
+    const previewId = String(searchParams.get('preview') || '');
+    if (!previewId || !templates.length || previewing) return;
+    const match = templates.find((template) => String(template?._id || '') === previewId);
+    if (match) setPreviewing(match);
+  }, [searchParams, templates, previewing]);
 
   function openEditor(template?: any) {
     setEditing(template || {});
