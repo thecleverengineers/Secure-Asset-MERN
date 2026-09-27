@@ -23,9 +23,7 @@ const SurveyorMarketplacePage = lazyWithRetry(() => import('./pages/SurveyorMark
 const SurveyorPublicProfilePage = lazyWithRetry(() => import('./pages/SurveyorPublicProfilePage'));
 const SurveyorQuotePage = lazyWithRetry(() => import('./pages/SurveyorQuotePage'));
 const SurveyorPrivateProfilePage = lazyWithRetry(() => import('./pages/SurveyorPrivateProfilePage'));
-const AuthLoginPage = lazyWithRetry(() => import('./pages/AuthLoginPage'));
-const AuthRegisterPage = lazyWithRetry(() => import('./pages/AuthRegisterPage'));
-const AuthOtpLoginPage = lazyWithRetry(() => import('./pages/AuthOtpLoginPage'));
+const LoginPage = lazyWithRetry(() => import('./pages/LoginPage'));
 const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'));
 const PublicDrivePage = lazyWithRetry(() => import('./pages/PublicDrivePage'));
 const RoleDashboardPage = lazyWithRetry(() => import('./pages/app/RoleDashboardPage'));
@@ -66,6 +64,13 @@ function LegacyLoginRedirect() {
   return <Navigate replace to={`${target}${query ? `?${query}` : ''}${location.hash}`} />;
 }
 
+function AuthAccessPage() {
+  const { authMode } = useParams();
+  const pageMode = authMode === 'register' ? 'register' : authMode === 'otp_login' ? 'otp' : authMode === 'login' ? 'login' : null;
+  if (!pageMode) return <Navigate replace to="/auth/login" />;
+  return <LoginPage pageMode={pageMode} />;
+}
+
 function LegacyPropertyActionRedirect({ target }: { target: 'apply_property' | 'schedule_visit' }) {
   const { propertyId } = useParams();
   const location = useLocation();
@@ -99,10 +104,8 @@ export const router = createBrowserRouter([
       { path: 'privacy-policy', Component: LegalPolicyPage },
       { path: 'shipping-policy', Component: LegalPolicyPage },
       { path: 'cancellation-and-refunds', Component: LegalPolicyPage },
-      { path: 'auth/login', Component: AuthLoginPage },
-      { path: 'auth/register', Component: AuthRegisterPage },
-      { path: 'auth/otp_login', Component: AuthOtpLoginPage },
       { path: 'auth/reset-password', Component: ResetPasswordPage },
+      { path: 'auth/:authMode', Component: AuthAccessPage },
       { path: 'login', Component: LegacyLoginRedirect },
       { path: 'reset-password', element: <Navigate to="/auth/reset-password" replace /> },
       { path: ':slug', Component: DynamicContentPage },

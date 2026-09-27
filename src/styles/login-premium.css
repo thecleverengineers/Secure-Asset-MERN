@@ -329,10 +329,12 @@
   position: relative;
   min-height: 100dvh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  overflow: auto;
-  padding: 54px clamp(32px,4vw,76px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  padding: clamp(42px,7vh,72px) clamp(32px,4vw,76px) 54px;
   background:
     radial-gradient(circle at 100% 0%,rgba(0,184,166,.09),transparent 22rem),
     radial-gradient(circle at 0% 100%,rgba(20,81,117,.06),transparent 22rem),
@@ -340,6 +342,8 @@
 }
 .sa-login-premium-card {
   width: min(520px,100%);
+  flex: 0 0 auto;
+  contain: layout paint;
   padding: clamp(30px,3.4vw,52px);
   border: 1px solid #e3ebf2;
   border-radius: 24px;
@@ -445,6 +449,9 @@
 .sa-login-mode-link {
   position: relative;
   display: inline-flex;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
   min-height: 28px;
   align-items: center;
   padding: 0 3px;
@@ -569,6 +576,7 @@
   .sa-login-premium-card {
     width: min(620px,100%);
     margin: 0 auto;
+    contain: none;
     padding: 30px 24px 26px;
     border: 0;
     border-radius: 28px 28px 0 0;
