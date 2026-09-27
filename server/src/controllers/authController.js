@@ -128,12 +128,19 @@ async function storeAndSendOtp(user, purpose) {
   user.otpLastSentAt = new Date();
   await user.save({ validateModifiedOnly: true });
   try {
-    await sendFast2SmsOtp({ mobile, otp, name: user.name });
+    const provider = await sendFast2SmsOtp({ mobile, otp, name: user.name });
+    return {
+      otp,
+      delivered: provider?.deliveryStatus === 'delivered',
+      accepted: true,
+      providerRequestId: provider?.requestId || '',
+      deliveryStatus: provider?.deliveryStatus || 'accepted',
+      deliveryDescription: provider?.deliveryDescription || '',
+    };
   } catch (error) {
     if (env.NODE_ENV === 'production') throw new ApiError(503, error.message);
-    return { otp, delivered: false, warning: error.message };
+    return { otp, delivered: false, accepted: false, warning: error.message };
   }
-  return { otp, delivered: true };
 }
 
 async function validateStoredOtp(user, otp, purpose) {
@@ -198,7 +205,9 @@ export const register = asyncHandler(async (req, res) => {
   res.status(202).json({
     success: true,
     data: { requiresOtpVerification: true, identifier: phone, maskedMobile: maskMobile(phone) },
-    message: `Verification OTP sent to ${maskMobile(phone)}`,
+    message: delivery.delivered
+      ? `Verification OTP delivered to ${maskMobile(phone)}`
+      : `Verification OTP submitted to ${maskMobile(phone)}`,
     ...(env.NODE_ENV !== 'production' && { developmentOtp: delivery.otp, deliveryWarning: delivery.warning }),
   });
 });
@@ -244,7 +253,13 @@ export const resendRegistrationOtp = asyncHandler(async (req, res) => {
     .select('+otpHash +otpExpiresAt +otpPurpose +otpAttempts +otpLastSentAt');
   if (!user) return res.json({ success: true, message: 'If the pending account exists, a verification OTP has been sent' });
   const delivery = await storeAndSendOtp(user, 'registration');
-  res.json({ success: true, message: `Verification OTP sent to ${maskMobile(user.phone)}`, ...(env.NODE_ENV !== 'production' && { developmentOtp: delivery.otp, deliveryWarning: delivery.warning }) });
+  res.json({
+    success: true,
+    message: delivery.delivered
+      ? `Verification OTP delivered to ${maskMobile(user.phone)}`
+      : `Verification OTP submitted to ${maskMobile(user.phone)}`,
+    ...(env.NODE_ENV !== 'production' && { developmentOtp: delivery.otp, deliveryWarning: delivery.warning }),
+  });
 });
 
 export const login = asyncHandler(async (req, res) => {
@@ -569,7 +584,12 @@ export const sendOtp = asyncHandler(async (req, res) => {
   const user = await findUserByIdentifier(identifier, '+otpHash +otpExpiresAt +otpPurpose +otpAttempts +otpLastSentAt');
   if (!user || user.status !== 'active') return res.json({ success: true, message: 'If the account exists, an OTP has been sent to its registered mobile' });
   const delivery = await storeAndSendOtp(user, 'login');
-  res.json({ success: true, message: `OTP sent to ${maskMobile(user.phone)}`, data: { maskedMobile: maskMobile(user.phone) }, ...(env.NODE_ENV !== 'production' && { developmentOtp: delivery.otp, deliveryWarning: delivery.warning }) });
+  res.json({
+    success: true,
+    message: delivery.delivered ? `OTP delivered to ${maskMobile(user.phone)}` : `OTP submitted to ${maskMobile(user.phone)}`,
+    data: { maskedMobile: maskMobile(user.phone), deliveryStatus: delivery.deliveryStatus || 'accepted' },
+    ...(env.NODE_ENV !== 'production' && { developmentOtp: delivery.otp, deliveryWarning: delivery.warning }),
+  });
 });
 
 export const verifyOtp = asyncHandler(async (req, res) => {
@@ -590,7 +610,12 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   const user = await findUserByIdentifier(identifier, '+otpHash +otpExpiresAt +otpPurpose +otpAttempts +otpLastSentAt');
   if (!user || user.status !== 'active') return res.json({ success: true, message: 'If the account exists, a password reset OTP has been sent to its registered mobile' });
   const delivery = await storeAndSendOtp(user, 'password_reset');
-  res.json({ success: true, message: `Password reset OTP sent to ${maskMobile(user.phone)}`, data: { maskedMobile: maskMobile(user.phone) }, ...(env.NODE_ENV !== 'production' && { developmentOtp: delivery.otp, deliveryWarning: delivery.warning }) });
+  res.json({
+    success: true,
+    message: delivery.delivered ? `Password reset OTP delivered to ${maskMobile(user.phone)}` : `Password reset OTP submitted to ${maskMobile(user.phone)}`,
+    data: { maskedMobile: maskMobile(user.phone), deliveryStatus: delivery.deliveryStatus || 'accepted' },
+    ...(env.NODE_ENV !== 'production' && { developmentOtp: delivery.otp, deliveryWarning: delivery.warning }),
+  });
 });
 
 export const resetPassword = asyncHandler(async (req, res) => {

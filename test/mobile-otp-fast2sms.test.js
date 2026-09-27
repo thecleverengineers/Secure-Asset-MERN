@@ -119,3 +119,20 @@ test('Fast2SMS OTP delivery authenticates with Authorization header', () => {
   assert.doesNotMatch(source, /authorization: String\(config\.authorization \|\| ''\)/);
   assert.match(source, /fast2SmsFailureReason/);
 });
+
+
+test('Fast2SMS OTP sender requests delivery details and verifies request_id', () => {
+  const source = fs.readFileSync(new URL('../server/src/services/fast2sms.js', import.meta.url), 'utf8');
+  assert.match(source, /sms_details: '1'/);
+  assert.match(source, /extractFast2SmsRequestId/);
+  assert.match(source, /\/dev\/dlr\//);
+  assert.match(source, /Fast2SMS OTP delivery report/);
+  assert.match(source, /Fast2SMS accepted the OTP but delivery failed/);
+});
+
+test('auth responses do not claim OTP delivered when only accepted', () => {
+  const source = fs.readFileSync(new URL('../server/src/controllers/authController.js', import.meta.url), 'utf8');
+  assert.match(source, /Verification OTP submitted to/);
+  assert.match(source, /OTP submitted to/);
+  assert.match(source, /deliveryStatus/);
+});

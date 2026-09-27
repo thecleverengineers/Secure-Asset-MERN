@@ -140,6 +140,7 @@ export function buildFast2SmsUrl(config, { mobile, otp, name }) {
     message: String(config.messageId || FAST2SMS_DEFAULTS.messageId).trim(),
     variables_values: renderVariableValues(config.variablesTemplate || FAST2SMS_DEFAULTS.variablesTemplate, { otp, name }),
     numbers: String(mobile),
+    sms_details: '1',
   });
   const scheduleTime = String(config.scheduleTime || '').trim();
   if (scheduleTime) parameters.set('schedule_time', scheduleTime);
@@ -159,6 +160,85 @@ function fast2SmsFailureReason(payload, httpStatus) {
   if (statusCode !== '' && statusCode !== null && statusCode !== undefined) parts.push(`code ${statusCode}`);
   if (message) parts.push(message);
   return parts.length ? parts.join(': ') : `HTTP ${httpStatus}`;
+}
+
+function extractFast2SmsRequestId(payload) {
+  const candidates = [
+    payload?.request_id, payload?.requestId, payload?.requestID,
+    payload?.data?.request_id, payload?.data?.requestId,
+    payload?.sms_details?.request_id, payload?.sms_details?.requestId,
+  ];
+  return String(candidates.find((value) => value !== undefined && value !== null && String(value).trim()) || '').trim();
+}
+
+function normalizeDeliveryRows(payload) {
+  if (Array.isArray(payload)) return payload;
+  for (const value of [payload?.data, payload?.reports, payload?.report, payload?.result, payload?.delivery_report]) {
+    if (Array.isArray(value)) return value;
+    if (value && typeof value === 'object') return [value];
+  }
+  return payload && typeof payload === 'object' ? [payload] : [];
+}
+
+export async function fetchFast2SmsDeliveryReport(requestId, authorization) {
+  const id = String(requestId || '').trim();
+  if (!id) return { status: 'unknown', description: 'Fast2SMS request ID unavailable', raw: null };
+  const url = new URL(`https://www.fast2sms.com/dev/dlr/${encodeURIComponent(id)}`);
+  let response;
+  let payload;
+  try {
+    response = await fetch(url, {
+      method: 'GET',
+      headers: { Accept: 'application/json', Authorization: String(authorization || '') },
+      signal: AbortSignal.timeout(10000),
+    });
+    const text = await response.text();
+    try { payload = JSON.parse(text); } catch { payload = { message: text }; }
+  } catch (error) {
+    return { status: 'unknown', description: `Delivery report lookup failed: ${error.message}`, raw: null };
+  }
+  if (!response.ok) {
+    return { status: 'unknown', description: fast2SmsFailureReason(payload, response.status), raw: payload };
+  }
+  const rows = normalizeDeliveryRows(payload);
+  const statuses = rows.map((row) => String(row?.status || row?.delivery_status || '').trim().toLowerCase()).filter(Boolean);
+  const failed = rows.find((row) => {
+    const status = String(row?.status || row?.delivery_status || '').trim().toLowerCase();
+    return ['failed', 'undelivered', 'rejected', 'expired', 'blocked'].includes(status);
+  });
+  if (failed) {
+    return {
+      status: 'failed',
+      description: String(failed.status_description || failed.failure_reason || failed.description || failed.message || 'SMS delivery failed'),
+      raw: payload,
+    };
+  }
+  if (statuses.some((status) => ['delivered', 'success', 'delivrd'].includes(status))) {
+    const delivered = rows.find((row) => ['delivered', 'success', 'delivrd'].includes(String(row?.status || row?.delivery_status || '').trim().toLowerCase()));
+    return {
+      status: 'delivered',
+      description: String(delivered?.status_description || delivered?.description || 'Delivered successfully'),
+      raw: payload,
+    };
+  }
+  const first = rows[0] || {};
+  return {
+    status: statuses[0] || 'pending',
+    description: String(first.status_description || first.description || first.message || 'SMS accepted and awaiting delivery report'),
+    raw: payload,
+  };
+}
+
+async function verifyFast2SmsDelivery(requestId, authorization) {
+  if (!requestId) return { status: 'unknown', description: 'Fast2SMS accepted the request without a request ID' };
+  const waits = [900, 1600];
+  let report = { status: 'pending', description: 'SMS accepted and awaiting delivery report' };
+  for (const delayMs of waits) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    report = await fetchFast2SmsDeliveryReport(requestId, authorization);
+    if (report.status === 'delivered' || report.status === 'failed') break;
+  }
+  return report;
 }
 
 export function buildFast2SmsWhatsAppUrl(config, { mobile, templateKey, variables = [] }) {
@@ -270,8 +350,31 @@ export async function sendFast2SmsOtp({ mobile, otp, name = '', configOverride =
     await updateProviderHealth({ ok: false, error: reason });
     throw new Error(`Fast2SMS rejected the OTP request: ${reason}`);
   }
+  const requestId = extractFast2SmsRequestId(payload);
+  console.log('Fast2SMS OTP request accepted', {
+    requestId: requestId || null,
+    providerStatusCode: payload?.status_code ?? payload?.statusCode ?? payload?.code ?? null,
+    providerMessage: String(payload?.message || payload?.msg || ''),
+    route: String(config.route || ''),
+    senderId: String(config.senderId || ''),
+    messageId: String(config.messageId || ''),
+    destinationLast4: normalized.slice(-4),
+  });
+
+  const delivery = await verifyFast2SmsDelivery(requestId, config.authorization);
+  console.log('Fast2SMS OTP delivery report', {
+    requestId: requestId || null,
+    status: delivery.status,
+    description: delivery.description,
+    destinationLast4: normalized.slice(-4),
+  });
+  if (delivery.status === 'failed') {
+    await updateProviderHealth({ ok: false, error: delivery.description });
+    throw new Error(`Fast2SMS accepted the OTP but delivery failed: ${delivery.description}`);
+  }
+
   await updateProviderHealth({ ok: true });
-  return payload;
+  return { ...payload, requestId, deliveryStatus: delivery.status, deliveryDescription: delivery.description };
 }
 
 export async function sendFast2SmsWhatsApp({ mobile, templateKey, variables = [] }) {
