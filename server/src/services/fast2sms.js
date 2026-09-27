@@ -135,16 +135,30 @@ export function buildFast2SmsUrl(config, { mobile, otp, name }) {
   const endpoint = String(config.endpoint || FAST2SMS_DEFAULTS.endpoint).trim();
   const url = new URL(endpoint);
   const parameters = new URLSearchParams({
-    authorization: String(config.authorization || ''),
-    route: String(config.route || FAST2SMS_DEFAULTS.route),
-    sender_id: String(config.senderId || FAST2SMS_DEFAULTS.senderId),
-    message: String(config.messageId || FAST2SMS_DEFAULTS.messageId),
+    route: String(config.route || FAST2SMS_DEFAULTS.route).trim().toLowerCase(),
+    sender_id: String(config.senderId || FAST2SMS_DEFAULTS.senderId).trim(),
+    message: String(config.messageId || FAST2SMS_DEFAULTS.messageId).trim(),
     variables_values: renderVariableValues(config.variablesTemplate || FAST2SMS_DEFAULTS.variablesTemplate, { otp, name }),
     numbers: String(mobile),
-    schedule_time: String(config.scheduleTime || ''),
   });
+  const scheduleTime = String(config.scheduleTime || '').trim();
+  if (scheduleTime) parameters.set('schedule_time', scheduleTime);
   url.search = parameters.toString();
   return url;
+}
+
+function fast2SmsFailureReason(payload, httpStatus) {
+  const statusCode = payload?.status_code ?? payload?.statusCode ?? payload?.code ?? '';
+  const rawMessage = payload?.message ?? payload?.error ?? payload?.errors ?? payload?.msg ?? '';
+  const message = Array.isArray(rawMessage)
+    ? rawMessage.map((item) => typeof item === 'string' ? item : JSON.stringify(item)).join('; ')
+    : typeof rawMessage === 'object' && rawMessage !== null
+      ? JSON.stringify(rawMessage)
+      : String(rawMessage || '').trim();
+  const parts = [];
+  if (statusCode !== '' && statusCode !== null && statusCode !== undefined) parts.push(`code ${statusCode}`);
+  if (message) parts.push(message);
+  return parts.length ? parts.join(': ') : `HTTP ${httpStatus}`;
 }
 
 export function buildFast2SmsWhatsAppUrl(config, { mobile, templateKey, variables = [] }) {
@@ -225,7 +239,14 @@ export async function sendFast2SmsOtp({ mobile, otp, name = '', configOverride =
   let response;
   let payload;
   try {
-    response = await fetch(url, { method: 'GET', headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
+    response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: String(config.authorization),
+      },
+      signal: AbortSignal.timeout(15000),
+    });
     const text = await response.text();
     try { payload = JSON.parse(text); } catch { payload = { message: text }; }
   } catch (error) {
@@ -236,8 +257,17 @@ export async function sendFast2SmsOtp({ mobile, otp, name = '', configOverride =
   const providerRejected = payload?.return === false || String(payload?.return || '').toLowerCase() === 'false';
   const accepted = response.ok && !providerRejected;
   if (!accepted) {
-    const reason = payload?.message || payload?.error || `HTTP ${response.status}`;
-    await updateProviderHealth({ ok: false, error: String(reason) });
+    const reason = fast2SmsFailureReason(payload, response.status);
+    console.error('Fast2SMS OTP request rejected', {
+      httpStatus: response.status,
+      providerStatusCode: payload?.status_code ?? payload?.statusCode ?? payload?.code ?? null,
+      reason,
+      route: String(config.route || ''),
+      senderId: String(config.senderId || ''),
+      messageId: String(config.messageId || ''),
+      destinationLast4: normalized.slice(-4),
+    });
+    await updateProviderHealth({ ok: false, error: reason });
     throw new Error(`Fast2SMS rejected the OTP request: ${reason}`);
   }
   await updateProviderHealth({ ok: true });

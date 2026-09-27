@@ -22,12 +22,13 @@ test('Fast2SMS DLT URL includes the configured OTP variable and recipient', () =
     senderId: 'SECAST', messageId: '204251', variablesTemplate: '{otp}|{name}', scheduleTime: '',
   }, { mobile: '9707949651', otp: '654321', name: 'Clever Engineers' });
   assert.equal(url.origin + url.pathname, 'https://www.fast2sms.com/dev/bulkV2');
-  assert.equal(url.searchParams.get('authorization'), 'secret-key');
+  assert.equal(url.searchParams.has('authorization'), false);
   assert.equal(url.searchParams.get('route'), 'dlt');
   assert.equal(url.searchParams.get('sender_id'), 'SECAST');
   assert.equal(url.searchParams.get('message'), '204251');
   assert.equal(url.searchParams.get('variables_values'), '654321|Clever Engineers');
   assert.equal(url.searchParams.get('numbers'), '9707949651');
+  assert.equal(url.searchParams.has('schedule_time'), false);
   assert.equal(renderVariableValues('{otp}', { otp: '111222' }), '111222');
 });
 
@@ -109,4 +110,12 @@ test('authentication routes expose registration verification and mobile OTP rese
   assert.match(controller, /password_reset/);
   assert.match(controller, /Invalid email\/mobile number or password/);
   assert.match(controller, /registered mobile/);
+});
+
+
+test('Fast2SMS OTP delivery authenticates with Authorization header', () => {
+  const source = fs.readFileSync(new URL('../server/src/services/fast2sms.js', import.meta.url), 'utf8');
+  assert.match(source, /Authorization: String\(config\.authorization\)/);
+  assert.doesNotMatch(source, /authorization: String\(config\.authorization \|\| ''\)/);
+  assert.match(source, /fast2SmsFailureReason/);
 });
