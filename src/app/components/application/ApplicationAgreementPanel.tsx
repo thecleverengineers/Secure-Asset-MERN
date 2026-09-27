@@ -554,20 +554,70 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
         {firstPartySide && !inProgress && <Stack spacing={1.1} data-secureasset-first-party-agreement-setup="first-party-upload-before-request-v85">
           <Typography sx={{ fontSize: 12, fontWeight: 800, color: 'text.secondary' }}>First-party agreement setup</Typography>
           {agreementTermFields()}
-          {loading && !templates.length ? <CircularProgress size={22} /> : templates.length ? <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} data-secureasset-agreement-actions="selector-only-v235">
-            <Select
-              size="small"
-              fullWidth
-              value={templateId}
-              onChange={(event) => setTemplateId(String(event.target.value))}
-              displayEmpty
-              aria-label={`${typeLabel(type)} agreement paper`}
-              data-secureasset-agreement-paper-dropdown="templates-only-v235"
+          {loading && !templates.length ? <CircularProgress size={22} /> : templates.length ? <Stack
+            direction="row"
+            spacing={1}
+            useFlexGap
+            flexWrap="wrap"
+            alignItems="stretch"
+            data-secureasset-agreement-actions="responsive-prepare-v236"
+            sx={{ width: '100%', minWidth: 0 }}
+          >
+            <Box sx={{ flex: '1 1 245px', minWidth: 0 }}>
+              <Select
+                size="small"
+                fullWidth
+                value={templateId}
+                onChange={(event) => setTemplateId(String(event.target.value))}
+                displayEmpty
+                aria-label={`${typeLabel(type)} agreement paper`}
+                data-secureasset-agreement-paper-dropdown="templates-only-v236"
+                sx={{
+                  minWidth: 0,
+                  height: 42,
+                  borderRadius: 2.1,
+                  bgcolor: 'background.paper',
+                  '& .MuiSelect-select': {
+                    minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    display: 'block',
+                  },
+                }}
+              >
+                <MenuItem value="" disabled>Select an agreement paper</MenuItem>
+                {templates.map((template) => <MenuItem key={idOf(template)} value={idOf(template)}>{template.name} · v{template.version || 1}</MenuItem>)}
+              </Select>
+            </Box>
+            <Button
+              variant="contained"
+              startIcon={<DescriptionRounded />}
+              disabled={Boolean(busy) || !templateId}
+              onClick={() => void prepareRequest()}
+              data-secureasset-prepare-agreement="premium-responsive-v236"
+              sx={{
+                flex: '1 1 170px',
+                minWidth: 0,
+                maxWidth: { xs: '100%', sm: 210 },
+                minHeight: 42,
+                px: 2,
+                borderRadius: 2.1,
+                whiteSpace: 'nowrap',
+                fontSize: 13,
+                fontWeight: 800,
+                letterSpacing: '.01em',
+                boxShadow: '0 8px 20px rgba(15, 23, 42, .14)',
+                '&:hover': {
+                  boxShadow: '0 11px 26px rgba(15, 23, 42, .18)',
+                  transform: 'translateY(-1px)',
+                },
+                '&.Mui-disabled': { boxShadow: 'none' },
+                transition: 'transform .18s ease, box-shadow .18s ease',
+              }}
             >
-              <MenuItem value="" disabled>Select an agreement paper</MenuItem>
-              {templates.map((template) => <MenuItem key={idOf(template)} value={idOf(template)}>{template.name} · v{template.version || 1}</MenuItem>)}
-            </Select>
-            <Button variant="contained" startIcon={<DescriptionRounded />} disabled={Boolean(busy) || !templateId} onClick={() => void prepareRequest()} sx={{ whiteSpace: 'nowrap', minHeight: 40 }}>{busy === 'prepare' ? 'Preparing…' : 'Prepare agreement'}</Button>
+              {busy === 'prepare' ? 'Preparing…' : 'Prepare agreement'}
+            </Button>
           </Stack> : <Alert severity="info" action={<Button color="inherit" size="small" href="/app/agreement-templates">Add Agreement Paper</Button>}>Add a {typeLabel(type).toLowerCase()} agreement paper before preparing this agreement.</Alert>}
         </Stack>}
 
@@ -806,13 +856,15 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
                           <Stack spacing={1}>
                             <Typography sx={{ fontWeight: 850, fontSize: 12.5 }}>New agreement for this tenancy</Typography>
                             {agreementTermFields()}
-                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={.8}>
-                              <Select size="small" fullWidth value={templateId} onChange={(event) => setTemplateId(String(event.target.value))} displayEmpty aria-label="Renewal agreement template">
-                                <MenuItem value="" disabled>Select a template</MenuItem>
-                                {templates.map((template) => <MenuItem key={idOf(template)} value={idOf(template)}>{template.name} · v{template.version || 1}</MenuItem>)}
-                              </Select>
-                              <Button size="small" variant="contained" disabled={Boolean(busy) || !templateId || !validAgreementTerm} onClick={() => void prepareRequest(requestId)}>{busy === 'prepare' ? 'Preparing…' : 'Prepare renewal'}</Button>
-                              <Button size="small" disabled={Boolean(busy)} onClick={() => setRenewalFor(null)}>Cancel</Button>
+                            <Stack direction="row" spacing={.8} useFlexGap flexWrap="wrap" alignItems="stretch" sx={{ width: '100%', minWidth: 0 }}>
+                              <Box sx={{ flex: '1 1 220px', minWidth: 0 }}>
+                                <Select size="small" fullWidth value={templateId} onChange={(event) => setTemplateId(String(event.target.value))} displayEmpty aria-label="Renewal agreement template" sx={{ minWidth: 0, height: 40, borderRadius: 2 }}>
+                                  <MenuItem value="" disabled>Select a template</MenuItem>
+                                  {templates.map((template) => <MenuItem key={idOf(template)} value={idOf(template)}>{template.name} · v{template.version || 1}</MenuItem>)}
+                                </Select>
+                              </Box>
+                              <Button size="small" variant="contained" disabled={Boolean(busy) || !templateId || !validAgreementTerm} onClick={() => void prepareRequest(requestId)} sx={{ flex: '1 1 145px', maxWidth: { xs: '100%', sm: 180 }, minHeight: 40, borderRadius: 2, px: 1.7, whiteSpace: 'nowrap', fontWeight: 800 }}>{busy === 'prepare' ? 'Preparing…' : 'Prepare renewal'}</Button>
+                              <Button size="small" disabled={Boolean(busy)} onClick={() => setRenewalFor(null)} sx={{ minHeight: 40, borderRadius: 2 }}>Cancel</Button>
                             </Stack>
                           </Stack>
                         </Paper>}
