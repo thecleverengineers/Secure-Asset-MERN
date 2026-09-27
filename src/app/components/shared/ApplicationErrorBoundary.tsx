@@ -17,8 +17,9 @@ export default class ApplicationErrorBoundary extends Component<Props, State> {
     console.error('SecureAsset application render error', error, info.componentStack);
     try {
       const key = 'secureasset_application_render_recovery';
-      if (window.sessionStorage.getItem(key) !== '1') {
-        window.sessionStorage.setItem(key, '1');
+      const lastRecoveryAt = Number(window.sessionStorage.getItem(key) || 0);
+      if (!Number.isFinite(lastRecoveryAt) || Date.now() - lastRecoveryAt >= 60_000) {
+        window.sessionStorage.setItem(key, String(Date.now()));
         const url = new URL(window.location.href);
         url.searchParams.set('__secureasset_app_recovery', String(Date.now()));
         window.location.replace(url.toString());

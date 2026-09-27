@@ -432,7 +432,7 @@ export default function AppShell() {
       }, []);
       if (hasSurveyorSubscription) {
         const seen = new Set(landlordWorkspace.map((item) => item.key));
-        surveyorFeatureKeys.forEach((key, index) => {
+        [...surveyorFeatureKeys].forEach((key, index) => {
           const item = source.get(key);
           if (item && !seen.has(key)) landlordWorkspace.push({ ...item, section: 'surveyor_features', sectionOrder: 20, sortOrder: index * 10 });
         });

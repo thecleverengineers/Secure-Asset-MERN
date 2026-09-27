@@ -23,6 +23,7 @@ type PropertyRecord = {
   startDate?: string;
   endDate?: string;
   monthlyRent?: number;
+  securityDeposit?: number;
   paidAt?: string;
   paidAmount?: number;
   leaseNumber?: string;

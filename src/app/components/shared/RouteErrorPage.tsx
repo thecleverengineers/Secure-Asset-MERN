@@ -31,8 +31,9 @@ export default function RouteErrorPage() {
     // itself is genuinely broken.
     if (status === 404) return;
     try {
-      if (window.sessionStorage.getItem(recoveryKey) === '1') return;
-      window.sessionStorage.setItem(recoveryKey, '1');
+      const lastRecoveryAt = Number(window.sessionStorage.getItem(recoveryKey) || 0);
+      if (Number.isFinite(lastRecoveryAt) && Date.now() - lastRecoveryAt < 60_000) return;
+      window.sessionStorage.setItem(recoveryKey, String(Date.now()));
       const url = new URL(window.location.href);
       url.searchParams.set('__secureasset_runtime_recovery', String(Date.now()));
       window.location.replace(url.toString());
