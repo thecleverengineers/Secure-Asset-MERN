@@ -92,6 +92,7 @@ export const env = Object.freeze({
   S3_KMS_KEY_ID: process.env.S3_KMS_KEY_ID || '',
   VAULT_PURGE_CRON: process.env.VAULT_PURGE_CRON || '17 2 * * *',
   RENT_AUTOMATION_CRON: process.env.RENT_AUTOMATION_CRON || '* * * * *',
+  RENT_REMINDER_CRON_SECRET: process.env.RENT_REMINDER_CRON_SECRET || '',
   NOTIFICATION_DELIVERY_CRON: process.env.NOTIFICATION_DELIVERY_CRON || '* * * * *',
   NOTIFICATION_BATCH_SIZE: numberValue('NOTIFICATION_BATCH_SIZE', 200, { min: 1, max: 2000, integer: true }),
   SMS_WEBHOOK_URL: process.env.SMS_WEBHOOK_URL || '',

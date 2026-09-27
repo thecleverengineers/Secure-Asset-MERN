@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
+import { timingSafeEqual } from 'node:crypto';
 import { env } from './config/env.js';
 import authRoutes from './routes/authRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
@@ -39,6 +40,7 @@ import { notFound, errorHandler } from './middleware/error.js';
 import { requestContext, rejectUnsafeObjectKeys } from './middleware/requestContext.js';
 import { mountProductionSpa } from './middleware/spa.js';
 import { csrfProtection } from './middleware/csrf.js';
+import { runRentReminderAutomation } from './services/rentCycleReminders.js';
 
 export function createApp() {
   const app = express();
@@ -80,6 +82,29 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
   app.use(rejectUnsafeObjectKeys);
   app.use(cookieParser());
+  // Render Cron calls this endpoint at 03:00 UTC (08:30 IST). It is mounted
+  // before CSRF because it is server-to-server and authenticated with a
+  // dedicated high-entropy secret that is never exposed to browsers.
+  app.post('/api/v1/internal/rent-reminders/run', async (req, res, next) => {
+    const configured = String(env.RENT_REMINDER_CRON_SECRET || '');
+    const provided = String(req.get('x-rent-reminder-secret') || '');
+    if (!configured) {
+      res.status(503).json({ success: false, message: 'Rent reminder cron secret is not configured' });
+      return;
+    }
+    const configuredBytes = Buffer.from(configured);
+    const providedBytes = Buffer.from(provided);
+    if (configuredBytes.length !== providedBytes.length || !timingSafeEqual(configuredBytes, providedBytes)) {
+      res.status(401).json({ success: false, message: 'Unauthorized scheduler request' });
+      return;
+    }
+    try {
+      const data = await runRentReminderAutomation(new Date());
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  });
   app.use(csrfProtection);
   morgan.token('request-id', (req) => req.id);
   if (env.NODE_ENV !== 'test') app.use(morgan(env.NODE_ENV === 'production' ? ':remote-addr - :request-id [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" :response-time ms' : 'dev'));

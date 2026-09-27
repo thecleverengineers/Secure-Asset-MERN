@@ -1,5 +1,5 @@
-import { RentalInvoice } from '../models/index.js';
-import { billingMonthKey, monthlyRentCycleBoundsForBillingMonth } from './rentalBilling.js';
+import { RentalInvoice, TenantKyc } from '../models/index.js';
+import { billingMonthKey, createMonthlyRentalInvoices, monthlyRentCycleBoundsForBillingMonth, refreshRentalBillingStatuses } from './rentalBilling.js';
 import { normalizeFast2SmsWhatsAppVariables } from './fast2sms.js';
 import { notifyOnce } from './notifications.js';
 import { processNotificationQueue } from './notificationDelivery.js';
@@ -102,12 +102,20 @@ export async function processRentCycleWhatsAppReminders(now = new Date(), { limi
   })
     .sort({ dueDate: 1, _id: 1 })
     .limit(Math.min(Math.max(Number(limit) || 1000, 1), 2000))
-    .populate('tenant', 'name phone whatsappNumber status')
+    .populate('tenant', 'name phone status')
     .populate('property', 'title pricing price')
     .populate('tenancy', 'monthlyRent')
     .lean();
 
-  const summary = { examined: invoices.length, eligible: 0, queued: 0, skipped: 0, failed: 0, billingMonth: billingMonthKey(now), reminderDate: istDateKey(now) };
+  const tenantIds = [...new Set(invoices.map((invoice) => objectId(invoice?.tenant)).filter(Boolean))];
+  const kycRows = tenantIds.length
+    ? await TenantKyc.find({ user: { $in: tenantIds }, whatsappNumber: { $exists: true, $ne: '' } })
+      .select('user whatsappNumber status')
+      .lean()
+    : [];
+  const whatsappByTenant = new Map(kycRows.map((kyc) => [objectId(kyc.user), String(kyc.whatsappNumber || '').trim()]));
+
+  const summary = { examined: invoices.length, eligible: 0, queued: 0, skipped: 0, missingWhatsapp: 0, failed: 0, billingMonth: billingMonthKey(now), reminderDate: istDateKey(now) };
   const staleAt = new Date(now.getTime() - CLAIM_STALE_MS);
 
   for (const invoice of invoices) {
@@ -124,8 +132,9 @@ export async function processRentCycleWhatsAppReminders(now = new Date(), { limi
 
     const key = rentCycleReminderKey(invoice, now);
     const dueAt = rentCyclePaymentDueAt(cycleEndsAt);
-    const whatsappNumber = String(invoice?.tenant?.whatsappNumber || '').trim();
+    const whatsappNumber = whatsappByTenant.get(objectId(invoice?.tenant)) || '';
     if (!key || !dueAt || !whatsappNumber) {
+      if (!whatsappNumber) summary.missingWhatsapp += 1;
       summary.skipped += 1;
       continue;
     }
@@ -184,31 +193,57 @@ export function nextRentReminderRun(now = new Date()) {
   return target;
 }
 
+export async function runRentReminderAutomation(now = new Date()) {
+  const billing = await createMonthlyRentalInvoices(now);
+  const statuses = await refreshRentalBillingStatuses(now);
+  const reminders = await processRentCycleWhatsAppReminders(now);
+  const delivery = await processNotificationQueue({ limit: Math.max(200, reminders.queued * 4) });
+  return { billing, statuses, reminders, delivery, ranAt: now.toISOString() };
+}
+
+export function shouldRunRentReminderCatchUp(now = new Date()) {
+  const shifted = new Date(now.getTime() + IST_OFFSET_MS);
+  const minutes = shifted.getUTCHours() * 60 + shifted.getUTCMinutes();
+  return minutes >= 8 * 60 + 30;
+}
+
 export function scheduleRentCycleWhatsAppReminders() {
   let timer;
+  let catchUpTimer;
   let stopped = false;
+
+  const execute = async (label) => {
+    try {
+      const summary = await runRentReminderAutomation(new Date());
+      console.log(`${label} rent reminder run completed`, summary);
+    } catch (error) {
+      console.error(`${label} rent reminder run failed`, error);
+    }
+  };
 
   const scheduleNext = () => {
     if (stopped) return;
     const now = new Date();
     const target = nextRentReminderRun(now);
     timer = setTimeout(async () => {
-      try {
-        const summary = await processRentCycleWhatsAppReminders(new Date());
-        const delivery = await processNotificationQueue({ limit: Math.max(200, summary.queued * 4) });
-        console.log('Daily 08:30 IST rent reminder run completed', { ...summary, delivery });
-      } catch (error) {
-        console.error('Daily rent reminder run failed', error);
-      } finally {
-        scheduleNext();
-      }
+      await execute('Daily 08:30 IST');
+      scheduleNext();
     }, Math.max(1000, target.getTime() - now.getTime()));
     timer.unref?.();
   };
+
+  // Free/ephemeral web instances may restart after 08:30 IST. Run one
+  // idempotent same-day catch-up after startup; notifyOnce's daily key prevents
+  // duplicate WhatsApp messages if the scheduled run already completed.
+  if (shouldRunRentReminderCatchUp(new Date())) {
+    catchUpTimer = setTimeout(() => void execute('Startup catch-up'), 5_000);
+    catchUpTimer.unref?.();
+  }
 
   scheduleNext();
   return () => {
     stopped = true;
     if (timer) clearTimeout(timer);
+    if (catchUpTimer) clearTimeout(catchUpTimer);
   };
 }

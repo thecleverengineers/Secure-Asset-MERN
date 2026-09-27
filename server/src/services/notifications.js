@@ -1,4 +1,4 @@
-import { Notification, NotificationDelivery, NotificationPreference, User } from '../models/index.js';
+import { Notification, NotificationDelivery, NotificationPreference, TenantKyc, User } from '../models/index.js';
 import { emitNotification } from './realtime.js';
 import { deliveryChannelConfigured } from './notificationDelivery.js';
 
@@ -8,9 +8,10 @@ const categoryKey = {
 };
 
 export async function createNotification({ user: userId, title, message, category = 'system', actionUrl, metadata = {} }) {
-  const [user, preference] = await Promise.all([
+  const [user, preference, tenantKyc] = await Promise.all([
     User.findById(userId).select('email phone whatsappNumber status').lean(),
     NotificationPreference.findOne({ user: userId }).lean(),
+    TenantKyc.findOne({ user: userId }).select('whatsappNumber status').lean(),
   ]);
   if (!user || user.status !== 'active') return null;
   const key = categoryKey[category] || 'system';
@@ -23,6 +24,10 @@ export async function createNotification({ user: userId, title, message, categor
     emitNotification(notification);
   }
   const commonMetadata = { category, title, message, actionUrl, ...metadata };
+  const kycWhatsappNumber = String(tenantKyc?.whatsappNumber || '').trim();
+  const whatsappDestination = whatsappTemplate === 'rent_reminder'
+    ? kycWhatsappNumber
+    : (kycWhatsappNumber || user.whatsappNumber || user.phone);
   for (const channel of ['email', 'sms', 'whatsapp', 'push']) {
     // Transactional approved WhatsApp templates are opt-in by default when no
     // preference exists, while an explicit user opt-out is always respected.
@@ -31,7 +36,7 @@ export async function createNotification({ user: userId, title, message, categor
     const destination = channel === 'email'
       ? user.email
       : channel === 'whatsapp'
-        ? (user.whatsappNumber || user.phone)
+        ? whatsappDestination
         : user.phone;
     // A template delivery is deliberately queued even if the provider is
     // currently disabled. The worker will mark it skipped with a clear reason;

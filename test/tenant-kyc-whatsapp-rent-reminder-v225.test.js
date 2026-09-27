@@ -15,10 +15,15 @@ test('tenant KYC requires and stores a dedicated WhatsApp number', () => {
   assert.match(page, /Update WhatsApp Number/);
 });
 
-test('WhatsApp delivery prefers the tenant KYC WhatsApp destination', () => {
+test('WhatsApp rent delivery uses the tenant KYC WhatsApp destination', () => {
   const notifications = read('server/src/services/notifications.js');
   const delivery = read('server/src/services/notificationDelivery.js');
-  assert.match(notifications, /user\.whatsappNumber \|\| user\.phone/);
+  const reminders = read('server/src/services/rentCycleReminders.js');
+  assert.match(notifications, /TenantKyc\.findOne\(\{ user: userId \}\)/);
+  assert.match(notifications, /whatsappTemplate === 'rent_reminder'/);
+  assert.match(notifications, /\? kycWhatsappNumber/);
+  assert.match(reminders, /TenantKyc\.find\(/);
+  assert.match(reminders, /whatsappByTenant/);
   assert.match(delivery, /delivery\.destination \|\| user\.whatsappNumber \|\| user\.phone/);
 });
 
@@ -31,4 +36,10 @@ test('rent reminder runs daily at 8:30 IST from final seven days until payment c
   assert.match(reminders, /balanceAmount: \{ \$gt: 0 \}/);
   assert.match(reminders, /Date\.UTC\(year, month, day, 3, 0, 0, 0\)/);
   assert.match(server, /scheduleRentCycleWhatsAppReminders/);
+  assert.match(reminders, /runRentReminderAutomation/);
+  assert.match(reminders, /createMonthlyRentalInvoices/);
+  assert.match(reminders, /shouldRunRentReminderCatchUp/);
+  const app = read('server/src/app.js');
+  assert.match(app, /\/api\/v1\/internal\/rent-reminders\/run/);
+  assert.match(app, /x-rent-reminder-secret/);
 });
