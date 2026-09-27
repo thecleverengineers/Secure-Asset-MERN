@@ -64,7 +64,7 @@ export function rentCycleReminderVariables(invoice) {
   if (!tenantName || !propertyName || !dueAt || !Number.isFinite(rentAmount) || rentAmount <= 0) throw new Error('Monthly rent reminder is missing the tenant, property, amount, or due date.');
   return normalizeFast2SmsWhatsAppVariables('rent_reminder', [tenantName, money(rentAmount), propertyName, dateLabel(dueAt)]);
 }
-export async function queueRentCycleReminder(invoice, now = new Date()) {
+export async function queueRentCycleReminder(invoice, now = new Date(), whatsappNumber = '') {
   const tenantId = objectId(invoice?.tenant);
   const tenancyId = objectId(invoice?.tenancy);
   const cycleEndsAt = monthlyRentCycleEnd(invoice);
@@ -89,6 +89,7 @@ export async function queueRentCycleReminder(invoice, now = new Date()) {
       reminderDate: istDateKey(now),
       whatsappTemplate: 'rent_reminder',
       whatsappVariables: variables,
+      whatsappDestination: String(whatsappNumber || '').trim(),
       fast2smsMessageId: '27057',
       fast2smsPhoneNumberId: '1202480702956271',
     },
@@ -167,13 +168,14 @@ export async function processRentCycleWhatsAppReminders(now = new Date(), { limi
     }
 
     try {
-      await queueRentCycleReminder(invoice, now);
+      await queueRentCycleReminder(invoice, now, whatsappNumber);
       await RentalInvoice.updateOne({ _id: invoice._id, 'rentCycleReminder.key': key }, {
         $set: { 'rentCycleReminder.status': 'queued', 'rentCycleReminder.queuedAt': now, 'rentCycleReminder.lastError': '' },
       });
       summary.queued += 1;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      console.error('Rent reminder queue failed', { invoiceId: String(invoice._id), tenancyId: objectId(invoice.tenancy), message });
       await RentalInvoice.updateOne({ _id: invoice._id, 'rentCycleReminder.key': key }, {
         $set: { 'rentCycleReminder.status': 'failed', 'rentCycleReminder.lastError': message.slice(0, 480) },
       });
