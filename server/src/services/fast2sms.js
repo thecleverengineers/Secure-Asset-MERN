@@ -13,7 +13,7 @@ export const FAST2SMS_DEFAULTS = Object.freeze({
   endpoint: 'https://www.fast2sms.com/dev/bulkV2',
   route: 'dlt',
   senderId: 'SECAST',
-  messageId: '204251',
+  messageId: '204252',
   variablesTemplate: '{otp}',
   scheduleTime: '',
 });
@@ -132,18 +132,19 @@ export function renderVariableValues(template, { otp, name = '' } = {}) {
 }
 
 export function buildFast2SmsUrl(config, { mobile, otp, name }) {
-  const endpoint = String(config.endpoint || FAST2SMS_DEFAULTS.endpoint).trim();
+  const endpoint = 'https://www.fast2sms.com/dev/bulkV2';
   const url = new URL(endpoint);
   const parameters = new URLSearchParams({
-    route: String(config.route || FAST2SMS_DEFAULTS.route).trim().toLowerCase(),
-    sender_id: String(config.senderId || FAST2SMS_DEFAULTS.senderId).trim(),
-    message: String(config.messageId || FAST2SMS_DEFAULTS.messageId).trim(),
-    variables_values: renderVariableValues(config.variablesTemplate || FAST2SMS_DEFAULTS.variablesTemplate, { otp, name }),
-    numbers: String(mobile),
-    sms_details: '1',
+    authorization: String(config.authorization || ''),
+    route: 'dlt',
+    sender_id: 'SECAST',
+    message: '204252',
+    // The approved DLT template receives the SecureAsset-generated OTP at runtime.
+    // If the template does not contain a variable, Fast2SMS will ignore the value.
+    variables_values: otp ? String(otp) : '',
+    numbers: String(mobile || ''),
+    schedule_time: '',
   });
-  const scheduleTime = String(config.scheduleTime || '').trim();
-  if (scheduleTime) parameters.set('schedule_time', scheduleTime);
   url.search = parameters.toString();
   return url;
 }
@@ -311,9 +312,12 @@ export async function sendFast2SmsOtp({ mobile, otp, name = '', configOverride =
   const config = {
     ...adminConfig,
     ...configOverride,
+    endpoint: 'https://www.fast2sms.com/dev/bulkV2',
+    route: 'dlt',
+    senderId: 'SECAST',
+    messageId: '204252',
     authorization: adminConfig.authorization,
   };
-  if (!config.senderId || !config.messageId) throw new Error('Fast2SMS sender ID and DLT message ID are required');
 
   const url = buildFast2SmsUrl(config, { mobile: normalized, otp, name });
   let response;
@@ -321,10 +325,7 @@ export async function sendFast2SmsOtp({ mobile, otp, name = '', configOverride =
   try {
     response = await fetch(url, {
       method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: String(config.authorization),
-      },
+      headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(15000),
     });
     const text = await response.text();
@@ -342,9 +343,9 @@ export async function sendFast2SmsOtp({ mobile, otp, name = '', configOverride =
       httpStatus: response.status,
       providerStatusCode: payload?.status_code ?? payload?.statusCode ?? payload?.code ?? null,
       reason,
-      route: String(config.route || ''),
-      senderId: String(config.senderId || ''),
-      messageId: String(config.messageId || ''),
+      route: 'dlt',
+      senderId: 'SECAST',
+      messageId: '204252',
       destinationLast4: normalized.slice(-4),
     });
     await updateProviderHealth({ ok: false, error: reason });
@@ -355,9 +356,9 @@ export async function sendFast2SmsOtp({ mobile, otp, name = '', configOverride =
     requestId: requestId || null,
     providerStatusCode: payload?.status_code ?? payload?.statusCode ?? payload?.code ?? null,
     providerMessage: String(payload?.message || payload?.msg || ''),
-    route: String(config.route || ''),
-    senderId: String(config.senderId || ''),
-    messageId: String(config.messageId || ''),
+    route: 'dlt',
+    senderId: 'SECAST',
+    messageId: '204252',
     destinationLast4: normalized.slice(-4),
   });
 

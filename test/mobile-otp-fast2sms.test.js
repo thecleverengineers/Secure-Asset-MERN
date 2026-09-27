@@ -136,3 +136,30 @@ test('auth responses do not claim OTP delivered when only accepted', () => {
   assert.match(source, /OTP submitted to/);
   assert.match(source, /deliveryStatus/);
 });
+
+
+test('Fast2SMS OTP uses the supplied bulkV2 DLT contract', () => {
+  const url = buildFast2SmsUrl({
+    authorization: 'secret-key',
+    endpoint: 'https://example.invalid',
+    route: 'wrong',
+    senderId: 'WRONG',
+    messageId: '000000',
+  }, { mobile: '9707949651', otp: '654321', name: 'Tenant' });
+
+  assert.equal(url.origin + url.pathname, 'https://www.fast2sms.com/dev/bulkV2');
+  assert.equal(url.searchParams.get('authorization'), 'secret-key');
+  assert.equal(url.searchParams.get('route'), 'dlt');
+  assert.equal(url.searchParams.get('sender_id'), 'SECAST');
+  assert.equal(url.searchParams.get('message'), '204252');
+  assert.equal(url.searchParams.get('variables_values'), '654321');
+  assert.equal(url.searchParams.get('numbers'), '9707949651');
+  assert.equal(url.searchParams.get('schedule_time'), '');
+});
+
+test('Fast2SMS WhatsApp remains on the dedicated whatsapp endpoint', () => {
+  const source = fs.readFileSync(new URL('../server/src/services/fast2sms.js', import.meta.url), 'utf8');
+  assert.match(source, /endpoint: 'https:\/\/www\.fast2sms\.com\/dev\/whatsapp'/);
+  assert.match(source, /endpoint: 'https:\/\/www\.fast2sms\.com\/dev\/bulkV2'/);
+  assert.match(source, /messageId: '204252'/);
+});
