@@ -4,7 +4,7 @@ import type { UserRole } from '../../services/types';
 
 export default function ProtectedRoute({ roles }: { roles?: UserRole[] }) {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/auth/login" replace />;
   const effectiveRoles: UserRole[] = [
     user.role,
     ...(user.role === 'tenant' && user.landlordEnabled ? ['landlord' as UserRole] : []),

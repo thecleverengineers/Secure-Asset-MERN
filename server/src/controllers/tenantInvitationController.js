@@ -23,7 +23,7 @@ function assertLandlord(user) {
 }
 
 function invitationLink(token) {
-  const url = new URL('/login?mode=register', env.TENANT_INVITATION_BASE_URL || env.PUBLIC_APP_URL);
+  const url = new URL('/auth/register', env.TENANT_INVITATION_BASE_URL || env.PUBLIC_APP_URL);
   // Fragment tokens are not sent to the server in request paths or access logs.
   url.hash = new URLSearchParams({ tenantInvite: token }).toString();
   return url.toString();

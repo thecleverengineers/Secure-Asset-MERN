@@ -95,7 +95,7 @@ function DynamicSections({ sections }: { sections: any[] }) {
     if (section.type === 'featured_surveyors') return <Container key={section.key} maxWidth="xl" sx={{ py: 8 }}><SectionHeading title={section.title} subtitle={section.subtitle} /><Grid container spacing={2.5}>{(data.featuredSurveyors || []).slice(0, Number(section.content?.limit || 6)).map((profile: any) => <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={profile._id}><Card onClick={() => navigate(`/surveyors/${profile.publicSlug || profile._id}`)} elevation={0} sx={{ cursor: 'pointer', height: '100%', border: '1px solid', borderColor: 'divider', borderRadius: 4 }}><CardContent sx={{ p: 3 }}><Stack direction="row" gap={2}><Avatar src={profile.profilePhoto} sx={{ width: 64, height: 64 }}>{profile.name?.[0]}</Avatar><Box><Stack direction="row" gap={1} alignItems="center"><Typography sx={{ fontWeight: 900 }}>{profile.name}</Typography>{profile.verificationStatus === 'verified' && <VerifiedUserRounded color="primary" fontSize="small" />}</Stack><Typography color="text.secondary">{profile.professionalTitle || profile.profileType}</Typography><Typography sx={{ mt: 1, fontWeight: 750 }}>From ₹{Number(profile.startingPrice || 0).toLocaleString('en-IN')}</Typography></Box></Stack></CardContent></Card></Grid>)}{!data.featuredSurveyors?.length && <Grid size={12}><Alert severity="info">Verified public surveyor profiles will appear here.</Alert></Grid>}</Grid></Container>;
     if (section.type === 'cta') {
       const primaryLabel = section.content?.primaryLabel || 'Get started';
-      const primaryUrl = section.content?.primaryUrl || (String(primaryLabel).toLowerCase().includes('create') ? '/login?mode=register' : '/login');
+      const primaryUrl = section.content?.primaryUrl || (String(primaryLabel).toLowerCase().includes('create') ? '/auth/register' : '/auth/login');
       return <Box key={section.key} sx={{ py: 8, bgcolor: 'action.hover' }}><Container maxWidth="md" sx={{ textAlign: 'center' }}><Typography variant="h3" sx={{ fontWeight: 950 }}>{section.title}</Typography><Typography color="text.secondary" sx={{ mt: 1.5 }}>{section.subtitle}</Typography><Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="center" gap={1.5} sx={{ mt: 3 }}><Button variant="contained" href={primaryUrl}>{primaryLabel}</Button>{section.content?.secondaryLabel && <Button variant="outlined" href={section.content?.secondaryUrl || '/marketplace'}>{section.content.secondaryLabel}</Button>}</Stack></Container></Box>;
     }
     return null;
@@ -111,7 +111,7 @@ function DesktopHomeCarousel({ slides, primary }: { slides: any[]; primary: stri
     title: 'Find your next property',
     subtitle: 'Search verified homes, commercial spaces and public listings in one place.',
     primaryCta: { label: 'Browse listings', url: '/marketplace' },
-    secondaryCta: { label: 'Get started', url: '/login?mode=register' },
+    secondaryCta: { label: 'Get started', url: '/auth/register' },
   }];
   const [index, setIndex] = useState(0);
   useEffect(() => {
@@ -138,7 +138,7 @@ function DesktopHomeCarousel({ slides, primary }: { slides: any[]; primary: stri
         </Box>
         <Stack direction="row" justifyContent="center" gap={1.1} sx={{ mt: 2.25 }}>
           <Button variant="contained" onClick={() => navigate(slide?.primaryCta?.url || '/marketplace')} sx={{ bgcolor: primary, borderRadius: 2.5, textTransform: 'none', fontWeight: 850, '&:hover': { bgcolor: primary, filter: 'brightness(.92)' } }}>{slide?.primaryCta?.label || 'Browse listings'}</Button>
-          <Button className="sa-light-button" variant="contained" onClick={() => navigate(slide?.secondaryCta?.url || '/login?mode=register')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 850 }}>{slide?.secondaryCta?.label || 'Get started'}</Button>
+          <Button className="sa-light-button" variant="contained" onClick={() => navigate(slide?.secondaryCta?.url || '/auth/register')} sx={{ borderRadius: 2.5, textTransform: 'none', fontWeight: 850 }}>{slide?.secondaryCta?.label || 'Get started'}</Button>
         </Stack>
         <Box sx={{ mt: 2.3, width: { md: 380, lg: 480 } }}><UniversalSearchField placeholder="Search by property, area or city" /></Box>
         <Box sx={{ display: 'flex', gap: .85, flexWrap: 'wrap', justifyContent: 'center', mt: 1.5 }}>
@@ -244,7 +244,7 @@ function MobileHomeCarousel({ slides, primary }: { slides: any[]; primary: strin
     title: 'Find your next property',
     subtitle: 'Search verified homes, commercial spaces and public listings in one place.',
     primaryCta: { label: 'Browse listings', url: '/marketplace' },
-    secondaryCta: { label: 'Get started', url: '/login?mode=register' },
+    secondaryCta: { label: 'Get started', url: '/auth/register' },
   }];
   const [index, setIndex] = useState(0);
   useEffect(() => { if (carouselSlides.length < 2) return; const timer = window.setInterval(() => setIndex((value) => (value + 1) % carouselSlides.length), 6000); return () => window.clearInterval(timer); }, [carouselSlides.length]);
@@ -258,7 +258,7 @@ function MobileHomeCarousel({ slides, primary }: { slides: any[]; primary: strin
     </Box>
     <Stack alignItems="center" sx={{ position: 'relative', zIndex: 1, minHeight: { xs: 470, sm: 500 }, px: { xs: 2, sm: 4 }, py: { xs: 4, sm: 5 }, textAlign: 'center' }}>
       <Box sx={{ maxWidth: 520 }}><Typography sx={{ color: 'rgba(255,255,255,.82)', fontSize: 10.5, fontWeight: 850, letterSpacing: '.1em', textTransform: 'uppercase' }}>{slide?.eyebrow || 'SecureAsset'}</Typography><Typography component="h1" sx={{ mt: .65, fontSize: { xs: 29, sm: 36 }, lineHeight: 1.08, fontWeight: 950, letterSpacing: '-.05em' }}>{slide?.title || 'Find your next property'}</Typography><Typography sx={{ mt: .85, color: 'rgba(255,255,255,.88)', fontSize: { xs: 12.5, sm: 14 }, lineHeight: 1.55 }}>{slide?.subtitle || 'Search verified homes, commercial spaces and public listings in one place.'}</Typography></Box>
-      <Stack direction="row" justifyContent="center" gap={1} sx={{ mt: 1.8, flexWrap: 'wrap' }}><Button size="small" variant="contained" onClick={() => navigate(slide?.primaryCta?.url || '/marketplace')} sx={{ bgcolor: primary, borderRadius: 2, textTransform: 'none', fontWeight: 850, '&:hover': { bgcolor: primary, filter: 'brightness(.92)' } }}>{slide?.primaryCta?.label || 'Browse listings'}</Button><Button className="sa-light-button" size="small" variant="contained" onClick={() => navigate(slide?.secondaryCta?.url || '/login?mode=register')} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 850 }}>{slide?.secondaryCta?.label || 'Get started'}</Button></Stack>
+      <Stack direction="row" justifyContent="center" gap={1} sx={{ mt: 1.8, flexWrap: 'wrap' }}><Button size="small" variant="contained" onClick={() => navigate(slide?.primaryCta?.url || '/marketplace')} sx={{ bgcolor: primary, borderRadius: 2, textTransform: 'none', fontWeight: 850, '&:hover': { bgcolor: primary, filter: 'brightness(.92)' } }}>{slide?.primaryCta?.label || 'Browse listings'}</Button><Button className="sa-light-button" size="small" variant="contained" onClick={() => navigate(slide?.secondaryCta?.url || '/auth/register')} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 850 }}>{slide?.secondaryCta?.label || 'Get started'}</Button></Stack>
       <Box sx={{ mt: 2, width: '100%', maxWidth: 440 }}><UniversalSearchField placeholder="Start your search: property, area or city" /></Box>
       <Box sx={{ display: 'flex', gap: .7, flexWrap: 'wrap', justifyContent: 'center', mt: 1.25 }}><Chip clickable component="a" href="/marketplace" icon={<StorefrontRounded />} label="All properties" sx={{ height: 30, color: '#fff', bgcolor: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.2)', fontWeight: 800, '& .MuiChip-label': { fontSize: 10.5 } }} /><Chip clickable component="a" href="/marketplace?listingType=rent" icon={<HomeWorkRounded />} label="For rent" sx={{ height: 30, color: '#fff', bgcolor: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.2)', fontWeight: 800, '& .MuiChip-label': { fontSize: 10.5 } }} /><Chip clickable component="a" href="/marketplace?listingType=sale" icon={<ApartmentRounded />} label="For sale" sx={{ height: 30, color: '#fff', bgcolor: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.2)', fontWeight: 800, '& .MuiChip-label': { fontSize: 10.5 } }} /><Chip clickable component="a" href="/surveyors" icon={<EngineeringRounded />} label="Survey services" sx={{ height: 30, color: '#fff', bgcolor: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.2)', fontWeight: 800, '& .MuiChip-label': { fontSize: 10.5 } }} /></Box>
       {carouselSlides.length > 1 && <Stack direction="row" alignItems="center" gap={.7} sx={{ mt: 1.55 }}><IconButton aria-label="Previous carousel slide" onClick={() => setIndex((current) => (current + carouselSlides.length - 1) % carouselSlides.length)} size="small" sx={{ color: '#fff', border: '1px solid rgba(255,255,255,.34)' }}><ArrowBackRounded fontSize="small" /></IconButton>{carouselSlides.map((_item, dot) => <Box key={dot} onClick={() => setIndex(dot)} sx={{ width: dot === index ? 20 : 7, height: 7, borderRadius: 9, cursor: 'pointer', bgcolor: dot === index ? '#fff' : 'rgba(255,255,255,.48)', transition: 'width .2s ease' }} />)}<IconButton aria-label="Next carousel slide" onClick={() => setIndex((current) => (current + 1) % carouselSlides.length)} size="small" sx={{ color: '#fff', border: '1px solid rgba(255,255,255,.34)' }}><ArrowForwardRounded fontSize="small" /></IconButton></Stack>}
@@ -285,7 +285,7 @@ function MobileVerifiedSurveyors({ profiles }: { profiles: any[] }) {
 
 function MobileAccountCta() {
   const navigate = useNavigate();
-  return <Box sx={{ mx: 1.3, mt: 3.4, mb: 2, p: 2.2, borderRadius: 3, bgcolor: '#0B5270', color: '#fff' }}><Typography sx={{ fontSize: 11, letterSpacing: '.12em', fontWeight: 850, textTransform: 'uppercase', opacity: .75 }}>One secure workspace</Typography><Typography sx={{ mt: .5, fontSize: 22, lineHeight: 1.1, fontWeight: 950, letterSpacing: '-.04em' }}>Manage everything from one account</Typography><Button className="sa-light-button" onClick={() => navigate('/login?mode=register')} variant="contained" sx={{ mt: 1.5, bgcolor: '#fff', color: '#0B5270', '&:hover': { bgcolor: '#f4f8fa' } }}>Create account</Button></Box>;
+  return <Box sx={{ mx: 1.3, mt: 3.4, mb: 2, p: 2.2, borderRadius: 3, bgcolor: '#0B5270', color: '#fff' }}><Typography sx={{ fontSize: 11, letterSpacing: '.12em', fontWeight: 850, textTransform: 'uppercase', opacity: .75 }}>One secure workspace</Typography><Typography sx={{ mt: .5, fontSize: 22, lineHeight: 1.1, fontWeight: 950, letterSpacing: '-.04em' }}>Manage everything from one account</Typography><Button className="sa-light-button" onClick={() => navigate('/auth/register')} variant="contained" sx={{ mt: 1.5, bgcolor: '#fff', color: '#0B5270', '&:hover': { bgcolor: '#f4f8fa' } }}>Create account</Button></Box>;
 }
 
 function MobileDiscoverHome() {
@@ -417,7 +417,7 @@ export function Pricing() {
       navigate(paymentPath);
       return;
     }
-    navigate(`/login?mode=register&redirect=${encodeURIComponent(paymentPath)}`);
+    navigate(`/auth/register&redirect=${encodeURIComponent(paymentPath)}`);
   }
 
   return <Box className="sa-pricing-premium" data-secureasset-pricing="premium-public-v210">

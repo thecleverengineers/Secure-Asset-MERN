@@ -21,7 +21,7 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     if (!done) return undefined;
-    const timer = window.setTimeout(() => navigate('/login?reset=success', { replace: true }), 1800);
+    const timer = window.setTimeout(() => navigate('/auth/login?reset=success', { replace: true }), 1800);
     return () => window.clearTimeout(timer);
   }, [done, navigate]);
   async function submit(event: FormEvent) {
@@ -76,7 +76,7 @@ export default function ResetPasswordPage() {
         {done ? (
           <Stack spacing={2}>
             <Alert severity="success">Password reset successfully. Redirecting you to secure sign in…</Alert>
-            <Button className="sa-submit-button" component={Link} to="/login?reset=success" variant="contained" size="large">Continue to sign in</Button>
+            <Button className="sa-submit-button" component={Link} to="/auth/login?reset=success" variant="contained" size="large">Continue to sign in</Button>
           </Stack>
         ) : (
           <Box component="form" className="sa-login-form sa-reset-form" onSubmit={submit}>
@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
                 {loading ? <CircularProgress size={22} color="inherit" /> : sent ? 'Reset password' : 'Send reset OTP'}
               </Button>
               {sent && <Button className="sa-reset-secondary-action" type="button" onClick={() => { setSent(false); setOtp(''); setMessage(''); }}>Use another account</Button>}
-              <Button className="sa-reset-back-action" type="button" component={Link} to="/login" startIcon={<ArrowBackRounded />}>Return to sign in</Button>
+              <Button className="sa-reset-back-action" type="button" component={Link} to="/auth/login" startIcon={<ArrowBackRounded />}>Return to sign in</Button>
             </Stack>
           </Box>
         )}

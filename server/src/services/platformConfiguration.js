@@ -136,8 +136,8 @@ export async function ensurePlatformConfiguration() {
       { upsert: true },
     )));
     await HomeSection.updateOne(
-      { key: 'cta', 'content.primaryLabel': 'Create account', 'content.primaryUrl': '/login' },
-      { $set: { 'content.primaryUrl': '/login?mode=register' } },
+      { key: 'cta', 'content.primaryLabel': 'Create account', 'content.primaryUrl': { $in: ['/login', '/login?mode=register'] } },
+      { $set: { 'content.primaryUrl': '/auth/register' } },
     );
     // Older installations can still have standalone navigation documents for
     // these resources. Their CRUD now belongs only to the selected property's

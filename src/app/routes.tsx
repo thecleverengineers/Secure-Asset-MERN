@@ -23,7 +23,9 @@ const SurveyorMarketplacePage = lazyWithRetry(() => import('./pages/SurveyorMark
 const SurveyorPublicProfilePage = lazyWithRetry(() => import('./pages/SurveyorPublicProfilePage'));
 const SurveyorQuotePage = lazyWithRetry(() => import('./pages/SurveyorQuotePage'));
 const SurveyorPrivateProfilePage = lazyWithRetry(() => import('./pages/SurveyorPrivateProfilePage'));
-const LoginPage = lazyWithRetry(() => import('./pages/LoginPage'));
+const AuthLoginPage = lazyWithRetry(() => import('./pages/AuthLoginPage'));
+const AuthRegisterPage = lazyWithRetry(() => import('./pages/AuthRegisterPage'));
+const AuthOtpLoginPage = lazyWithRetry(() => import('./pages/AuthOtpLoginPage'));
 const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'));
 const PublicDrivePage = lazyWithRetry(() => import('./pages/PublicDrivePage'));
 const RoleDashboardPage = lazyWithRetry(() => import('./pages/app/RoleDashboardPage'));
@@ -46,6 +48,22 @@ const LandlordTransactionsPage = lazyWithRetry(() => import('./pages/app/Landlor
 
 function AccessDenied() {
   return <Box className="sa-reference-content" sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 3 }}><Box sx={{ textAlign: 'center', maxWidth: 480 }}><Alert severity="error" sx={{ mb: 2 }}>Access denied</Alert><Typography variant="h4" sx={{ fontWeight: 900 }}>You do not have access to this module.</Typography><Button href="/app/dashboard" variant="contained" sx={{ mt: 3 }}>Return to dashboard</Button></Box></Box>;
+}
+
+function LegacyLoginRedirect() {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const mode = params.get('mode');
+  params.delete('mode');
+  const target = mode === 'register'
+    ? '/auth/register'
+    : mode === 'otp'
+      ? '/auth/otp_login'
+      : mode === 'forgot'
+        ? '/auth/reset-password'
+        : '/auth/login';
+  const query = params.toString();
+  return <Navigate replace to={`${target}${query ? `?${query}` : ''}${location.hash}`} />;
 }
 
 function LegacyPropertyActionRedirect({ target }: { target: 'apply_property' | 'schedule_visit' }) {
@@ -81,8 +99,12 @@ export const router = createBrowserRouter([
       { path: 'privacy-policy', Component: LegalPolicyPage },
       { path: 'shipping-policy', Component: LegalPolicyPage },
       { path: 'cancellation-and-refunds', Component: LegalPolicyPage },
-      { path: 'login', Component: LoginPage },
-      { path: 'reset-password', Component: ResetPasswordPage },
+      { path: 'auth/login', Component: AuthLoginPage },
+      { path: 'auth/register', Component: AuthRegisterPage },
+      { path: 'auth/otp_login', Component: AuthOtpLoginPage },
+      { path: 'auth/reset-password', Component: ResetPasswordPage },
+      { path: 'login', Component: LegacyLoginRedirect },
+      { path: 'reset-password', element: <Navigate to="/auth/reset-password" replace /> },
       { path: ':slug', Component: DynamicContentPage },
     ],
   },

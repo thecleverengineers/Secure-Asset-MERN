@@ -282,8 +282,8 @@ export const DEFAULT_SITE_FOOTER = {
   description: 'A premium property operating system for rentals, tenancy, surveys and secure records.',
   navigation: [
     { heading: 'Platform', links: [{ label: 'Marketplace', path: '/marketplace' }, { label: 'Pricing', path: '/pricing' }, { label: 'About SecureAsset', path: '/about' }] },
-    { heading: 'Operations', links: [{ label: 'Rent automation', path: '/pricing' }, { label: 'Document vault', path: '/login' }, { label: 'Surveyor marketplace', path: '/surveyors' }] },
-    { heading: 'Access', links: [{ label: 'Secure login', path: '/login' }, { label: 'Create account', path: '/login?mode=register' }, { label: 'Contact support', path: '/contact' }] },
+    { heading: 'Operations', links: [{ label: 'Rent automation', path: '/pricing' }, { label: 'Document vault', path: '/auth/login' }, { label: 'Surveyor marketplace', path: '/surveyors' }] },
+    { heading: 'Access', links: [{ label: 'Secure login', path: '/auth/login' }, { label: 'Create account', path: '/auth/register' }, { label: 'Contact support', path: '/contact' }] },
   ],
   legalLinks: [
     { label: 'Terms and Conditions', path: '/terms-and-conditions' },
@@ -365,5 +365,5 @@ export const DEFAULT_HOME_SECTIONS = [
   ] } },
   { key: 'featured-properties', type: 'featured_properties', title: 'Featured properties', subtitle: 'Verified and promoted listings available now.', sortOrder: 30, active: true, content: { limit: 6 } },
   { key: 'featured-surveyors', type: 'featured_surveyors', title: 'Verified survey professionals', subtitle: 'Discover public surveyor profiles and specialist services.', sortOrder: 40, active: true, content: { limit: 6 } },
-  { key: 'cta', type: 'cta', title: 'Manage everything from one account', subtitle: 'Create your tenant account, then activate professional capabilities as your work grows.', sortOrder: 50, active: true, content: { primaryLabel: 'Create account', primaryUrl: '/login?mode=register', secondaryLabel: 'Explore properties', secondaryUrl: '/marketplace' } },
+  { key: 'cta', type: 'cta', title: 'Manage everything from one account', subtitle: 'Create your tenant account, then activate professional capabilities as your work grows.', sortOrder: 50, active: true, content: { primaryLabel: 'Create account', primaryUrl: '/auth/register', secondaryLabel: 'Explore properties', secondaryUrl: '/marketplace' } },
 ];

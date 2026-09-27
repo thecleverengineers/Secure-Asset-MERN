@@ -20,21 +20,19 @@ import '../../styles/login-premium.css';
 const demoAccounts = [
   ['Admin', 'admin@secureasset.in'], ['Manager', 'manager@secureasset.in'], ['Tenant / Landlord', 'tenant@secureasset.in'], ['Surveyor', 'surveyor@secureasset.in'],
 ];
-type Mode = 'login' | 'register' | 'otp' | 'two-factor';
+type PublicMode = 'login' | 'register' | 'otp';
+type Mode = PublicMode | 'two-factor';
 
-export default function LoginPage() {
+export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMode }) {
   const navigate = useNavigate(); const location = useLocation(); const auth = useAuth(); const { data } = useSite();
   const settings = data.settings || {}; const content = settings.authentication || {};
   const appHeaderColor = settings.design?.colors?.navigation || '#0B5270';
   const showDemoAccounts = Boolean(content.showDemoAccounts) && (import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEMO_ACCOUNTS === 'true');
-  const modes = useMemo(() => [content.allowPasswordLogin !== false && 'login', content.allowRegistration !== false && 'register', content.allowOtpLogin !== false && 'otp'].filter(Boolean) as Mode[], [content]);
+  const modes = useMemo(() => [content.allowPasswordLogin !== false && 'login', content.allowRegistration !== false && 'register', content.allowOtpLogin !== false && 'otp'].filter(Boolean) as PublicMode[], [content]);
   const searchParams = new URLSearchParams(location.search);
   const invitationToken = new URLSearchParams(location.hash.replace(/^#/, '')).get('tenantInvite') || '';
-  const requestedMode = searchParams.get('mode');
-  const requestedAuthMode = requestedMode === 'register' && modes.includes('register')
-    ? 'register'
-    : modes.includes(requestedMode as Mode) ? requestedMode as Mode : null;
-  const [mode, setMode] = useState<Mode>(() => requestedAuthMode || modes[0] || 'login');
+  const requestedAuthMode: PublicMode = modes.includes(pageMode) ? pageMode : (modes[0] || 'login');
+  const [mode, setMode] = useState<Mode>(() => requestedAuthMode);
   const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [phone, setPhone] = useState('');
   const [identifier, setIdentifier] = useState(showDemoAccounts ? 'admin@secureasset.in' : '');
   const [password, setPassword] = useState(showDemoAccounts ? 'Demo@123' : '');
@@ -52,10 +50,6 @@ export default function LoginPage() {
     otp: content.otpSubtitle || 'Receive a secure OTP on your registered mobile.',
     'two-factor': 'Enter an authenticator code or one of your backup codes.',
   };
-
-  useEffect(() => {
-    if (requestedMode === 'forgot') navigate('/reset-password', { replace: true });
-  }, [navigate, requestedMode]);
 
   useEffect(() => {
     if (searchParams.get('reset') === 'success') {
@@ -131,8 +125,9 @@ export default function LoginPage() {
     finally { setLoading(false); }
   }
 
-  function changeMode(next: Mode) {
-    navigate({ pathname: '/login', search: '?mode=' + next, hash: location.hash }, { replace: true });
+  function changeMode(next: PublicMode) {
+    const pathname = next === 'register' ? '/auth/register' : next === 'otp' ? '/auth/otp_login' : '/auth/login';
+    navigate({ pathname, hash: location.hash }, { replace: true });
     setMode(next); setOtpSent(false); setChallengeToken(''); setOtp(''); setError(''); setMessage('');
   }
   function selectDemo(account: string) { changeMode('login'); setIdentifier(account); setPassword('Demo@123'); }
@@ -167,7 +162,7 @@ export default function LoginPage() {
         <Box component="form" className="sa-login-form" onSubmit={submit}><Stack spacing={1.7}>
           {mode === 'login' && identifierField}
           {mode === 'login' && passwordField()}
-          {mode === 'login' && <Stack direction="row" justifyContent="flex-end" sx={{ mt: -.65 }}><MuiLink className="sa-login-forgot" data-secureasset-forgot-password-link="dedicated-reset-v160" href="/reset-password" underline="hover">Forgot password?</MuiLink></Stack>}
+          {mode === 'login' && <Stack direction="row" justifyContent="flex-end" sx={{ mt: -.65 }}><MuiLink className="sa-login-forgot" data-secureasset-forgot-password-link="dedicated-reset-v160" href="/auth/reset-password" underline="hover">Forgot password?</MuiLink></Stack>}
 
           {mode === 'register' && !otpSent && <><TextField className="sa-login-field" label="Full name" value={name} onChange={(event) => setName(event.target.value)} required InputProps={{ readOnly: Boolean(invitationToken) }} /><TextField className="sa-login-field" label="Email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }} /><TextField className="sa-login-field" label="Mobile number" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 12))} required helperText="Indian mobile number used for OTP verification." InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><PhoneAndroidRounded fontSize="small" /></InputAdornment> }} />{passwordField()}</>}
           {mode === 'register' && otpSent && <><Alert severity="info">Enter the six-digit OTP sent to your mobile. Your account remains inactive until verification succeeds.</Alert><TextField className="sa-login-field" label="6-digit mobile OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required inputProps={{ inputMode: 'numeric', maxLength: 6 }} /><Button type="button" onClick={resendRegistration} disabled={loading}>Resend OTP</Button></>}
@@ -201,13 +196,13 @@ export default function LoginPage() {
         {invitationToken && inviteLoading && <Alert severity="info" sx={{ mb: 2 }}>Checking your tenant invitation…</Alert>}
         {invitationToken && tenantInvite && <Alert severity="info" sx={{ mb: 2 }}>Your landlord has invited you to SecureAsset. Create your password, verify your mobile number, then complete tenant KYC.</Alert>}
         {invitationToken && !inviteLoading && !tenantInvite && <Alert severity="warning" sx={{ mb: 2 }}>This invitation is invalid or expired. Ask the landlord for a new link.</Alert>}
-        {invitationToken && mode !== 'two-factor' && <Button type="button" size="small" onClick={() => { setMode(mode === 'register' ? 'login' : 'register'); setOtpSent(false); setOtp(''); setError(''); setMessage(''); }}>{mode === 'register' ? 'Already have an account? Sign in to accept' : 'Create a tenant account from this invitation'}</Button>}
+        {invitationToken && mode !== 'two-factor' && <Button type="button" size="small" onClick={() => changeMode(mode === 'register' ? 'login' : 'register')}>{mode === 'register' ? 'Already have an account? Sign in to accept' : 'Create a tenant account from this invitation'}</Button>}
         {mode !== 'two-factor' && !invitationToken && <Box component="nav" aria-label="Authentication options" className="sa-auth-mode-nav sa-login-mode-nav">
           <Typography className="sa-login-mode-label">Account access</Typography>
           <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: .7 }}>
             {authNavigationModes.map((item) => {
               const selected = mode === item;
-              const href = item === 'login' ? '/login' : `/login?mode=${item}`;
+              const href = item === 'register' ? '/auth/register' : item === 'otp' ? '/auth/otp_login' : '/auth/login';
               return <MuiLink
                 key={item}
                 href={href}

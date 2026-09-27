@@ -50,8 +50,8 @@ type FooterGroup = { heading: string; links: FooterLink[] };
 
 const defaultFooterGroups: FooterGroup[] = [
   { heading: 'Platform', links: [{ label: 'Marketplace', path: '/marketplace' }, { label: 'Pricing', path: '/pricing' }, { label: 'About SecureAsset', path: '/about' }] },
-  { heading: 'Operations', links: [{ label: 'Rent automation', path: '/pricing' }, { label: 'Document vault', path: '/login' }, { label: 'Surveyor marketplace', path: '/surveyors' }] },
-  { heading: 'Access', links: [{ label: 'Secure login', path: '/login' }, { label: 'Create account', path: '/login?mode=register' }, { label: 'Contact support', path: '/contact' }] },
+  { heading: 'Operations', links: [{ label: 'Rent automation', path: '/pricing' }, { label: 'Document vault', path: '/auth/login' }, { label: 'Surveyor marketplace', path: '/surveyors' }] },
+  { heading: 'Access', links: [{ label: 'Secure login', path: '/auth/login' }, { label: 'Create account', path: '/auth/register' }, { label: 'Contact support', path: '/contact' }] },
 ];
 
 const footerLink = (value: any): FooterLink | null => {
@@ -92,7 +92,7 @@ export default function FrontLayout() {
   const footerBackground = '#0B5270';
   const navigationRadius = Number(design.borders?.navigationRadius ?? 12);
   const headerHeight = Number(design.layout?.appBarHeight ?? 72);
-  const isAuthRoute = location.pathname === '/login' || location.pathname === '/reset-password';
+  const isAuthRoute = location.pathname.startsWith('/auth/') || location.pathname === '/login' || location.pathname === '/reset-password';
   useEffect(() => {
     const root = document.documentElement;
     const values: Record<string, string> = {
@@ -110,12 +110,12 @@ export default function FrontLayout() {
     Object.entries(values).forEach(([key, value]) => root.style.setProperty(key, value));
     return () => Object.keys(values).forEach((key) => root.style.removeProperty(key));
   }, [design]);
-  const isRegisterRoute = location.pathname === '/login' && new URLSearchParams(location.search).get('mode') === 'register';
+  const isRegisterRoute = location.pathname === '/auth/register';
   const accountAction = currentUser
     ? { label: 'Dashboard', path: '/app/dashboard' }
-    : isRegisterRoute || location.pathname === '/reset-password'
-      ? { label: 'Sign in', path: '/login' }
-      : { label: 'Create account', path: '/login?mode=register' };
+    : isRegisterRoute || location.pathname === '/auth/reset-password' || location.pathname === '/reset-password'
+      ? { label: 'Sign in', path: '/auth/login' }
+      : { label: 'Create account', path: '/auth/register' };
   const configuredFooterGroups: FooterGroup[] = Array.isArray(settings.footer?.navigation)
     ? settings.footer.navigation.map((group: any) => ({
       heading: String(group?.heading || '').trim(),
@@ -317,7 +317,7 @@ export default function FrontLayout() {
                 </Button>
               ) : (
                 <Button
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate('/auth/login')}
                   sx={{ display: { xs: 'none', sm: 'inline-flex' }, color: headerText, textTransform: 'none', fontWeight: 800, borderRadius: navigationRadius }}
                 >
                   Log in
@@ -428,7 +428,7 @@ export default function FrontLayout() {
               ? { home: '/', explore: '/marketplace', vault: '/app/documents', wishlist: '/wishlist', profile: '/app/profile' }
               : currentUser
                 ? { home: '/', vault: '/app/documents', property: '/marketplace', account: '/app/profile' }
-                : { home: '/', explore: '/marketplace', wishlist: '/wishlist', login: '/login' };
+                : { home: '/', explore: '/marketplace', wishlist: '/wishlist', login: '/auth/login' };
             if (paths[value]) navigate(paths[value]);
           }}
           sx={{
@@ -448,7 +448,7 @@ export default function FrontLayout() {
             <BottomNavigationAction value="home" label="Home" onClick={() => navigate('/')} icon={configuredBottomIcon(design, 'home', <HomeRoundedIcon />)} />
             <BottomNavigationAction value="explore" label="Explore" onClick={() => navigate('/marketplace')} icon={configuredBottomIcon(design, 'explore', <ExploreRoundedIcon />)} />
             <BottomNavigationAction value="wishlist" label="Wishlist" onClick={() => navigate('/wishlist')} icon={configuredBottomIcon(design, 'wishlist', <FavoriteBorderRoundedIcon />)} />
-            <BottomNavigationAction value="login" label="Login" onClick={() => navigate('/login')} icon={configuredBottomIcon(design, 'login', <LoginRoundedIcon />)} />
+            <BottomNavigationAction value="login" label="Login" onClick={() => navigate('/auth/login')} icon={configuredBottomIcon(design, 'login', <LoginRoundedIcon />)} />
           </> : <>
             <BottomNavigationAction value="home" label="Home" icon={configuredBottomIcon(design, 'home', <HomeRoundedIcon />)} />
             <BottomNavigationAction value="vault" label="Vault" icon={configuredBottomIcon(design, 'vault', <FolderRoundedIcon />)} />

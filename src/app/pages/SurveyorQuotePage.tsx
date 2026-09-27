@@ -40,7 +40,7 @@ export default function SurveyorQuotePage(){
 
   useEffect(()=>{
     if(!user){
-      navigate(`/login?next=${encodeURIComponent(location.pathname)}`,{replace:true});
+      navigate(`/auth/login?next=${encodeURIComponent(location.pathname)}`,{replace:true});
       return;
     }
     let active=true;
