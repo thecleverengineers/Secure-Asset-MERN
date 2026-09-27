@@ -1,5 +1,5 @@
 import {
-  SiteSetting, SeoPage, HomeCarousel, HomeSection, LandlordPlan, PropertyTypeConfig, AreaUnit, SiteEnquiry,
+  SiteSetting, SeoPage, HomeCarousel, HomeSection, LandlordPlan, PropertyTypeConfig, AreaUnit, SiteEnquiry, ContentPage,
   Property, PropertySpace, PropertyMedia, RentalUnit, Subscription, SurveyorProfile,
 } from '../models/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
