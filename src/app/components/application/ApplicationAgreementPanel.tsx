@@ -561,7 +561,7 @@ export default function ApplicationAgreementPanel({ application, user, landlordC
 
         {tenantSide && <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={1} data-secureasset-application-landlord-chat="accepted-application-chat-v85">
           <Typography variant="body2" color="text.secondary">Your application is accepted. Review any agreement sent to you, sign it, or contact the first party.</Typography>
-          <Button size="small" variant="outlined" startIcon={<ChatRounded />} disabled={busy === 'chat' || !landlordId} onClick={() => void chatWithLandlord()} sx={{ whiteSpace: 'nowrap' }}>{busy === 'chat' ? 'Opening chat…' : 'Chat with landlord'}</Button>
+          <Button size="small" variant="outlined" startIcon={<ChatRounded />} disabled={busy === 'chat' || !landlordId} onClick={() => void chatWithLandlord()} sx={{ whiteSpace: 'nowrap' }}>{busy === 'chat' ? 'Opening chat…' : 'Chat'}</Button>
         </Stack>}
 
         {firstPartySide && !inProgress && <Stack spacing={1.1} data-secureasset-first-party-agreement-setup="first-party-upload-before-request-v85">
