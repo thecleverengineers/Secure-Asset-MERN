@@ -7,6 +7,7 @@ export default function ProtectedRoute({ roles }: { roles?: UserRole[] }) {
   if (!user) return <Navigate to="/auth/login" replace />;
   const effectiveRoles: UserRole[] = [
     user.role,
+    ...(user.role === 'super_admin' ? ['admin' as UserRole, 'manager' as UserRole] : []),
     ...(user.role === 'tenant' && user.landlordEnabled ? ['landlord' as UserRole] : []),
     ...(user.role === 'tenant' && user.surveyorEnabled ? ['surveyor' as UserRole] : []),
   ];
