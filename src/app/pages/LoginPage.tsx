@@ -162,7 +162,7 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
         <Box component="form" className="sa-login-form" onSubmit={submit}><Stack spacing={1.7}>
           {mode === 'login' && identifierField}
           {mode === 'login' && passwordField()}
-          {mode === 'login' && <Stack direction="row" justifyContent="flex-end" sx={{ mt: -.65 }}><MuiLink className="sa-login-forgot" data-secureasset-forgot-password-link="dedicated-reset-v160" href="/auth/reset-password" underline="hover">Forgot password?</MuiLink></Stack>}
+          {mode === 'login' && <Stack direction="row" justifyContent="flex-end" sx={{ mt: -.65 }}><MuiLink className="sa-login-forgot" data-secureasset-forgot-password-link="dedicated-reset-v160" href="/auth/reset-password" underline="none">Forgot password?</MuiLink></Stack>}
 
           {mode === 'register' && !otpSent && <><TextField className="sa-login-field" label="Full name" value={name} onChange={(event) => setName(event.target.value)} required InputProps={{ readOnly: Boolean(invitationToken) }} /><TextField className="sa-login-field" label="Email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }} /><TextField className="sa-login-field" label="Mobile number" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 12))} required helperText="Indian mobile number used for OTP verification." InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><PhoneAndroidRounded fontSize="small" /></InputAdornment> }} />{passwordField()}</>}
           {mode === 'register' && otpSent && <><Alert severity="info">Enter the six-digit OTP sent to your mobile. Your account remains inactive until verification succeeds.</Alert><TextField className="sa-login-field" label="6-digit mobile OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required inputProps={{ inputMode: 'numeric', maxLength: 6 }} /><Button type="button" onClick={resendRegistration} disabled={loading}>Resend OTP</Button></>}
@@ -183,7 +183,7 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
               fontWeight: 800,
               bgcolor: appHeaderColor,
               color: '#FFFFFF',
-              '&:hover': { bgcolor: appHeaderColor, filter: 'brightness(.9)' },
+              '&:hover': { bgcolor: appHeaderColor, filter: 'none' },
               '&:active': { filter: 'brightness(.82)' },
               '&:focus-visible': { outline: '3px solid rgba(11,82,112,.28)', outlineOffset: 2 },
               '&.Mui-disabled': { bgcolor: 'rgba(11,82,112,.48)', color: 'rgba(255,255,255,.92)' },
@@ -212,7 +212,7 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
                 className={selected ? 'sa-login-mode-link is-active' : 'sa-login-mode-link'}
                 sx={{
                   color: selected ? '#0B6E96' : '#18282D',
-                  '&:hover': { color: '#0B6E96' },
+                  '&:hover': { color: selected ? '#0B6E96' : '#18282D' },
                 }}
               >{modeLabels[item]}</MuiLink>;
             })}

@@ -389,19 +389,20 @@
   min-height: 56px;
   border-radius: 11px;
   background: #fff;
-  transition: box-shadow .18s ease,background-color .18s ease;
+  transition: none;
 }
 .sa-login-field .MuiOutlinedInput-notchedOutline { border-color: #cfdbe5; }
 .sa-login-field .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline { border-color: #cfdbe5; }
 .sa-login-field .MuiOutlinedInput-root.Mui-focused {
-  background: #fbffff;
-  box-shadow: 0 0 0 4px rgba(16,205,181,.08);
+  background: #fff;
+  box-shadow: none;
 }
 .sa-login-field .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #0cb8a4;
-  border-width: 1.5px;
+  border-color: #cfdbe5;
+  border-width: 1px;
 }
 .sa-login-field .MuiInputLabel-root { color: #677993; font-size: 12px; }
+.sa-login-field .MuiInputLabel-root.Mui-focused { color: #677993; }
 .sa-login-field .MuiInputAdornment-root .MuiSvgIcon-root { color: #6e8199; font-size: 20px; }
 .sa-login-field .MuiFormHelperText-root { color: #7b8aa0; font-size: 9px; }
 .sa-login-forgot {
@@ -463,7 +464,9 @@
   font-weight: 600;
   white-space: nowrap;
 }
-.sa-login-mode-link:hover { color: #0a756f !important; text-decoration: none !important; }
+.sa-login-mode-link:hover { text-decoration: none !important; }
+.sa-login-mode-link:not(.is-active):hover { color: #18282D !important; }
+.sa-login-mode-link.is-active:hover { color: #0B6E96 !important; }
 .sa-login-mode-link.is-active { display: none; }
 .sa-auth-protection-note {
   display: flex;
@@ -504,7 +507,7 @@
   text-transform: none;
 }
 .sa-reset-secondary-action.MuiButton-root:hover,
-.sa-reset-back-action.MuiButton-root:hover { background: transparent; color: #60758f; }
+.sa-reset-back-action.MuiButton-root:hover { background: transparent; color: inherit; box-shadow: none; transform: none; }
 .sa-reset-back-action .MuiSvgIcon-root { font-size: 17px; }
 .sa-reset-panel .MuiAlert-standardSuccess { border: 1px solid #d5ece5; background: #f2fbf7; }
 .sa-reset-panel .MuiAlert-standardError { border: 1px solid #f0d9dc; background: #fff7f8; }
