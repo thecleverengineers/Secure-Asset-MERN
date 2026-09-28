@@ -392,7 +392,7 @@
   transition: box-shadow .18s ease,background-color .18s ease;
 }
 .sa-login-field .MuiOutlinedInput-notchedOutline { border-color: #cfdbe5; }
-.sa-login-field .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline { border-color: #9eb8c9; }
+.sa-login-field .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline { border-color: #cfdbe5; }
 .sa-login-field .MuiOutlinedInput-root.Mui-focused {
   background: #fbffff;
   box-shadow: 0 0 0 4px rgba(16,205,181,.08);
@@ -421,9 +421,10 @@
   box-shadow: 0 12px 26px rgba(5,143,137,.22);
 }
 .sa-login-panel .sa-submit-button.MuiButton-root:hover {
-  background: linear-gradient(105deg,#05696d 0%,#08b19d 100%) !important;
+  background: linear-gradient(105deg,#057678 0%,#0bc3ab 100%) !important;
   filter: none !important;
-  transform: translateY(-1px);
+  transform: none;
+  box-shadow: 0 12px 26px rgba(5,143,137,.22);
 }
 .sa-login-mode-nav {
   position: relative;
@@ -462,7 +463,7 @@
   font-weight: 600;
   white-space: nowrap;
 }
-.sa-login-mode-link:hover { color: #005c59 !important; text-decoration: underline !important; }
+.sa-login-mode-link:hover { color: #0a756f !important; text-decoration: none !important; }
 .sa-login-mode-link.is-active { display: none; }
 .sa-auth-protection-note {
   display: flex;
@@ -503,7 +504,7 @@
   text-transform: none;
 }
 .sa-reset-secondary-action.MuiButton-root:hover,
-.sa-reset-back-action.MuiButton-root:hover { background: #f0f7f8; color: #087f76; }
+.sa-reset-back-action.MuiButton-root:hover { background: transparent; color: #60758f; }
 .sa-reset-back-action .MuiSvgIcon-root { font-size: 17px; }
 .sa-reset-panel .MuiAlert-standardSuccess { border: 1px solid #d5ece5; background: #f2fbf7; }
 .sa-reset-panel .MuiAlert-standardError { border: 1px solid #f0d9dc; background: #fff7f8; }
