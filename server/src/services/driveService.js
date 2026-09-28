@@ -291,7 +291,7 @@ export async function getStorageQuota(userOrId) {
   const now = new Date();
   let bytes = DEFAULT_VAULT_STORAGE_MB * BYTES_PER_MB;
   // Administrators need operational headroom for moderation and support.
-  if (user.role === 'admin') bytes = 100 * 1024 ** 3;
+  if (['super_admin', 'admin'].includes(String(user.role || '').toLowerCase())) bytes = 100 * 1024 ** 3;
 
   const [landlord, surveyor] = await Promise.all([
     Subscription.findOne({ user: user._id, status: 'active', expiresAt: { $gt: now } }).sort({ expiresAt: -1 }).lean(),
@@ -376,7 +376,7 @@ export async function getItem(itemType, itemId, selectStorage = false) {
 
 export async function resolveItemAccess(user, itemType, itemId, required = 'view', selectStorage = false) {
   const item = await getItem(itemType, itemId, selectStorage);
-  if (user?.role === 'admin' && required === 'admin') return { item, permission: 'admin' };
+  if (['super_admin', 'admin'].includes(String(user?.role || '').toLowerCase()) && required === 'admin') return { item, permission: 'admin' };
   if (user && String(item.owner) === String(user._id)) return { item, permission: 'owner' };
   const permissionCapabilities = {
     viewer: ['view', 'preview'], commenter: ['view', 'preview', 'comment'], downloader: ['view', 'preview', 'download'],
