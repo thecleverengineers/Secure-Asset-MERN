@@ -679,8 +679,8 @@ export default function AppShell() {
   const mobileBottomItems = [
     { key: 'mobile-home', label: 'Home', path: '/app/dashboard', iconUrl: 'https://img.icons8.com/fluency/48/home.png', accent: '#2563EB', hover: '#EFF6FF' },
     { key: 'mobile-explore', label: 'Explore', path: '/marketplace', iconUrl: 'https://img.icons8.com/fluency/48/compass.png', accent: '#F97316', hover: '#FFF7ED' },
-    { key: 'mobile-wishlist', label: 'Wishlist', path: '/wishlist', iconUrl: 'https://img.icons8.com/fluency/48/heart.png', accent: '#EC4899', hover: '#FDF2F8' },
-    { key: 'mobile-vault', label: 'Vault', path: '/app/documents', iconUrl: 'https://img.icons8.com/fluency/48/security-shield.png', accent: '#059669', hover: '#ECFDF5' },
+    { key: 'mobile-wishlist', label: 'Wishlist', path: '/wishlist', iconUrl: 'https://img.icons8.com/3d-fluency/94/wish-list.png', accent: '#EC4899', hover: '#FDF2F8' },
+    { key: 'mobile-vault', label: 'Vault', path: '/app/documents', iconUrl: 'https://img.icons8.com/3d-fluency/94/shield.png', accent: '#059669', hover: '#ECFDF5' },
     { key: 'mobile-account', label: 'Account', path: '/app/profile', iconUrl: 'https://img.icons8.com/fluency/48/user-male-circle.png', accent: '#7C3AED', hover: '#F5F3FF' },
   ];
   const mobileBottomValue = location.pathname.startsWith('/marketplace')
