@@ -13,7 +13,7 @@ export const LEGACY_ROLE_KEYS = Object.freeze(['manager', 'user']);
 const rolePermissionCache = new Map();
 const subscriptionContextCache = new Map();
 const SUBSCRIPTION_CONTEXT_CACHE_MS = 5_000;
-const ROLE_ALIASES = Object.freeze({ manager: 'admin', user: 'tenant' });
+const ROLE_ALIASES = Object.freeze({ super_admin: 'admin', manager: 'admin', user: 'tenant' });
 
 // req.user is normally a hydrated Mongoose document. Spreading that document
 // does not reliably copy schema paths such as role, _id, or capability flags.
@@ -37,7 +37,7 @@ export function clearRolePermissionCache(role) {
 export function getEffectiveRole(user = {}) {
   const role = String(user.role || 'tenant').toLowerCase();
   const mode = String(user.activeMode || 'regular').toLowerCase();
-  if (role === 'admin') return 'admin';
+  if (role === 'super_admin' || role === 'admin') return 'admin';
   if (role === 'landlord') return 'landlord';
   if (role === 'surveyor') return 'surveyor';
   if (role === 'manager') return 'admin';
@@ -74,7 +74,7 @@ export function roleMatchesRule(user, rule = {}) {
   const mode = getEffectiveMode(user);
   const roles = Array.isArray(rule.roles) ? rule.roles.map((item) => String(item).toLowerCase()) : [];
   const modes = Array.isArray(rule.modes) ? rule.modes.map((item) => String(item).toLowerCase()) : [];
-  const roleAllowed = !roles.length || roles.includes(role) || roles.includes(effectiveRole) || (effectiveRole === 'admin' && roles.includes('manager'));
+  const roleAllowed = !roles.length || roles.includes(role) || roles.includes(effectiveRole) || (effectiveRole === 'admin' && (roles.includes('admin') || roles.includes('manager')));
   const modeAllowed = !modes.length || modes.includes(mode) || modes.includes(String(user?.activeMode || 'regular').toLowerCase());
   return roleAllowed && modeAllowed;
 }
@@ -440,6 +440,7 @@ export async function rolePermissionDecision(role, key, action = 'view') {
 }
 
 export async function featureAllowed(key, user, action = 'view') {
+  if (String(user?.role || '').toLowerCase() === 'super_admin') return true;
   if (String(key || '').toLowerCase() === 'module:documents' && String(user?.role || '').toLowerCase() === 'admin') return true;
   for (const capabilityRole of capabilityRolesForUser(user)) {
     if (capabilityRole === 'admin' && ['module:role-permissions', 'resource:role-permissions'].includes(String(key).toLowerCase())) return true;
@@ -465,6 +466,7 @@ export async function permissionPayloadForResources(user = {}) {
 }
 
 export async function canResourceAction(resource, user, action = 'view', config = null) {
+  if (String(user?.role || '').toLowerCase() === 'super_admin') return true;
   for (const effectiveRole of capabilityRolesForUser(user)) {
     if (effectiveRole === 'admin' && resource === 'documents') return true;
     const modulePermission = await rolePermissionDecision(effectiveRole, `module:${resource}`, action);
