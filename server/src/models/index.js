@@ -73,7 +73,7 @@ const UserSchema = new Schema({
   phoneNormalized: { type: String, trim: true, select: false },
   whatsappNumber: { type: String, trim: true, index: true, sparse: true },
   password: { type: String, required: true, minlength: 8, select: false },
-  role: { type: String, enum: ['admin', 'manager', 'landlord', 'tenant', 'user', 'surveyor'], default: 'tenant', index: true },
+  role: { type: String, enum: ['super_admin', 'admin', 'manager', 'landlord', 'tenant', 'user', 'surveyor'], default: 'tenant', index: true },
   avatar: String,
   status: { type: String, enum: ['pending_verification', 'active', 'suspended', 'locked'], default: 'active', index: true },
   kycStatus: { type: String, enum: ['not_started', 'incomplete', 'submitted', 'under_review', 'changes_required', 'verified', 'rejected', 'expired', 'suspended', 'pending'], default: 'not_started', index: true },
@@ -83,6 +83,12 @@ const UserSchema = new Schema({
   city: { type: String, trim: true, maxlength: 160 },
   assignedProperties: [objectId('Property')],
   customPermissions: [String],
+  adminScope: { type: String, enum: ['none', 'assigned', 'global'], default: 'none' },
+  superAdminSecurity: {
+    twoFactorRequired: { type: Boolean, default: true },
+    criticalActionReauth: { type: Boolean, default: true },
+    trustedDevicesOnly: { type: Boolean, default: false },
+  },
   landlordEnabled: { type: Boolean, default: false, index: true },
   landlordSubscriptionExpiresAt: Date,
   landlordPlan: { type: String, trim: true },
@@ -534,6 +540,9 @@ SubscriptionSchema.index({ user: 1, status: 1, expiresAt: -1 });
 const AuditLogSchema = new Schema({
   user: objectId('User'), role: String, action: String, module: String, recordId: Schema.Types.ObjectId,
   ip: String, device: String, previousValue: Schema.Types.Mixed, updatedValue: Schema.Types.Mixed,
+  reason: { type: String, trim: true, maxlength: 2000 }, requestId: String,
+  severity: { type: String, enum: ['info', 'low', 'medium', 'high', 'critical'], default: 'info', index: true },
+  metadata: { type: Schema.Types.Mixed, default: {} },
 }, { timestamps: { createdAt: true, updatedAt: false } });
 AuditLogSchema.index({ createdAt: -1, module: 1, user: 1 });
 
