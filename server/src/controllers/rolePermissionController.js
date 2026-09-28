@@ -9,6 +9,12 @@ function cleanRole(value) {
   return role;
 }
 
+function assertPermissionAdministration(req, targetRole) {
+  const actorRole = String(req.user?.role || '').toLowerCase();
+  if (targetRole === 'super_admin') throw new ApiError(403, 'Super Admin authority is immutable and cannot be edited from the permission matrix');
+  if (targetRole === 'admin' && actorRole !== 'super_admin') throw new ApiError(403, 'Only a Super Admin can change administrator permissions');
+}
+
 function normalizeEntries(role, input) {
   if (!Array.isArray(input)) throw new ApiError(422, 'Permission entries must be an array');
   if (input.length > 1000) throw new ApiError(422, 'Permission map is too large');
@@ -28,7 +34,7 @@ function normalizeEntries(role, input) {
       kind: definition.kind,
       enabled: raw?.enabled !== false,
       actions,
-      scope: PERMISSION_SCOPES.includes(String(raw?.scope || 'all')) ? String(raw.scope) : (role === 'admin' ? 'all' : 'own'),
+      scope: PERMISSION_SCOPES.includes(String(raw?.scope || 'all')) ? String(raw.scope) : (['super_admin', 'admin'].includes(role) ? 'all' : 'own'),
     });
   }
   return defaultPermissionEntriesForRole(role).map((fallback) => submitted.get(fallback.key) || fallback);
@@ -47,6 +53,7 @@ export const getRolePermissions = asyncHandler(async (req, res) => {
 
 export const updateRolePermissions = asyncHandler(async (req, res) => {
   const role = cleanRole(req.params.role);
+  assertPermissionAdministration(req, role);
   const entries = normalizeEntries(role, req.body?.entries);
   const previous = await RolePermission.findOne({ role }).lean();
   const record = await RolePermission.findOneAndUpdate(
@@ -64,6 +71,7 @@ export const updateRolePermissions = asyncHandler(async (req, res) => {
 
 export const resetRolePermissions = asyncHandler(async (req, res) => {
   const role = cleanRole(req.params.role);
+  assertPermissionAdministration(req, role);
   const entries = defaultPermissionEntriesForRole(role);
   const record = await RolePermission.findOneAndUpdate(
     { role },
