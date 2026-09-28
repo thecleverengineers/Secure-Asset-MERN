@@ -120,7 +120,7 @@ export const approveCalculation = asyncHandler(async (req, res) => {
 
 export const exportGeoJson = asyncHandler(async (req, res) => {
   const project = await SurveyProject.findById(req.params.projectId).lean();
-  if (!project || (!sameId(project.surveyor, req.user._id) && !sameId(project.client, req.user._id) && req.user.role !== 'admin')) throw new ApiError(403, 'Project access denied');
+  if (!project || (!sameId(project.surveyor, req.user._id) && !sameId(project.client, req.user._id) && !['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()))) throw new ApiError(403, 'Project access denied');
   const rows = await FieldData.find({ project: project._id }).lean();
   const features = [];
   for (const row of rows) {
@@ -134,7 +134,7 @@ export const exportGeoJson = asyncHandler(async (req, res) => {
 
 export const exportKml = asyncHandler(async (req, res) => {
   const project = await SurveyProject.findById(req.params.projectId).lean();
-  if (!project || (!sameId(project.surveyor, req.user._id) && !sameId(project.client, req.user._id) && req.user.role !== 'admin')) throw new ApiError(403, 'Project access denied');
+  if (!project || (!sameId(project.surveyor, req.user._id) && !sameId(project.client, req.user._id) && !['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()))) throw new ApiError(403, 'Project access denied');
   const rows = await FieldData.find({ project: project._id }).lean();
   const placemarks = [];
   for (const row of rows) {
