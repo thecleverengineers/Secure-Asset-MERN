@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import {
   User, Property, Tenant, Payment, Approval, Complaint, AuditLog,
-  NotificationDelivery, Subscription, Survey,
+  NotificationDelivery, Subscription,
 } from '../models/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
