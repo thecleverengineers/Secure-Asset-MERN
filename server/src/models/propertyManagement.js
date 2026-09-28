@@ -443,9 +443,9 @@ const PlatformModuleSchema = new Schema({
   kind: { type: String, enum: ['page', 'resource', 'system', 'external'], default: 'resource' },
   section: { type: String, default: 'general', index: true },
   sectionOrder: { type: Number, default: 0, index: true },
-  roles: [{ type: String, enum: ['admin', 'manager', 'landlord', 'tenant', 'user', 'surveyor'] }],
+  roles: [{ type: String, enum: ['super_admin', 'admin', 'manager', 'landlord', 'tenant', 'user', 'surveyor'] }],
   modes: [{ type: String, enum: ['regular', 'landlord', 'surveyor'] }],
-  accessRules: [{ roles: [{ type: String, enum: ['admin', 'manager', 'landlord', 'tenant', 'user', 'surveyor'] }], modes: [{ type: String, enum: ['regular', 'landlord', 'surveyor'] }] }],
+  accessRules: [{ roles: [{ type: String, enum: ['super_admin', 'admin', 'manager', 'landlord', 'tenant', 'user', 'surveyor'] }], modes: [{ type: String, enum: ['regular', 'landlord', 'surveyor'] }] }],
   enabled: { type: Boolean, default: true, index: true },
   mobilePrimary: { type: Boolean, default: false },
   sortOrder: { type: Number, default: 0, index: true },
@@ -469,7 +469,7 @@ const RolePermissionEntrySchema = new Schema({
 }, { _id: false });
 
 const RolePermissionSchema = new Schema({
-  role: { type: String, enum: ['admin', 'manager', 'landlord', 'tenant', 'user', 'surveyor'], required: true, unique: true, index: true },
+  role: { type: String, enum: ['super_admin', 'admin', 'manager', 'landlord', 'tenant', 'user', 'surveyor'], required: true, unique: true, index: true },
   entries: { type: [RolePermissionEntrySchema], default: [] },
   updatedBy: objectId('User'),
 }, timestamps);
