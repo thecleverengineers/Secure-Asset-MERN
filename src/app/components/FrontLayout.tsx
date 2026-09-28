@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import {
   AppBar, BottomNavigation, BottomNavigationAction, Box, Button, Container, Divider, Drawer,
@@ -58,11 +58,6 @@ const footerLink = (value: any): FooterLink | null => {
   const path = String(value?.path || '').trim();
   return label && path ? { label, path, external: Boolean(value?.external) } : null;
 };
-
-function configuredBottomIcon(design: any, key: string, fallback: ReactNode) {
-  const source = String(design?.iconAssets?.bottomAppBar?.[key] || '').trim();
-  return source ? <Box component="img" src={source} alt="" aria-hidden="true" sx={{ width: design.bottomAppBar.iconSize, height: design.bottomAppBar.iconSize, objectFit: 'contain' }} /> : fallback;
-}
 
 export default function FrontLayout() {
   const navigate = useNavigate();
@@ -484,27 +479,27 @@ export default function FrontLayout() {
         <BottomNavigationAction
           value="home"
           label="Home"
-          icon={configuredBottomIcon(design, 'home', <HomeRoundedIcon />)}
+          icon={<HomeRoundedIcon />}
         />
         <BottomNavigationAction
           value="explore"
           label="Explore"
-          icon={configuredBottomIcon(design, 'explore', <ExploreRoundedIcon />)}
+          icon={<ExploreRoundedIcon />}
         />
         <BottomNavigationAction
           value="wishlist"
           label="Wishlist"
-          icon={configuredBottomIcon(design, 'wishlist', <FavoriteBorderRoundedIcon />)}
+          icon={<FavoriteBorderRoundedIcon />}
         />
         <BottomNavigationAction
           value="vault"
           label="Vault"
-          icon={configuredBottomIcon(design, 'vault', <FolderRoundedIcon />)}
+          icon={<FolderRoundedIcon />}
         />
         <BottomNavigationAction
           value="account"
           label="Account"
-          icon={configuredBottomIcon(design, 'account', <PersonRoundedIcon />)}
+          icon={<PersonRoundedIcon />}
         />
       </BottomNavigation>
     </Box>
