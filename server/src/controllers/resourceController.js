@@ -167,7 +167,7 @@ const APPROVED_PROPERTY_VISIT_STATUSES = new Set(['approved', 'rescheduled', 'co
 
 function canSeeExactPropertyVisitLocation(record, user) {
   if (!record || !user) return false;
-  if (['admin', 'manager'].includes(String(user.role || '').toLowerCase())) return true;
+  if (['super_admin', 'admin', 'manager'].includes(String(user.role || '').toLowerCase())) return true;
   if (sameId(record.landlord, user._id)) return true;
   return sameId(record.requester, user._id) && APPROVED_PROPERTY_VISIT_STATUSES.has(String(record.status || ''));
 }
@@ -921,7 +921,7 @@ async function roleDefaults(resource, user, body) {
     body.key ||= 'default';
     synchroniseSiteBrandAssets(body);
   }
-  if (['admin', 'manager'].includes(user.role) && ['rental-invoices', 'utility-readings'].includes(resource)) {
+  if (['super_admin', 'admin', 'manager'].includes(user.role) && ['rental-invoices', 'utility-readings'].includes(resource)) {
     const tenancy = await Tenancy.findById(body.tenancy).lean();
     if (!tenancy) throw new ApiError(404, 'Tenancy not found');
     body.landlord = tenancy.landlord; body.tenant = tenancy.tenant; body.property = tenancy.property; body.space ||= tenancy.space;
@@ -996,6 +996,17 @@ export const createResource = asyncHandler(async (req, res) => {
   }
   const config = await configFor(req, 'create');
   const body = pick(req.body, config.writable);
+  if (req.params.resource === 'users') {
+    const requestedRole = String(body.role || 'tenant').toLowerCase();
+    if (requestedRole === 'super_admin' && !isSuperAdminActor(req.user)) {
+      throw new ApiError(403, 'Only a Super Admin can create another Super Admin');
+    }
+    if (requestedRole === 'admin' && !isSuperAdminActor(req.user)) {
+      throw new ApiError(403, 'Only a Super Admin can create an Administrator account');
+    }
+    if (requestedRole === 'super_admin') body.adminScope = 'global';
+    else if (['admin', 'manager'].includes(requestedRole)) body.adminScope = 'assigned';
+  }
   if (req.params.resource === 'properties' && body.visibility !== undefined) body.visibility = normalizePropertyVisibility(body.visibility);
   addGeneratedFields(req.params.resource, body);
   if (req.params.resource === 'properties') {
@@ -1218,7 +1229,7 @@ export const updateResource = asyncHandler(async (req, res) => {
       changes.status = 'pending_approval';
     }
   }
-  if (req.isAdministratorActor(user) && req.params.resource === 'properties') {
+  if (isAdministratorActor(req.user) && req.params.resource === 'properties') {
     // Admin approval is the only path that can move a landlord property into
     // the public marketplace. The admin may approve from the status action or
     // by setting publicationStatus directly in the property editor.
@@ -1237,7 +1248,7 @@ export const updateResource = asyncHandler(async (req, res) => {
       changes.publishedAt = undefined;
     }
   }
-  if (req.isAdministratorActor(user) && req.params.resource === 'surveyor-profiles' && changes.publicationStatus !== undefined) {
+  if (isAdministratorActor(req.user) && req.params.resource === 'surveyor-profiles' && changes.publicationStatus !== undefined) {
     changes.visibility = changes.publicationStatus === 'published' ? 'public' : 'private';
   }
   if (req.params.resource === 'properties' && !isLandlordActor(req.user) && changes.visibility !== undefined) {
@@ -1390,8 +1401,8 @@ export const updateResource = asyncHandler(async (req, res) => {
   }
   if (req.params.resource === 'properties' && isLandlordActor(req.user)) assertExactPropertyCoordinates(changes.map || record.map);
   if (req.params.resource === 'tenancies') normalizeTenancyBillingSchedule(changes);
-  if (req.params.resource === 'notifications' && !['admin', 'manager'].includes(req.user.role)) changes = pick(changes, ['readAt']);
-  if (req.params.resource === 'messages' && !['admin', 'manager'].includes(req.user.role)) changes = pick(changes, ['body', 'attachments', 'readBy']);
+  if (req.params.resource === 'notifications' && !['super_admin', 'admin', 'manager'].includes(req.user.role)) changes = pick(changes, ['readAt']);
+  if (req.params.resource === 'messages' && !['super_admin', 'admin', 'manager'].includes(req.user.role)) changes = pick(changes, ['body', 'attachments', 'readBy']);
   if (changes.status && statusPermissions[req.params.resource]) {
     const allowed = [...new Set(capabilityRolesForUser(req.user).flatMap((role) => statusPermissions[req.params.resource]?.[role] || []))];
     if (!allowed.includes(changes.status)) throw new ApiError(403, `Your role cannot set this status to ${changes.status}`);
@@ -1405,7 +1416,7 @@ export const updateResource = asyncHandler(async (req, res) => {
   if (req.params.resource === 'payments' && changes.status === 'paid' && ['landlord_subscription', 'surveyor_subscription', 'survey_advance', 'survey_milestone', 'survey_final', 'facility_booking'].includes(record.type) && !isAdministratorActor(req.user)) {
     throw new ApiError(403, 'Only an administrator or verified payment webhook can confirm this payment');
   }
-  if (req.params.resource === 'site-settings' && req.isAdministratorActor(user)) synchroniseSiteBrandAssets(changes, previousValue);
+  if (req.params.resource === 'site-settings' && isAdministratorActor(req.user)) synchroniseSiteBrandAssets(changes, previousValue);
   if (changes.password && req.params.resource === 'users') record.password = changes.password;
   if (req.params.resource === 'applications' && changes.status === 'approved') { changes.acceptedAt = new Date(); changes.acceptedBy = req.user._id; }
   if (req.params.resource === 'applications' && changes.status === 'rejected') { changes.rejectedAt = new Date(); changes.rejectionReason = changes.remarks || req.body.comment || req.body.remarks; }
@@ -1540,7 +1551,7 @@ export const changeStatus = asyncHandler(async (req, res) => {
     if (!isAdministratorActor(req.user) && record.status === 'pending_approval' && status !== 'pending_approval') {
       throw new ApiError(403, 'Only an administrator can approve this property for marketplace publication');
     }
-    if (req.isAdministratorActor(user) && approvalStatuses.has(status) && record.visibility === 'public') {
+    if (isAdministratorActor(req.user) && approvalStatuses.has(status) && record.visibility === 'public') {
       record.publicationStatus = 'published'; record.publishedAt = new Date();
       record.publicListingApproval = {
         status: 'approved',
@@ -1612,7 +1623,7 @@ export const changeStatus = asyncHandler(async (req, res) => {
     record.activity.push({ kind: status === 'approved' ? 'accepted' : status === 'rejected' ? 'rejected' : 'status_changed', title: status === 'approved' ? 'Application accepted' : status === 'rejected' ? 'Application rejected' : `Application moved to ${status.replaceAll('_', ' ')}`, detail: status === 'rejected' ? record.rejectionReason : String(req.body.comment || ''), actor: req.user._id, audience: 'all', at: new Date() });
   }
   if (req.params.resource === 'payments' && status === 'paid') { record.paidAt = new Date(); record.paidAmount = record.amount; }
-  if (req.params.resource === 'survey-services' && req.isAdministratorActor(user)) {
+  if (req.params.resource === 'survey-services' && isAdministratorActor(req.user)) {
     record.moderation = { status: status === 'published' ? 'approved' : status === 'unpublished' ? 'rejected' : record.moderation?.status, reviewedBy: req.user._id, reason: req.body.comment, reviewedAt: new Date() };
     if (status === 'published') record.visibility = 'public';
   }
