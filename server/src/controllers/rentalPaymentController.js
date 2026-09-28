@@ -20,7 +20,7 @@ function requireRegularTenant(user) {
 }
 
 function requireLandlordOrAdmin(user, payment) {
-  if (user?.role === 'admin') return;
+  if (['super_admin', 'admin'].includes(String(user?.role || '').toLowerCase())) return;
   if (!capabilityRolesForUser(user).includes('landlord') || !sameId(payment.payee, user._id)) {
     throw new ApiError(403, 'Only the receiving landlord can review this rental payment.');
   }
@@ -309,7 +309,7 @@ export const getRentalPaymentProof = asyncHandler(async (req, res) => {
 });
 
 export const listLandlordTransactions = asyncHandler(async (req, res) => {
-  if (String(req.user?.role || '').toLowerCase() === 'admin' || !capabilityRolesForUser(req.user).includes('landlord')) {
+  if (['super_admin', 'admin'].includes(String(req.user?.role || '').toLowerCase()) || !capabilityRolesForUser(req.user).includes('landlord')) {
     throw new ApiError(403, 'Landlord transaction access required.');
   }
 
