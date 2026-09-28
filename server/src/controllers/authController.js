@@ -671,6 +671,7 @@ export const disableTwoFactor = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id).select('+password +twoFactor.secretEncrypted +twoFactor.backupCodeHashes');
   if (!user || !(await user.comparePassword(String(req.body.password || '')))) throw new ApiError(401, 'Password is incorrect');
   if (!user.twoFactor?.enabled) throw new ApiError(409, 'Two-factor authentication is not enabled');
+  if (user.role === 'super_admin' && user.superAdminSecurity?.twoFactorRequired !== false) throw new ApiError(403, 'Authenticator 2FA is mandatory for Super Admin accounts and cannot be disabled');
   if (!(await verifySecondFactor(user, req.body.code))) throw new ApiError(401, 'Authenticator or backup code is invalid');
   user.twoFactor = { enabled: false }; await user.save({ validateModifiedOnly: true }); await audit(req, user, 'two_factor:disabled');
   res.json({ success: true, message: 'Two-factor authentication disabled' });
