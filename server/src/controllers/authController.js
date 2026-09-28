@@ -65,7 +65,10 @@ const contactChangeSchema = z.object({
   value: z.string().trim().min(3).max(160),
   currentPassword: z.string().min(8).max(128),
 }).strict();
-const vaultPinSchema = z.object({ pin: z.string().regex(/^\d{6}$/) }).strict();
+const vaultPinSchema = z.object({
+  pin: z.string().regex(/^\d{6}$/),
+  otp: z.string().regex(/^\d{6}$/).optional(),
+}).strict();
 const vaultPinUnlockSchema = z.object({ pin: z.string().regex(/^\d{6}$/) }).strict();
 
 async function audit(req, user, action, updatedValue) {
@@ -472,10 +475,35 @@ export const requestVaultPinOtp = asyncHandler(async (req, res) => {
 export const setVaultPin = asyncHandler(async (req, res) => {
   const parsed = vaultPinSchema.safeParse(req.body);
   if (!parsed.success) throw new ApiError(422, 'Enter a six-digit vault security code');
-  const user = await User.findById(req.user._id).select('+vaultPin +vaultPin.pinHash +vaultPin.failedAttempts +vaultPin.lockedUntil');
+  const user = await User.findById(req.user._id).select('+vaultPin +vaultPin.pinHash +vaultPin.failedAttempts +vaultPin.lockedUntil +vaultPin.otpHash +vaultPin.otpExpiresAt +vaultPin.otpAttempts +vaultPin.otpLastSentAt');
   if (!user) throw new ApiError(404, 'Account not found');
   const pinState = user.vaultPin || (user.vaultPin = {});
   const wasEnabled = Boolean(pinState.enabled);
+
+  // Initial PIN creation intentionally does not require SMS verification.
+  // Changing or resetting an existing PIN always requires a fresh Fast2SMS OTP.
+  if (wasEnabled) {
+    const otp = String(parsed.data.otp || '').replace(/\D/g, '');
+    const otpValid = Boolean(
+      /^\d{6}$/.test(otp)
+      && pinState.otpHash
+      && pinState.otpExpiresAt
+      && new Date(pinState.otpExpiresAt) > new Date()
+      && await bcrypt.compare(otp, pinState.otpHash)
+    );
+    if (!otpValid) {
+      pinState.otpAttempts = Number(pinState.otpAttempts || 0) + 1;
+      if (pinState.otpAttempts >= 5) {
+        pinState.otpHash = undefined;
+        pinState.otpExpiresAt = undefined;
+        pinState.otpAttempts = 0;
+        pinState.otpLastSentAt = undefined;
+      }
+      await user.save({ validateModifiedOnly: true });
+      throw new ApiError(401, 'Vault security OTP is invalid or expired');
+    }
+  }
+
   pinState.pinHash = await bcrypt.hash(parsed.data.pin, 12);
   pinState.enabled = true;
   pinState.version = Number(pinState.version || 0) + 1;
@@ -484,9 +512,10 @@ export const setVaultPin = asyncHandler(async (req, res) => {
   pinState.otpHash = undefined;
   pinState.otpExpiresAt = undefined;
   pinState.otpAttempts = 0;
+  pinState.otpLastSentAt = undefined;
   await user.save({ validateModifiedOnly: true });
-  await audit(req, user, wasEnabled ? 'vault_pin:changed' : 'vault_pin:enabled');
-  res.json({ success: true, data: { vaultPinEnabled: true, token: signVaultPinUnlockToken(user) }, message: wasEnabled ? 'Document Vault security code changed' : 'Document Vault security enabled' });
+  await audit(req, user, wasEnabled ? 'vault_pin:changed_sms_verified' : 'vault_pin:enabled');
+  res.json({ success: true, data: { vaultPinEnabled: true, token: signVaultPinUnlockToken(user) }, message: wasEnabled ? 'Document Vault security code changed after SMS verification' : 'Document Vault security enabled' });
 });
 
 export const unlockVaultPin = asyncHandler(async (req, res) => {
