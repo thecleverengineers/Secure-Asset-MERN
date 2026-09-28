@@ -49,7 +49,7 @@ async function managerContext(user) {
 }
 
 export async function buildScope(user, resource) {
-  if (!user || user.role === 'admin') return {};
+  if (!user || ['super_admin', 'admin'].includes(String(user.role || '').toLowerCase())) return {};
   const uid = user._id;
 
   if (user.role === 'manager') {
