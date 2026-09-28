@@ -5,7 +5,6 @@ import {
 } from '@mui/material';
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import PeopleRounded from '@mui/icons-material/PeopleRounded';
-import BadgeRounded from '@mui/icons-material/BadgeRounded';
 import GroupRounded from '@mui/icons-material/GroupRounded';
 import AdminPanelSettingsRounded from '@mui/icons-material/AdminPanelSettingsRounded';
 import CalendarMonthRounded from '@mui/icons-material/CalendarMonthRounded';
@@ -32,6 +31,9 @@ import MessageRounded from '@mui/icons-material/MessageRounded';
 import WebRounded from '@mui/icons-material/WebRounded';
 import PaletteRounded from '@mui/icons-material/PaletteRounded';
 import SettingsRounded from '@mui/icons-material/SettingsRounded';
+import BackupRounded from '@mui/icons-material/BackupRounded';
+import TuneRounded from '@mui/icons-material/TuneRounded';
+import HubRounded from '@mui/icons-material/HubRounded';
 import PageHeader from '../../components/layout/PageHeader';
 import { useAuth } from '../../context/AuthContext';
 
@@ -68,11 +70,13 @@ const modules: Record<string, AdminModule> = {
     eyebrow: 'Admin module',
     description: 'Follow the complete property-to-occupancy lifecycle without spreading operational records across the sidebar.',
     features: [
-      { label: 'Properties', path: '/app/properties', description: 'Review and manage property records across the platform.', workflow: 'Property → Review → Manage → Status', icon: ApartmentRounded },
-      { label: 'Applications', path: '/app/applications', description: 'Review rental applications and their supporting workflow.', workflow: 'Application → Review → Decision → Agreement', icon: FactCheckRounded },
+      { label: 'Properties', path: '/app/properties', description: 'Review and manage property records across the platform.', workflow: 'Landlord property → Review → Manage → Listing status', icon: ApartmentRounded },
+      { label: 'Property Structure', path: '/app/property-management', description: 'Manage property structure and administrative property configuration.', workflow: 'Property → Floors / units → Structure → Maintain', icon: ApartmentRounded },
+      { label: 'Applications', path: '/app/applications', description: 'Review tenant rental applications and their supporting workflow.', workflow: 'Tenant applies → Landlord decision → Agreement → Tenancy', icon: FactCheckRounded },
       { label: 'Property Site Visits', path: '/app/property-visits', description: 'Track requested and scheduled site visits.', workflow: 'Request → Schedule → Visit → Complete', icon: CalendarMonthRounded },
-      { label: 'Active Tenancies', path: '/app/tenancies', description: 'Monitor tenant, unit, agreement and tenancy status.', workflow: 'Agreement → Start tenancy → Operate → End / renew', icon: HomeWorkRounded },
-      { label: 'Lease Management', path: '/app/leases', description: 'Manage lease records, dates, signatures and lifecycle status.', workflow: 'Create → Sign → Active → Renew / end', icon: DescriptionRounded },
+      { label: 'Active Tenancies', path: '/app/tenancies', description: 'Monitor tenant, landlord, unit, agreement and tenancy status.', workflow: 'Agreement complete → Start tenancy → Rent cycles → End / renew', icon: HomeWorkRounded },
+      { label: 'Rental Management', path: '/app/rental-management', description: 'Trace property, floor, room, tenant, agreement, invoice and permanent tenancy relationships.', workflow: 'Property → Room → Tenant → Agreement → Invoice → Tenancy history', icon: HomeWorkRounded },
+      { label: 'Lease Management', path: '/app/leases', description: 'Manage lease records, dates, signatures and lifecycle status.', workflow: 'Landlord prepares → Parties sign → Active → Renew / end', icon: DescriptionRounded },
       { label: 'Complaints & Maintenance', path: '/app/complaints', description: 'Track tenant issues, maintenance requests and resolution status.', workflow: 'Issue → Review → Action → Resolve', icon: BuildRounded },
       { label: 'Facilities', path: '/app/facilities', description: 'Maintain property facility definitions and availability.', workflow: 'Facility → Configure → Publish → Maintain', icon: AccountBalanceRounded },
       { label: 'Facility Bookings', path: '/app/facility-bookings', description: 'Review and manage facility reservation records.', workflow: 'Request → Book → Use → Complete / cancel', icon: CalendarMonthRounded },
@@ -83,10 +87,10 @@ const modules: Record<string, AdminModule> = {
     eyebrow: 'Admin module',
     description: 'Centralize rent cycles, invoices, payment tracking, utilities and reminder operations while retaining current finance routes.',
     features: [
-      { label: 'Rent & Bills', path: '/app/rental-invoices', description: 'Monitor tenancy billing cycles, balances and invoice status.', workflow: 'Rent cycle → Invoice → Due → Paid / overdue', icon: ReceiptLongRounded },
-      { label: 'Payments & Invoices', path: '/app/payments', description: 'Review payment and invoice records across operational workflows.', workflow: 'Payment → Evidence → Verify → Settle', icon: PaymentsRounded },
+      { label: 'Rent & Bills', path: '/app/rental-invoices', description: 'Monitor tenancy billing cycles, balances and invoice status.', workflow: 'Active tenancy → Monthly cycle → Invoice → Paid / overdue', icon: ReceiptLongRounded },
+      { label: 'Payments & Invoices', path: '/app/payments', description: 'Review payment and invoice records across operational workflows.', workflow: 'Tenant pays → Evidence / transaction → Verify → Settle', icon: PaymentsRounded },
       { label: 'Meter Readings', path: '/app/utility-readings', description: 'Track unit utility readings used in tenancy billing.', workflow: 'Read meter → Record → Calculate → Bill', icon: ElectricMeterRounded },
-      { label: 'Payment Reminders', path: '/app/reminder-rules', description: 'Manage reminder rules used for unpaid rental cycles.', workflow: 'Invoice due → Reminder rule → Send → Stop when paid', icon: NotificationsRounded },
+      { label: 'Payment Reminders', path: '/app/reminder-rules', description: 'Manage reminder rules used for unpaid rental cycles.', workflow: 'Final 7 days → 8:30 AM reminder → Repeat while unpaid → Stop when paid', icon: NotificationsRounded },
     ],
   },
   'survey-operations': {
@@ -98,10 +102,10 @@ const modules: Record<string, AdminModule> = {
       { label: 'Surveyor Plans', path: '/app/surveyor-plans', description: 'Manage surveyor plan definitions and related records.', workflow: 'Plan → Configure → Subscribe → Maintain', icon: WorkspacePremiumRounded },
       { label: 'Surveyor Profiles', path: '/app/surveyor-profiles', description: 'Review professional surveyor profile records.', workflow: 'Profile → Compliance → Verify → Publish', icon: PersonRounded },
       { label: 'Survey Services', path: '/app/survey-services', description: 'Manage services offered through the survey workflow.', workflow: 'Service → Configure → Offer → Maintain', icon: StorefrontRounded },
-      { label: 'Survey Quotes', path: '/app/survey-jobs', description: 'Track landlord survey quote requests.', workflow: 'Request → Quote → Review → Accept', icon: RequestQuoteRounded },
-      { label: 'Proposals', path: '/app/survey-quotations', description: 'Track surveyor proposals and their decision state.', workflow: 'Proposal → Review → Accept → Project', icon: RequestQuoteRounded },
-      { label: 'Active Projects', path: '/app/survey-projects', description: 'Open field workflows, evidence, reporting and project progress.', workflow: 'Project → Field work → Evidence → Report → Complete', icon: BusinessCenterRounded },
-      { label: 'Survey Reports', path: '/app/survey-reports', description: 'Review final and in-progress survey report records.', workflow: 'Draft → Submit → Review → Finalize', icon: DescriptionRounded },
+      { label: 'Survey Quotes', path: '/app/survey-jobs', description: 'Track landlord quote requests sent to selected surveyors.', workflow: 'Landlord request → Surveyor review → Quote / accept → Project', icon: RequestQuoteRounded },
+      { label: 'Proposals', path: '/app/survey-quotations', description: 'Track surveyor proposals and their decision state.', workflow: 'Surveyor proposal → Landlord review → Accept → Active project', icon: RequestQuoteRounded },
+      { label: 'Active Projects', path: '/app/survey-projects', description: 'Open navigation, check-in, field data, evidence, report and payment progress.', workflow: 'Project → Site work → Evidence → Landlord review / payment → Final report', icon: BusinessCenterRounded },
+      { label: 'Survey Reports', path: '/app/survey-reports', description: 'Review final and in-progress survey report records.', workflow: 'Field evidence → Report draft → Submit → Final verified report', icon: DescriptionRounded },
       { label: 'Disputes', path: '/app/survey-disputes', description: 'Manage survey-related disputes and resolution records.', workflow: 'Dispute → Evidence → Review → Resolve', icon: BuildRounded },
       { label: 'Promotions', path: '/app/survey-promotions', description: 'Manage survey promotion records and status.', workflow: 'Promotion → Review → Activate → Expire', icon: CampaignRounded },
     ],
@@ -141,6 +145,9 @@ const modules: Record<string, AdminModule> = {
       { label: 'Site, Design & Homepage', path: '/app/site-admin', description: 'Manage site identity, homepage, footer/legal content and platform presentation.', workflow: 'Configure → Preview → Publish → Refresh', icon: WebRounded },
       { label: 'Design Studio', path: '/app/design-studio', description: 'Open the visual application design and navigation workspace.', workflow: 'Design → Configure → Validate → Publish', icon: PaletteRounded },
       { label: 'System Settings', path: '/app/settings', description: 'Manage current platform settings and supported integration configuration.', workflow: 'Settings → Validate → Save → Apply', icon: SettingsRounded },
+      { label: 'Integrations', path: '/app/integration-settings', description: 'Configure supported communication, payment and external platform integrations.', workflow: 'Credentials → Validate → Enable → Monitor', icon: HubRounded },
+      { label: 'Navigation & Modules', path: '/app/platform-modules', description: 'Manage the existing application module catalogue and navigation configuration.', workflow: 'Module → Access / placement → Save → Runtime navigation', icon: TuneRounded },
+      { label: 'Backup & Recovery', path: '/app/backup-recovery', description: 'Open the existing encrypted backup, recovery and restore administration workflow.', workflow: 'Backup → Verify → Retain → Restore / audit', icon: BackupRounded },
     ],
   },
 };
