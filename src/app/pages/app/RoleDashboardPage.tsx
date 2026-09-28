@@ -56,6 +56,7 @@ const baseCards = [
 ] as const;
 
 const cardsByRole: Record<string, string[]> = {
+  super_admin: ['totalProperties', 'totalUnits', 'occupiedUnits', 'vacantUnits', 'totalTenants', 'activeUsers', 'pendingApplications', 'pendingSurveys', 'monthlyRentCollection', 'outstandingDues', 'openComplaints', 'expiringLeases', 'pendingApprovals'],
   admin: ['totalProperties', 'totalUnits', 'occupiedUnits', 'vacantUnits', 'totalTenants', 'activeUsers', 'pendingApplications', 'pendingSurveys', 'monthlyRentCollection', 'outstandingDues', 'openComplaints', 'expiringLeases'],
   manager: ['totalProperties', 'occupiedUnits', 'vacantUnits', 'pendingApplications', 'pendingSurveys', 'monthlyRentCollection', 'outstandingDues', 'openComplaints', 'expiringLeases', 'pendingApprovals'],
   tenant: ['monthlyRentCollection', 'outstandingDues', 'openComplaints', 'expiringLeases'],
