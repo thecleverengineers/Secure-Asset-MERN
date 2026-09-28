@@ -36,6 +36,7 @@ import rolePermissionRoutes from './routes/rolePermissionRoutes.js';
 import agreementRoutes from './routes/agreementRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
 import backupRecoveryRoutes from './routes/backupRecoveryRoutes.js';
+import superAdminRoutes from './routes/superAdminRoutes.js';
 import { notFound, errorHandler } from './middleware/error.js';
 import { requestContext, rejectUnsafeObjectKeys } from './middleware/requestContext.js';
 import { mountProductionSpa } from './middleware/spa.js';
@@ -155,6 +156,7 @@ export function createApp() {
   app.use('/api/v1/agreements', agreementRoutes);
   app.use('/api/v1/wishlist', wishlistRoutes);
   app.use('/api/v1/backup-recovery', backupRecoveryRoutes);
+  app.use('/api/v1/super-admin', superAdminRoutes);
   app.use('/api/v1/search', searchRoutes);
   app.use('/api/v1/messaging', messagingRoutes);
   app.use('/api/v1/integrations', integrationRoutes);
