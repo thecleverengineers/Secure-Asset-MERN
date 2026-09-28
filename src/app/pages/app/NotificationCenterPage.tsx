@@ -292,7 +292,10 @@ export default function NotificationCenterPage() {
             const active = selected?._id === item._id;
             return <Box
               key={item._id}
-              onClick={() => setSelectedId(item._id)}
+              onClick={() => {
+                setSelectedId(item._id);
+                if (!item.readAt) void markRead(item._id);
+              }}
               sx={{
                 position: 'relative',
                 px: { xs: 1.2, sm: 1.7 },
