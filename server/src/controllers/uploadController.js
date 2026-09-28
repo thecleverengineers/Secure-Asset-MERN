@@ -46,7 +46,7 @@ async function assertSurveyProjectUploadAccess(req, body) {
   if (['completed', 'cancelled'].includes(project.workflowStage) || ['completed', 'cancelled'].includes(project.status)) throw new ApiError(409, 'Uploads are unavailable after the survey project closes');
   if (type === 'survey_payment_proof') {
     if (!finalPaymentWaiting && !directMilestonePaymentWaiting) throw new ApiError(409, 'Payment proof can be uploaded only when a survey payment is awaiting landlord submission');
-    if (req.user.role === 'admin') return;
+    if (['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase())) return;
     if (String(project.client) !== String(req.user._id)) throw new ApiError(403, 'Only the landlord who hired the Surveyor can upload the final payment screenshot');
     await getActiveLandlordSubscription(req.user._id);
     return;
@@ -56,7 +56,7 @@ async function assertSurveyProjectUploadAccess(req, body) {
   } else if (!evidenceEditable) {
     throw new ApiError(409, 'Evidence uploads are available only while fieldwork is active');
   }
-  if (req.user.role === 'admin') return;
+  if (['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase())) return;
   if (String(project.surveyor) !== String(req.user._id)) throw new ApiError(403, 'Only the hired Surveyor can upload to this project');
   await getActiveSurveyorSubscription(req.user._id);
 }
@@ -132,7 +132,7 @@ export const uploadDocument = asyncHandler(async (req, res) => {
     const category = String(body.category || categoryFromMime(mimeType, extension)).trim().toLowerCase();
     if (tenantKycUpload && !isTenantKycCategory(category)) throw new ApiError(422, 'Invalid tenant KYC document category');
     if (tenantKycUpload && !TENANT_KYC_ALLOWED_EXTENSIONS.includes(extension)) throw new ApiError(415, 'Tenant KYC files must be JPG, JPEG, PNG, or PDF');
-    const owner = req.user.role === 'admin' && body.owner ? body.owner : req.user._id;
+    const owner = ['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()) && body.owner ? body.owner : req.user._id;
     const storageKey = buildStorageKey(owner, req.file.originalname, 'legacy-documents');
     const stored = await saveFile(req.file.path, storageKey, mimeType);
     const confidentiality = ['surveyor_verification_bank', 'rent_payment_proof', 'subscription_payment_proof'].includes(body.type)
