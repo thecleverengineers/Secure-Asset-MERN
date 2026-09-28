@@ -8,6 +8,7 @@ import { scheduleRentCycleWhatsAppReminders } from './services/rentCycleReminder
 import { ensureStorageDirectories } from './services/storage.js';
 import { ensureBackupDirectories } from './services/backupRecovery.js';
 import { ensureServerSessionIndexes } from './services/serverSession.js';
+import { ensureBootstrapSuperAdmin } from './services/bootstrapSuperAdmin.js';
 
 let server;
 let stopSurveyorMaintenance = () => {};
@@ -18,6 +19,7 @@ async function start() {
   await ensureStorageDirectories();
   await ensureBackupDirectories();
   await connectDatabase();
+  await ensureBootstrapSuperAdmin();
   await ensureServerSessionIndexes();
 
   const app = createApp();
