@@ -1171,3 +1171,19 @@ export async function reverseGeocodeLocation(latitude: number, longitude: number
   const qs = new URLSearchParams({ lat: String(latitude), lng: String(longitude) });
   return request<ApiResponse<ReverseGeocodeResult>>(`/public/locations/reverse?${qs}`);
 }
+
+export async function getSuperAdminOverview() {
+  return request<ApiResponse<Record<string, any>>>('/super-admin/overview');
+}
+export async function getSuperAdmins() {
+  return request<ApiResponse<Record<string, any>[]>>('/super-admin/users');
+}
+export async function promoteSuperAdmin(userId: string) {
+  return request<ApiResponse<Record<string, any>>>(`/super-admin/users/${encodeURIComponent(userId)}/promote`, { method: 'POST' });
+}
+export async function demoteSuperAdmin(userId: string) {
+  return request<ApiResponse<Record<string, any>>>(`/super-admin/users/${encodeURIComponent(userId)}/demote`, { method: 'POST' });
+}
+export async function getSuperAdminSecurityEvents(limit = 50) {
+  return request<ApiResponse<Record<string, any>>>(`/super-admin/security-events?limit=${Math.max(1, Math.min(limit, 200))}`);
+}
