@@ -38,7 +38,7 @@ function propertyAddress(property) {
 }
 
 function canManageProperty(user, property) {
-  if (user.role === 'admin') return true;
+  if (['super_admin', 'admin'].includes(String(user.role || '').toLowerCase())) return true;
   if (user.role === 'manager') return sameId(property.manager, user._id) || (user.assignedProperties || []).some((id) => sameId(id, property._id));
   return capabilityRolesForUser(user).includes('landlord') && sameId(property.owner, user._id);
 }
@@ -95,7 +95,7 @@ export const getPropertyVisitNavigation = asyncHandler(async (req, res) => {
     .populate('space', 'name code roomNumber apartmentNumber')
     .lean();
   if (!visit) throw new ApiError(404, 'Site visit not found');
-  const isAdminOrManager = ['admin', 'manager'].includes(String(req.user.role || '').toLowerCase());
+  const isAdminOrManager = ['super_admin', 'admin', 'manager'].includes(String(req.user.role || '').toLowerCase());
   const isLandlord = sameId(visit.landlord, req.user._id);
   const isRequester = sameId(visit.requester, req.user._id);
   if (!isAdminOrManager && !isLandlord && !isRequester) throw new ApiError(403, 'Site visit navigation access denied');
@@ -349,7 +349,7 @@ export const updateTenantKycWhatsapp = asyncHandler(async (req, res) => {
 });
 
 export const reviewTenantKyc = asyncHandler(async (req, res) => {
-  if (!['admin', 'manager'].includes(req.user.role)) throw new ApiError(403, 'KYC reviewer access required');
+  if (!['super_admin', 'admin', 'manager'].includes(req.user.role)) throw new ApiError(403, 'KYC reviewer access required');
   const status = String(req.body.status || '');
   if (!['changes_required', 'verified', 'rejected', 'suspended', 'expired'].includes(status)) throw new ApiError(422, 'Invalid KYC decision');
   const record = await TenantKyc.findById(req.params.id);
@@ -384,7 +384,7 @@ export const streamTenantKycDocument = asyncHandler(async (req, res) => {
   } else if (role === 'manager') {
     const scope = await buildScope(req.user, 'tenant-kyc');
     if (!kyc || !(await TenantKyc.exists({ _id: kyc._id, ...scope }))) throw new ApiError(403, 'This KYC document is outside your assigned tenant scope');
-  } else if (role === 'admin') {
+  } else if (['super_admin', 'admin'].includes(role)) {
     if (!kyc) throw new ApiError(404, 'KYC document is not attached to a submitted record');
   } else {
     throw new ApiError(403, 'KYC document preview access required');
@@ -394,7 +394,7 @@ export const streamTenantKycDocument = asyncHandler(async (req, res) => {
 });
 
 export const reviewPublicListingApproval = asyncHandler(async (req, res) => {
-  if (req.user.role !== 'admin') throw new ApiError(403, 'Admin access required');
+  if (!['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase())) throw new ApiError(403, 'Admin access required');
   const decision = String(req.body.status || req.body.decision || '').toLowerCase();
   const reason = String(req.body.reason || req.body.notes || '').trim();
   if (!['approved', 'rejected'].includes(decision)) throw new ApiError(422, 'Public listing decision must be approved or rejected');
