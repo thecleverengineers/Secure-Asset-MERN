@@ -86,7 +86,7 @@ export const requestSystemRestore = asyncHandler(async (req, res) => {
     user: req.user._id, role: req.user.role, action: 'backup:restore-authorised', module: 'backup-recovery', recordId: backup._id,
     updatedValue: { backupNumber: backup.backupNumber, components: authorization.components, expiresAt: authorization.expiresAt }, ip: req.ip, device: req.get('user-agent'),
   });
-  const peerAdmins = await User.find({ role: 'admin', status: 'active', _id: { $ne: req.user._id } }).select('_id').lean();
+  const peerAdmins = await User.find({ role: { $in: ['super_admin', 'admin'] }, status: 'active', _id: { $ne: req.user._id } }).select('_id').lean();
   await Promise.all(peerAdmins.map((admin) => createNotification({
     user: admin._id, title: 'System restore authorised',
     message: `${req.user.name || 'An administrator'} authorised a controlled restore from ${backup.backupNumber}. The root-side recovery command expires in 15 minutes.`,
