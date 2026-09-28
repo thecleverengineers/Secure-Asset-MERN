@@ -224,8 +224,8 @@ export default function FrontLayout() {
   const mobileBottomItems = [
     { key: 'home', label: 'Home', path: '/', iconUrl: 'https://img.icons8.com/fluency/48/home.png', accent: '#2563EB', hover: '#EFF6FF' },
     { key: 'explore', label: 'Explore', path: '/marketplace', iconUrl: 'https://img.icons8.com/fluency/48/compass.png', accent: '#F97316', hover: '#FFF7ED' },
-    { key: 'wishlist', label: 'Wishlist', path: '/wishlist', iconUrl: 'https://img.icons8.com/fluency/48/heart.png', accent: '#EC4899', hover: '#FDF2F8' },
-    { key: 'vault', label: 'Vault', path: currentUser ? '/app/documents' : '/auth/login', iconUrl: 'https://img.icons8.com/fluency/48/security-shield.png', accent: '#059669', hover: '#ECFDF5' },
+    { key: 'wishlist', label: 'Wishlist', path: '/wishlist', iconUrl: 'https://img.icons8.com/3d-fluency/94/wish-list.png', accent: '#EC4899', hover: '#FDF2F8' },
+    { key: 'vault', label: 'Vault', path: currentUser ? '/app/documents' : '/auth/login', iconUrl: 'https://img.icons8.com/3d-fluency/94/shield.png', accent: '#059669', hover: '#ECFDF5' },
     { key: 'account', label: 'Account', path: currentUser ? '/app/profile' : '/auth/login', iconUrl: 'https://img.icons8.com/fluency/48/user-male-circle.png', accent: '#7C3AED', hover: '#F5F3FF' },
   ];
 
