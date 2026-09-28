@@ -1138,6 +1138,25 @@ export async function getRolePermissions(role: string) { return request<ApiRespo
 export async function updateRolePermissions(role: string, entries: RolePermissionEntry[]) { return request<ApiResponse<{ role: string; entries: RolePermissionEntry[]; updatedAt?: string }>>(`/permissions/${encodeURIComponent(role)}`, { method: 'PUT', body: JSON.stringify({ entries }) }); }
 export async function resetRolePermissions(role: string) { return request<ApiResponse<{ role: string; entries: RolePermissionEntry[]; updatedAt?: string }>>(`/permissions/${encodeURIComponent(role)}/reset`, { method: 'POST' }); }
 
+export type SuperAdminOverview = {
+  generatedAt: string;
+  kpis: Record<string, number>;
+  roleBreakdown: Array<{ role: string; count: number }>;
+  approvals: Record<string, number>;
+  security: Record<string, number>;
+  finance: Record<string, number>;
+  system: Record<string, any>;
+  recentAudit: Record<string, any>[];
+};
+export async function getSuperAdminOverview() { return request<ApiResponse<SuperAdminOverview>>('/super-admin/overview', { cache: 'no-store' }); }
+export async function getSuperAdminFinance() { return request<ApiResponse<Record<string, any>>>('/super-admin/finance', { cache: 'no-store' }); }
+export async function getSuperAdminSecurityEvents(limit = 50) { return request<ApiResponse<Record<string, any>>>(`/super-admin/security-events?limit=${limit}`, { cache: 'no-store' }); }
+export async function getSuperAdminSystemHealth() { return request<ApiResponse<Record<string, any>>>('/super-admin/system-health', { cache: 'no-store' }); }
+export async function getSuperAdminUserOverview(id: string) { return request<ApiResponse<Record<string, any>>>(`/super-admin/users/${encodeURIComponent(id)}/overview`, { cache: 'no-store' }); }
+export async function runSuperAdminUserAction(id: string, body: { action: string; reason: string; role?: string; confirmation?: string }) {
+  return request<ApiResponse<Record<string, any>>>(`/super-admin/users/${encodeURIComponent(id)}/actions`, { method: 'POST', body: JSON.stringify(body) });
+}
+
 export async function getNotifications(params: Record<string, string | number | boolean> = {}) {
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => value !== undefined && value !== '' && query.set(key, String(value)));
