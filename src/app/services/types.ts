@@ -19,6 +19,9 @@ export interface User {
   city?: string;
   assignedProperties?: Array<ObjectId | Property>;
   customPermissions?: string[];
+  adminScope?: 'none' | 'assigned' | 'global';
+  superAdminSecurity?: { twoFactorRequired?: boolean; criticalActionReauth?: boolean; trustedDevicesOnly?: boolean };
+  twoFactorEnabled?: boolean;
   createdAt: string;
   updatedAt?: string;
   lastLogin?: string | null;
