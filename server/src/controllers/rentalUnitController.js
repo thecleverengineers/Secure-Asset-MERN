@@ -312,7 +312,7 @@ export const archivePropertyFloor = asyncHandler(async (req, res) => {
 
 export const createRentalUnit = asyncHandler(async (req, res) => {
   const property = await propertyManagedBy(req.user, req.params.propertyId);
-  if (req.user.role !== 'admin') await assertLandlordLimit(property.owner, 'rooms');
+  if (!['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase())) await assertLandlordLimit(property.owner, 'rooms');
   const floor = await floorForProperty(property, req.body.floor);
   const unit = await RentalUnit.create(unitCreatePayload(req.body, property, floor, req.user._id));
   await syncPropertyRentalSummary(property._id, req.user._id);
@@ -344,7 +344,7 @@ export const updateRentalUnit = asyncHandler(async (req, res) => {
 
 export const duplicateRentalUnit = asyncHandler(async (req, res) => {
   const { unit, property } = await manageableUnit(req.user, req.params.unitId);
-  if (req.user.role !== 'admin') await assertLandlordLimit(property.owner, 'rooms');
+  if (!['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase())) await assertLandlordLimit(property.owner, 'rooms');
   const source = unit.toObject();
   const roomNumber = requiredText(req.body.roomNumber || `${source.roomNumber}-COPY`, 'New room number/name', 80);
   const duplicate = await RentalUnit.create({
@@ -852,7 +852,7 @@ export const getTenancyDetails = asyncHandler(async (req, res) => {
   ]);
   const viewerIsTenant = String(tenancy.tenant?._id || tenancy.tenant) === String(req.user._id);
   const viewerIsLandlord = String(tenancy.landlord?._id || tenancy.landlord) === String(req.user._id);
-  const viewerIsPrivileged = ['admin', 'manager'].includes(String(req.user.role || '').toLowerCase());
+  const viewerIsPrivileged = ['super_admin', 'admin', 'manager'].includes(String(req.user.role || '').toLowerCase());
   const participant = viewerIsTenant ? 'tenant' : viewerIsLandlord ? 'landlord' : viewerIsPrivileged ? 'manager' : 'viewer';
   res.json({
     success: true,
@@ -865,9 +865,9 @@ export const getTenancyDetails = asyncHandler(async (req, res) => {
       permissions: {
         participant,
         canViewContacts: participant !== 'viewer',
-        canManage: participant === 'landlord' || participant === 'manager' || String(req.user.role || '').toLowerCase() === 'admin',
-        canRecordPayment: participant === 'landlord' || participant === 'manager' || String(req.user.role || '').toLowerCase() === 'admin',
-        canSendReminder: participant === 'landlord' || participant === 'manager' || String(req.user.role || '').toLowerCase() === 'admin',
+        canManage: participant === 'landlord' || participant === 'manager' || ['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()),
+        canRecordPayment: participant === 'landlord' || participant === 'manager' || ['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()),
+        canSendReminder: participant === 'landlord' || participant === 'manager' || ['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()),
       },
     },
   });
@@ -875,7 +875,7 @@ export const getTenancyDetails = asyncHandler(async (req, res) => {
 
 export const sendTenancyRentReminder = asyncHandler(async (req, res) => {
   const tenancy = await tenancyInViewerScope(req.params.tenancyId, req.user);
-  const canManage = String(req.user.role || '').toLowerCase() === 'admin'
+  const canManage = ['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase())
     || String(tenancy.landlord?._id || tenancy.landlord) === String(req.user._id)
     || String(req.user.role || '').toLowerCase() === 'manager';
   if (!canManage) throw new ApiError(403, 'Only the landlord or an authorized manager can send rent reminders');
@@ -980,7 +980,7 @@ export const sendTenancyRentReminder = asyncHandler(async (req, res) => {
 
 export const recordTenancyPayment = asyncHandler(async (req, res) => {
   const tenancy = await tenancyInViewerScope(req.params.tenancyId, req.user);
-  const canManage = String(req.user.role || '').toLowerCase() === 'admin'
+  const canManage = ['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase())
     || String(tenancy.landlord?._id || tenancy.landlord) === String(req.user._id)
     || String(req.user.role || '').toLowerCase() === 'manager';
   if (!canManage) throw new ApiError(403, 'Only the landlord or an authorized manager can record a received rent payment');
@@ -1064,7 +1064,7 @@ function exactIdFilter(query) {
 }
 
 export const getAdminRentalManagement = asyncHandler(async (req, res) => {
-  if (req.user.role !== 'admin') throw new ApiError(403, 'Administrator access required');
+  if (!['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase())) throw new ApiError(403, 'Administrator access required');
   const filter = exactIdFilter(req.query);
   if (req.query.status) filter.status = String(req.query.status).toLowerCase();
   if (mongoose.isValidObjectId(req.query.invoiceId)) {
