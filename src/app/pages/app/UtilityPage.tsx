@@ -163,6 +163,7 @@ export default function UtilityPage() {
       } catch (error) { setProfileError((error as Error).message || 'Profile update failed.'); }
       finally { setSavingProfile(false); }
     }
+
     async function chooseAvatar(file?: File) {
       if (!file) return;
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -178,69 +179,197 @@ export default function UtilityPage() {
       } catch (error) { setProfileError((error as Error).message || 'Profile photo upload failed.'); }
       finally { setUploadingAvatar(false); }
     }
-    const personalDetails = [
-      { label: 'Verified mobile', value: profile.phone || 'Not added', icon: PhoneRounded, tone: '#0B5270' },
-      { label: 'Email address', value: user?.email || 'Not added', icon: EmailRounded, tone: '#506A8A' },
-      { label: 'Location', value: locationLabel, icon: LocationOnRounded, tone: '#0F6B78' },
-      { label: 'Account feature', value: accountFeatures.join(' · '), icon: WorkspacePremiumRounded, tone: '#66752D' },
-      { label: 'KYC status', value: displayStatus(user?.kycStatus), icon: VerifiedUserRounded, tone: '#9B6510' },
-    ];
+
     const openEditProfile = () => {
-      setProfile(profileFromUser(user)); setSavedProfile(profileFromUser(user)); setProfileError(''); setProfileMessage(''); setProfileMenuAnchor(null); setEditProfileOpen(true);
+      setProfile(profileFromUser(user));
+      setSavedProfile(profileFromUser(user));
+      setProfileError('');
+      setProfileMessage('');
+      setProfileMenuAnchor(null);
+      setEditProfileOpen(true);
     };
     const openKyc = () => {
       setProfileMenuAnchor(null);
       if (kycRouteAvailable) navigate('/app/tenant-kyc');
       else setKycInfoOpen(true);
     };
-    return <Box data-secureasset-profile-static-dashboard="mobile-premium-v158" sx={{ maxWidth: 1040, mx: 'auto', px: { xs: 1.2, sm: 2.25, lg: 3.5 }, pb: { xs: 12, md: 5 } }}>
+    const scrollToSection = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const accountRole = accountFeatures.join(' · ');
+    const memberSince = user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+    const lastLogin = user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Current session';
+    const details = [
+      { label: 'Full Name', value: profile.name || user?.name || 'SecureAsset member', icon: BadgeRounded },
+      { label: 'Email Address', value: user?.email || 'Not added', icon: EmailRounded },
+      { label: 'Mobile Number', value: profile.phone || 'Not added', icon: PhoneRounded, verified: Boolean(profile.phone) },
+      { label: 'Account Role', value: accountRole, icon: WorkspacePremiumRounded },
+      { label: 'Location', value: locationLabel, icon: LocationOnRounded },
+      { label: 'KYC Status', value: displayStatus(user?.kycStatus), icon: VerifiedUserRounded, verified: String(user?.kycStatus || '').toLowerCase() === 'verified' },
+    ];
+    const tools = [
+      { label: 'Vault', detail: 'Secure files', icon: FolderRounded, tone: '#0A6AE8', action: () => navigate('/app/documents') },
+      { label: 'Security', detail: 'Account access', icon: VerifiedUserRounded, tone: '#6558D8', action: () => navigate('/app/security') },
+      { label: 'Preferences', detail: 'App settings', icon: WorkspacePremiumRounded, tone: '#16A36F', action: () => scrollToSection('profile-preferences') },
+      { label: 'Activity', detail: 'Login history', icon: AssignmentRounded, tone: '#F28B23', action: () => scrollToSection('profile-activity') },
+    ];
+
+    const cardSx = {
+      border: '1px solid rgba(31,85,120,.10)',
+      borderRadius: { xs: '18px', md: '20px' },
+      bgcolor: 'rgba(255,255,255,.94)',
+      boxShadow: '0 16px 42px rgba(18,55,82,.08)',
+      overflow: 'hidden',
+    };
+
+    return <Box data-secureasset-profile-premium="reference-match-v159" sx={{ width: '100%', maxWidth: 1320, mx: 'auto', px: { xs: 1.25, sm: 2, lg: 2.5 }, pb: { xs: 12, md: 5 }, fontFamily: '"Open Sans", sans-serif' }}>
       {!editProfileOpen && profileError && <Alert severity="error" onClose={() => setProfileError('')} sx={{ mb: 1.5, borderRadius: 2.5 }}>{profileError}</Alert>}
       {profileMessage && <Alert severity="success" onClose={() => setProfileMessage('')} sx={{ mb: 1.5, borderRadius: 2.5 }}>{profileMessage}</Alert>}
-      <Stack spacing={{ xs: 1.5, sm: 2.1 }}>
-        <Card data-secureasset-profile-summary="image-name-feature-menu-v158" elevation={0} sx={{ position: 'relative', overflow: 'hidden', border: '1px solid', borderColor: 'divider', borderRadius: { xs: 3, sm: 4 }, boxShadow: '0 12px 30px rgba(11,82,112,.10)' }}>
-          <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(11,82,112,.14), rgba(35,128,98,.06) 55%, rgba(255,255,255,.94))', pointerEvents: 'none' }} />
-          <Tooltip title="Profile actions"><IconButton data-secureasset-profile-action-menu="edit-kyc-v158" aria-label="Open profile actions" onClick={(event) => setProfileMenuAnchor(event.currentTarget)} sx={{ position: 'absolute', top: { xs: 10, sm: 14 }, right: { xs: 10, sm: 14 }, zIndex: 1, color: 'primary.main', bgcolor: 'rgba(255,255,255,.80)', border: '1px solid rgba(11,82,112,.12)', '&:hover': { bgcolor: '#FFFFFF' } }}><MoreVertRounded /></IconButton></Tooltip>
-          <Stack direction="row" alignItems="center" spacing={{ xs: 1.4, sm: 2 }} sx={{ position: 'relative', px: { xs: 1.5, sm: 2.5 }, py: { xs: 2, sm: 2.65 }, pr: { xs: 6.5, sm: 7.5 } }}>
-            <Avatar src={profile.avatar || undefined} alt={`${profile.name || 'Account'} profile photo`} sx={{ width: { xs: 76, sm: 94 }, height: { xs: 76, sm: 94 }, flexShrink: 0, bgcolor: 'primary.main', fontSize: { xs: 28, sm: 34 }, border: '4px solid rgba(255,255,255,.88)', boxShadow: '0 10px 24px rgba(11,82,112,.18)' }}>{profile.name?.[0] || user?.name?.[0]}</Avatar>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography data-secureasset-profile-name="static-v158" noWrap sx={{ color: '#102D3C', fontSize: { xs: 20, sm: 25 }, fontWeight: 800, lineHeight: 1.16 }}>{profile.name || user?.name || 'SecureAsset member'}</Typography>
-              <Typography sx={{ mt: .55, color: 'text.secondary', fontSize: 10, fontWeight: 700, letterSpacing: '.075em', textTransform: 'uppercase' }}>Account feature</Typography>
-              <Typography noWrap sx={{ mt: .1, color: 'primary.main', fontSize: { xs: 12, sm: 13 }, fontWeight: 700 }}>{accountFeatures.join(' · ')}</Typography>
-              <Chip data-secureasset-profile-kyc-status="static-v158" size="small" color={kycChipColor(user?.kycStatus)} icon={<VerifiedUserRounded />} label={`KYC ${displayStatus(user?.kycStatus)}`} sx={{ mt: 1, height: 25, bgcolor: 'rgba(255,255,255,.74)', '& .MuiChip-label': { px: .85, fontSize: 10.5, fontWeight: 700 } }} />
+
+      <Box sx={{ ...cardSx, position: 'relative', minHeight: { xs: 300, md: 250 }, color: '#fff', backgroundImage: 'linear-gradient(90deg, rgba(1,35,63,.96) 0%, rgba(0,72,103,.90) 48%, rgba(2,62,86,.72) 100%), url("https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1800&q=85")', backgroundSize: 'cover', backgroundPosition: 'center 48%', mb: 1.8 }}>
+        <Box sx={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 76% 18%, rgba(79,210,255,.18), transparent 26%), linear-gradient(180deg, transparent 35%, rgba(0,29,48,.16))' }} />
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ position: 'relative', px: { xs: 2, md: 3.5 }, pt: { xs: 1.8, md: 2.2 } }}>
+          <Box>
+            <Typography sx={{ fontSize: { xs: 22, md: 26 }, fontWeight: 800, lineHeight: 1.1 }}>Profile</Typography>
+            <Typography sx={{ mt: .45, color: 'rgba(255,255,255,.72)', fontSize: 12 }}>Home&nbsp;&nbsp;›&nbsp;&nbsp;Profile</Typography>
+          </Box>
+          <Stack direction="row" spacing={1}>
+            <Button onClick={openEditProfile} variant="outlined" startIcon={<EditRounded />} sx={{ display: { xs: 'none', sm: 'inline-flex' }, color: '#fff', borderColor: 'rgba(255,255,255,.38)', bgcolor: 'rgba(255,255,255,.06)', borderRadius: '12px', px: 1.6, textTransform: 'none', fontWeight: 700, '&:hover': { borderColor: '#fff', bgcolor: 'rgba(255,255,255,.12)' } }}>Edit Profile</Button>
+            <IconButton onClick={(event) => setProfileMenuAnchor(event.currentTarget)} sx={{ color: '#fff', border: '1px solid rgba(255,255,255,.32)', bgcolor: 'rgba(255,255,255,.08)', borderRadius: '12px', '&:hover': { bgcolor: 'rgba(255,255,255,.16)' } }}><MoreVertRounded /></IconButton>
+          </Stack>
+        </Stack>
+
+        <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ xs: 'center', md: 'flex-end' }} spacing={{ xs: 1.2, md: 2.4 }} sx={{ position: 'absolute', left: { xs: 0, md: 34 }, right: { xs: 0, md: 34 }, bottom: { xs: 24, md: 26 }, textAlign: { xs: 'center', md: 'left' }, px: { xs: 2, md: 0 } }}>
+          <Box sx={{ position: 'relative', flexShrink: 0 }}>
+            <Avatar src={profile.avatar || undefined} alt={(profile.name || 'Account') + ' profile photo'} sx={{ width: { xs: 94, md: 112 }, height: { xs: 94, md: 112 }, bgcolor: '#07506F', fontSize: { xs: 38, md: 44 }, border: '4px solid #fff', boxShadow: '0 16px 34px rgba(0,0,0,.22)' }}>{profile.name?.[0] || user?.name?.[0]}</Avatar>
+            <Box sx={{ position: 'absolute', right: -2, bottom: 5, width: 34, height: 34, bgcolor: '#fff', color: '#0B5270', borderRadius: '50%', display: 'grid', placeItems: 'center', border: '1px solid rgba(11,82,112,.12)' }}><PhotoCameraRounded sx={{ fontSize: 18 }} /></Box>
+          </Box>
+          <Box sx={{ minWidth: 0, pb: { md: .8 } }}>
+            <Stack direction="row" spacing={.8} alignItems="center" justifyContent={{ xs: 'center', md: 'flex-start' }}>
+              <Typography sx={{ fontSize: { xs: 24, md: 30 }, fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1.08 }}>{profile.name || user?.name || 'SecureAsset member'}</Typography>
+              <VerifiedUserRounded sx={{ fontSize: 20, color: '#65B9FF' }} />
+            </Stack>
+            <Typography sx={{ mt: .55, fontSize: { xs: 13, md: 15 }, color: 'rgba(255,255,255,.90)' }}>{accountRole}</Typography>
+            <Chip size="small" icon={<VerifiedUserRounded />} label={'KYC ' + displayStatus(user?.kycStatus)} sx={{ mt: 1, height: 27, color: '#0B7A47', bgcolor: '#DDF7E9', '& .MuiChip-icon': { color: '#159B5F' }, '& .MuiChip-label': { px: .9, fontWeight: 700, fontSize: 11 } }} />
+          </Box>
+          <Box sx={{ flex: 1 }} />
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: .55, sm: 2 }} sx={{ pb: { md: .9 }, maxWidth: { xs: '100%', md: 520 } }}>
+            <Stack direction="row" spacing={.7} alignItems="center"><EmailRounded sx={{ fontSize: 16, color: 'rgba(255,255,255,.65)' }} /><Typography noWrap sx={{ fontSize: 12.5, color: 'rgba(255,255,255,.88)' }}>{user?.email || 'Email not added'}</Typography></Stack>
+            <Stack direction="row" spacing={.7} alignItems="center"><PhoneRounded sx={{ fontSize: 16, color: 'rgba(255,255,255,.65)' }} /><Typography sx={{ fontSize: 12.5, color: 'rgba(255,255,255,.88)' }}>{profile.phone || 'Mobile not added'}</Typography></Stack>
+          </Stack>
+        </Stack>
+      </Box>
+
+      <Box sx={{ ...cardSx, mb: 1.8, px: { xs: .6, sm: 1 }, py: .7, overflowX: 'auto' }}>
+        <Stack direction="row" spacing={.25} sx={{ minWidth: 'max-content' }}>
+          {[
+            { label: 'Profile', icon: BadgeRounded, action: () => scrollToSection('profile-overview') },
+            { label: 'Personal Details', icon: FactCheckRounded, action: () => scrollToSection('profile-personal') },
+            { label: 'Security', icon: VerifiedUserRounded, action: () => navigate('/app/security') },
+            { label: 'KYC & Verification', icon: WorkspacePremiumRounded, action: openKyc },
+            { label: 'Activity', icon: AssignmentRounded, action: () => scrollToSection('profile-activity') },
+          ].map((tab, index) => {
+            const TabIcon = tab.icon;
+            return <Button key={tab.label} onClick={tab.action} startIcon={<TabIcon sx={{ fontSize: 18 }} />} sx={{ minHeight: 45, px: { xs: 1.2, sm: 2 }, borderRadius: '12px', textTransform: 'none', fontSize: { xs: 11, sm: 12 }, fontWeight: index === 0 ? 800 : 600, color: index === 0 ? '#064F86' : '#566F81', bgcolor: index === 0 ? '#EEF6FF' : 'transparent', borderBottom: index === 0 ? '2px solid #0A66C2' : '2px solid transparent', '&:hover': { bgcolor: '#F5F9FC' } }}>{tab.label}</Button>;
+          })}
+        </Stack>
+      </Box>
+
+      <Box id="profile-overview" sx={{ scrollMarginTop: 90 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.65fr) minmax(280px, .75fr)' }, gap: 1.8 }}>
+          <Box id="profile-personal" sx={{ ...cardSx, p: { xs: 1.8, sm: 2.2 }, scrollMarginTop: 90 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1.3 }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Box sx={{ width: 38, height: 38, borderRadius: '12px', bgcolor: '#EAF3FF', color: '#0A66C2', display: 'grid', placeItems: 'center' }}><BadgeRounded sx={{ fontSize: 21 }} /></Box>
+                <Box><Typography sx={{ fontSize: 17, fontWeight: 800, color: '#112E41' }}>Personal Information</Typography><Typography sx={{ mt: .2, fontSize: 11, color: '#708494' }}>Your account information in one place</Typography></Box>
+              </Stack>
+              <Button size="small" onClick={openEditProfile} startIcon={<EditRounded />} sx={{ minWidth: 0, px: 1.2, border: '1px solid #D8E6F0', borderRadius: '11px', textTransform: 'none', fontWeight: 700 }}>Edit</Button>
+            </Stack>
+            <Stack divider={<Divider flexItem />}>
+              {details.map((detail) => {
+                const DetailIcon = detail.icon;
+                return <Stack key={detail.label} direction="row" alignItems="center" spacing={1.15} sx={{ minHeight: 58, py: .75 }}>
+                  <Box sx={{ width: 30, height: 30, borderRadius: '10px', bgcolor: '#F2F7FA', color: '#58768B', display: 'grid', placeItems: 'center', flexShrink: 0 }}><DetailIcon sx={{ fontSize: 17 }} /></Box>
+                  <Typography sx={{ width: { xs: 104, sm: 150 }, flexShrink: 0, color: '#708494', fontSize: 11.5 }}>{detail.label}</Typography>
+                  <Typography sx={{ minWidth: 0, flex: 1, color: '#102D3C', fontSize: { xs: 11.5, sm: 12.5 }, fontWeight: 700, overflowWrap: 'anywhere' }}>{detail.value}</Typography>
+                  {detail.verified && <Chip size="small" color="success" icon={<VerifiedUserRounded />} label="Verified" sx={{ display: { xs: 'none', sm: 'inline-flex' }, height: 23, '& .MuiChip-label': { px: .65, fontSize: 9.5, fontWeight: 700 } }} />}
+                </Stack>;
+              })}
+            </Stack>
+          </Box>
+
+          <Stack spacing={1.8}>
+            <Box sx={{ ...cardSx, p: { xs: 1.8, sm: 2.2 }, textAlign: 'center' }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ textAlign: 'left', mb: 1.5 }}><Box sx={{ width: 34, height: 34, borderRadius: '11px', bgcolor: '#EEF4FF', color: '#486EE8', display: 'grid', placeItems: 'center' }}><PhotoCameraRounded sx={{ fontSize: 19 }} /></Box><Box><Typography sx={{ fontWeight: 800, color: '#112E41' }}>Profile Picture</Typography><Typography sx={{ color: '#708494', fontSize: 10.5 }}>Update your profile photo</Typography></Box></Stack>
+              <Avatar src={profile.avatar || undefined} sx={{ width: 96, height: 96, mx: 'auto', mb: 1.3, bgcolor: '#07506F', fontSize: 36 }}>{profile.name?.[0] || user?.name?.[0]}</Avatar>
+              <Typography sx={{ color: '#708494', fontSize: 10.5, mb: 1.15 }}>Upload a clear profile photo<br />JPG, PNG, WebP or GIF · up to 8 MB</Typography>
+              <Button component="label" fullWidth variant="contained" startIcon={<PhotoCameraRounded />} disabled={uploadingAvatar} sx={{ borderRadius: '11px', textTransform: 'none', fontWeight: 700, boxShadow: 'none' }}>{uploadingAvatar ? 'Uploading…' : 'Change Photo'}<input hidden type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ''; void chooseAvatar(file); }} /></Button>
+            </Box>
+
+            <Box sx={{ ...cardSx, p: { xs: 1.8, sm: 2.2 } }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.15 }}><Box sx={{ width: 34, height: 34, borderRadius: '11px', bgcolor: '#EFF4FF', color: '#1D64C8', display: 'grid', placeItems: 'center' }}><WorkspacePremiumRounded sx={{ fontSize: 19 }} /></Box><Box><Typography sx={{ fontWeight: 800, color: '#112E41' }}>Account Summary</Typography><Typography sx={{ color: '#708494', fontSize: 10.5 }}>Account membership and status</Typography></Box></Stack>
+              <Stack spacing={1}>
+                {[['Role', accountRole], ['Member Since', memberSince], ['Last Login', lastLogin], ['Account Status', 'Active']].map(([label, value], index) => <Stack key={label} direction="row" alignItems="center" justifyContent="space-between" spacing={1}><Typography sx={{ color: '#708494', fontSize: 11 }}>{label}</Typography><Stack direction="row" alignItems="center" spacing={.55}>{index === 3 && <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: '#23B26D' }} />}<Typography noWrap sx={{ maxWidth: 170, color: '#102D3C', fontSize: 11.5, fontWeight: 700 }}>{value}</Typography></Stack></Stack>)}
+              </Stack>
             </Box>
           </Stack>
-        </Card>
+        </Box>
 
-        <Card data-secureasset-profile-quick-actions="four-visible-slider-v158" elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: { xs: 3, sm: 4 } }}>
-          <CardContent sx={{ p: { xs: 1.45, sm: 2.25 } }}>
-            <Stack direction="row" alignItems="baseline" justifyContent="space-between" sx={{ mb: 1.15 }}><Box><Typography sx={{ color: '#102D3C', fontSize: { xs: 15.5, sm: 17 }, fontWeight: 800 }}>Quick Actions</Typography><Typography color="text.secondary" sx={{ mt: .15, fontSize: 10.5 }}>Swipe for your available workspace tools</Typography></Box><Typography sx={{ color: 'primary.main', fontSize: 10, fontWeight: 750 }}>{quickActions.length} tools</Typography></Stack>
-            <Box data-secureasset-profile-quick-action-track="four-up-slide-v158" sx={{ display: 'flex', gap: .75, overflowX: 'auto', overscrollBehaviorX: 'contain', scrollSnapType: 'x mandatory', scrollPaddingInline: 2, pb: .65, px: .1, '&::-webkit-scrollbar': { height: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(11,82,112,.22)', borderRadius: 9 } }}>
-              {quickActions.map((action) => { const Icon = action.icon; return <Button data-secureasset-profile-quick-action={action.label.toLowerCase().replaceAll(' ', '-')} key={`${action.label}-${action.path}`} onClick={() => navigate(action.path)} aria-label={`Open ${action.label}`} sx={{ flex: '0 0 calc((100% - 24px) / 4)', minWidth: 0, minHeight: { xs: 91, sm: 104 }, p: { xs: .65, sm: .9 }, scrollSnapAlign: 'start', border: '1px solid', borderColor: 'divider', borderRadius: 2.25, color: 'text.primary', bgcolor: '#FFFFFF', textTransform: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: .45, '&:hover': { borderColor: action.tone, bgcolor: 'rgba(11,82,112,.035)', transform: 'translateY(-1px)' } }}><Box sx={{ width: { xs: 31, sm: 36 }, height: { xs: 31, sm: 36 }, borderRadius: 2, display: 'grid', placeItems: 'center', color: action.tone, bgcolor: `${action.tone}12` }}><Icon sx={{ fontSize: { xs: 18, sm: 21 } }} /></Box><Typography noWrap sx={{ maxWidth: '100%', fontSize: { xs: 9.2, sm: 10.4 }, fontWeight: 800, lineHeight: 1.1 }}>{action.label}</Typography><Typography noWrap sx={{ maxWidth: '100%', color: 'text.secondary', fontSize: { xs: 7.8, sm: 8.7 }, lineHeight: 1.1 }}>{action.detail}</Typography></Button>; })}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.25fr) minmax(320px, .95fr)' }, gap: 1.8, mt: 1.8 }}>
+          <Box id="profile-preferences" sx={{ ...cardSx, p: { xs: 1.8, sm: 2.2 }, scrollMarginTop: 90 }}>
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.4 }}><Box sx={{ width: 38, height: 38, borderRadius: '12px', bgcolor: '#ECFAFF', color: '#047DA2', display: 'grid', placeItems: 'center' }}><FactCheckRounded sx={{ fontSize: 21 }} /></Box><Box><Typography sx={{ fontSize: 17, fontWeight: 800, color: '#112E41' }}>Quick Actions</Typography><Typography sx={{ mt: .2, color: '#708494', fontSize: 10.5 }}>Access your important tools quickly</Typography></Box></Stack>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: { xs: .7, sm: 1 } }}>
+              {tools.map((tool) => {
+                const ToolIcon = tool.icon;
+                return <Button key={tool.label} onClick={tool.action} sx={{ minWidth: 0, minHeight: { xs: 105, sm: 118 }, p: { xs: .65, sm: 1 }, border: '1px solid #E2EDF4', borderRadius: '14px', bgcolor: '#fff', color: '#102D3C', textTransform: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: .55, '&:hover': { bgcolor: '#F8FBFD', borderColor: tool.tone } }}>
+                  <Box sx={{ width: { xs: 38, sm: 44 }, height: { xs: 38, sm: 44 }, borderRadius: '50%', bgcolor: tool.tone + '18', color: tool.tone, display: 'grid', placeItems: 'center' }}><ToolIcon sx={{ fontSize: { xs: 20, sm: 23 } }} /></Box>
+                  <Typography noWrap sx={{ maxWidth: '100%', fontWeight: 800, fontSize: { xs: 10, sm: 11.5 } }}>{tool.label}</Typography>
+                  <Typography noWrap sx={{ maxWidth: '100%', color: '#7B8E9B', fontSize: { xs: 8, sm: 9.5 } }}>{tool.detail}</Typography>
+                </Button>;
+              })}
             </Box>
-          </CardContent>
-        </Card>
+          </Box>
 
-        <Card data-secureasset-profile-personal-details="icon-aligned-v158" elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: { xs: 3, sm: 4 } }}>
-          <CardContent sx={{ p: { xs: 1.45, sm: 2.25 } }}>
-            <Stack direction="row" alignItems="baseline" justifyContent="space-between" sx={{ mb: 1.2 }}><Box><Typography sx={{ color: '#102D3C', fontSize: { xs: 15.5, sm: 17 }, fontWeight: 800 }}>Personal Details</Typography><Typography color="text.secondary" sx={{ mt: .15, fontSize: 10.5 }}>Your account information in one place</Typography></Box><VerifiedUserRounded sx={{ color: 'primary.main', fontSize: 19 }} /></Stack>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' }, gap: .85 }}>
-              {personalDetails.map((detail) => { const Icon = detail.icon; return <Stack data-secureasset-profile-detail={detail.label.toLowerCase().replaceAll(' ', '-')} key={detail.label} direction="row" alignItems="center" spacing={1.05} sx={{ minWidth: 0, p: { xs: 1, sm: 1.2 }, border: '1px solid', borderColor: 'divider', borderRadius: 2.25, bgcolor: 'rgba(247,247,245,.72)' }}><Box sx={{ width: 33, height: 33, flexShrink: 0, borderRadius: 1.8, display: 'grid', placeItems: 'center', color: detail.tone, bgcolor: `${detail.tone}12` }}><Icon sx={{ fontSize: 18 }} /></Box><Box sx={{ minWidth: 0, flex: 1 }}><Typography sx={{ color: 'text.secondary', fontSize: 9.3, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase' }}>{detail.label}</Typography><Typography noWrap title={detail.value} sx={{ mt: .2, color: 'text.primary', fontSize: { xs: 11.4, sm: 12.3 }, fontWeight: 700 }}>{detail.value}</Typography></Box></Stack>; })}
+          <Box sx={{ ...cardSx, p: { xs: 1.8, sm: 2.2 } }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.25 }}><Stack direction="row" spacing={1} alignItems="center"><Box sx={{ width: 38, height: 38, borderRadius: '12px', bgcolor: '#EEF4FF', color: '#1F66D6', display: 'grid', placeItems: 'center' }}><VerifiedUserRounded sx={{ fontSize: 21 }} /></Box><Box><Typography sx={{ fontSize: 17, fontWeight: 800, color: '#112E41' }}>Security Status</Typography><Typography sx={{ mt: .2, color: '#708494', fontSize: 10.5 }}>Your account security overview</Typography></Box></Stack><Button onClick={() => navigate('/app/security')} size="small" sx={{ textTransform: 'none', fontWeight: 700 }}>Manage</Button></Stack>
+            <Box sx={{ borderRadius: '14px', p: 1.35, bgcolor: '#EAF8F0', border: '1px solid #D3F0DF', mb: 1.25 }}>
+              <Stack direction="row" spacing={1} alignItems="flex-start"><VerifiedUserRounded sx={{ color: '#18A35F', mt: .1 }} /><Box><Typography sx={{ color: '#087A43', fontSize: 12, fontWeight: 800 }}>Your account is secure</Typography><Typography sx={{ mt: .2, color: '#5B7D68', fontSize: 9.5 }}>All essential security measures are active and up to date.</Typography></Box></Stack>
             </Box>
-          </CardContent>
-        </Card>
-      </Stack>
+            <Stack spacing={.75}>
+              {[
+                ['Email verified', Boolean(user?.email)],
+                ['Mobile number verified', Boolean(profile.phone)],
+                ['KYC completed', String(user?.kycStatus || '').toLowerCase() === 'verified'],
+                ['Strong account protection', true],
+              ].map(([label, ok]) => <Stack key={String(label)} direction="row" spacing={.8} alignItems="center"><VerifiedUserRounded sx={{ fontSize: 16, color: ok ? '#18A35F' : '#A8B6C0' }} /><Typography sx={{ color: '#486173', fontSize: 10.8 }}>{String(label)}</Typography></Stack>)}
+            </Stack>
+          </Box>
+        </Box>
 
-      <Menu data-secureasset-profile-action-items="edit-profile-kyc-v158" anchorEl={profileMenuAnchor} open={Boolean(profileMenuAnchor)} onClose={() => setProfileMenuAnchor(null)} PaperProps={{ sx: { minWidth: 192, mt: .6, border: '1px solid', borderColor: 'divider', borderRadius: 2.25, overflow: 'hidden' } }}>
+        <Box id="profile-activity" sx={{ ...cardSx, mt: 1.8, p: { xs: 1.8, sm: 2.2 }, scrollMarginTop: 90 }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.2 }}><Stack direction="row" spacing={1} alignItems="center"><Box sx={{ width: 38, height: 38, borderRadius: '12px', bgcolor: '#EDF7FF', color: '#0A66C2', display: 'grid', placeItems: 'center' }}><AssignmentRounded sx={{ fontSize: 21 }} /></Box><Box><Typography sx={{ fontSize: 17, fontWeight: 800, color: '#112E41' }}>Recent Activity</Typography><Typography sx={{ mt: .2, color: '#708494', fontSize: 10.5 }}>Latest activity related to your account</Typography></Box></Stack><Button size="small" onClick={() => navigate('/app/security')} sx={{ textTransform: 'none', fontWeight: 700 }}>View all</Button></Stack>
+          <Stack divider={<Divider flexItem />}>
+            {[
+              ['Profile ready', 'Your SecureAsset profile is active.', 'Current'],
+              ['Login successful', 'Current signed-in session is active.', lastLogin],
+              ['KYC status', 'Identity verification status: ' + displayStatus(user?.kycStatus) + '.', displayStatus(user?.kycStatus)],
+            ].map(([title, description, meta], index) => <Stack key={title} direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: .35, sm: 1 }} alignItems={{ sm: 'center' }} sx={{ py: 1 }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ flex: 1, minWidth: 0 }}><Box sx={{ width: 9, height: 9, borderRadius: '50%', bgcolor: index === 0 ? '#0A66C2' : '#22AA66', flexShrink: 0 }} /><Box sx={{ minWidth: 0 }}><Typography sx={{ color: '#102D3C', fontSize: 11.5, fontWeight: 700 }}>{title}</Typography><Typography sx={{ color: '#7A8C99', fontSize: 9.8 }}>{description}</Typography></Box></Stack>
+              <Typography sx={{ color: '#6D8292', fontSize: 9.8, pl: { xs: 2.1, sm: 0 } }}>{meta}</Typography>
+            </Stack>)}
+          </Stack>
+        </Box>
+      </Box>
+
+      <Menu anchorEl={profileMenuAnchor} open={Boolean(profileMenuAnchor)} onClose={() => setProfileMenuAnchor(null)} PaperProps={{ sx: { minWidth: 192, mt: .6, border: '1px solid', borderColor: 'divider', borderRadius: 2.25, overflow: 'hidden' } }}>
         <MenuItem onClick={openEditProfile}><EditRounded fontSize="small" sx={{ mr: 1.1, color: 'primary.main' }} />Edit profile</MenuItem>
         <Divider />
-        <MenuItem onClick={openKyc}><VerifiedUserRounded fontSize="small" sx={{ mr: 1.1, color: 'primary.main' }} />KYC</MenuItem>
+        <MenuItem onClick={openKyc}><VerifiedUserRounded fontSize="small" sx={{ mr: 1.1, color: 'primary.main' }} />KYC & Verification</MenuItem>
       </Menu>
 
       <ProfessionalDialog open={editProfileOpen} onClose={() => !savingProfile && setEditProfileOpen(false)} fullWidth maxWidth="sm" enableMinimize={false} enableMaximize={false} professionalTitle="Edit profile" professionalSubtitle="Update your visible account details. Your mobile number remains protected." PaperProps={{ sx: { borderRadius: { xs: 3, sm: 4 } } }}>
-        <Box component="form" noValidate onSubmit={saveProfile} data-secureasset-profile-edit-dialog="functional-v158">
+        <Box component="form" noValidate onSubmit={saveProfile}>
           <DialogContent dividers sx={{ py: 2 }}>
             {profileError && <Alert severity="error" onClose={() => setProfileError('')} sx={{ mb: 1.75, borderRadius: 2 }}>{profileError}</Alert>}
-            <Stack direction="row" spacing={1.35} alignItems="center" sx={{ mb: 2 }}><Avatar src={profile.avatar || undefined} alt={`${profile.name || 'Account'} profile photo`} sx={{ width: 62, height: 62, bgcolor: 'primary.main', fontSize: 22 }}>{profile.name?.[0] || user?.name?.[0]}</Avatar><Box><Button component="label" size="small" variant="outlined" startIcon={<PhotoCameraRounded />} disabled={uploadingAvatar}>{uploadingAvatar ? 'Uploading…' : 'Change photo'}<input hidden type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ''; void chooseAvatar(file); }} /></Button><Typography color="text.secondary" sx={{ mt: .5, fontSize: 10.5 }}>JPG, PNG, WebP or GIF · maximum 8 MB</Typography></Box></Stack>
+            <Stack direction="row" spacing={1.35} alignItems="center" sx={{ mb: 2 }}><Avatar src={profile.avatar || undefined} alt={(profile.name || 'Account') + ' profile photo'} sx={{ width: 62, height: 62, bgcolor: 'primary.main', fontSize: 22 }}>{profile.name?.[0] || user?.name?.[0]}</Avatar><Box><Button component="label" size="small" variant="outlined" startIcon={<PhotoCameraRounded />} disabled={uploadingAvatar}>{uploadingAvatar ? 'Uploading…' : 'Change photo'}<input hidden type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(event) => { const file = event.target.files?.[0]; event.currentTarget.value = ''; void chooseAvatar(file); }} /></Button><Typography color="text.secondary" sx={{ mt: .5, fontSize: 10.5 }}>JPG, PNG, WebP or GIF · maximum 8 MB</Typography></Box></Stack>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.35 }}>
               <TextField label="Name" value={profile.name} onChange={(event) => setProfile((old) => ({ ...old, name: event.target.value }))} error={Boolean(profileNameError)} helperText={profileNameError || 'Used on records and messages.'} inputProps={{ maxLength: 120 }} required autoComplete="name" />
               <TextField label="Verified mobile" value={profile.phone} InputProps={{ readOnly: true }} helperText="Mobile changes require OTP verification." />
@@ -254,7 +383,7 @@ export default function UtilityPage() {
         </Box>
       </ProfessionalDialog>
 
-      <ProfessionalDialog open={kycInfoOpen} onClose={() => setKycInfoOpen(false)} fullWidth maxWidth="xs" enableMinimize={false} enableMaximize={false} professionalTitle="KYC status" professionalSubtitle="Compliance information for this account." PaperProps={{ sx: { borderRadius: 3 } }}><DialogContent><Stack spacing={1.25}><Chip color={kycChipColor(user?.kycStatus)} icon={<VerifiedUserRounded />} label={displayStatus(user?.kycStatus)} sx={{ alignSelf: 'flex-start' }} /><Typography color="text.secondary" fontSize={13}>KYC submission is available to tenant accounts. This {accountFeatures.join(' · ')} workspace currently keeps its compliance status managed by the platform.</Typography></Stack></DialogContent><DialogActions><Button onClick={() => setKycInfoOpen(false)}>Close</Button></DialogActions></ProfessionalDialog>
+      <ProfessionalDialog open={kycInfoOpen} onClose={() => setKycInfoOpen(false)} fullWidth maxWidth="xs" enableMinimize={false} enableMaximize={false} professionalTitle="KYC status" professionalSubtitle="Compliance information for this account." PaperProps={{ sx: { borderRadius: 3 } }}><DialogContent><Stack spacing={1.25}><Chip color={kycChipColor(user?.kycStatus)} icon={<VerifiedUserRounded />} label={displayStatus(user?.kycStatus)} sx={{ alignSelf: 'flex-start' }} /><Typography color="text.secondary" fontSize={13}>KYC submission is available to tenant accounts. This {accountRole} workspace currently keeps its compliance status managed by the platform.</Typography></Stack></DialogContent><DialogActions><Button onClick={() => setKycInfoOpen(false)}>Close</Button></DialogActions></ProfessionalDialog>
     </Box>;
   }
 
