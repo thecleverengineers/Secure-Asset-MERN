@@ -19,7 +19,6 @@ import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import ExploreRoundedIcon from '@mui/icons-material/ExploreRounded';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
-import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
 import { LogoMark, resolveSiteLogoUrl } from './premium/LogoMark';
 import { UniversalSearchDialog } from './public/UniversalSearch';
 import { useAuth } from '../context/AuthContext';
@@ -220,24 +219,12 @@ export default function FrontLayout() {
   }, [site.seo, settings, location.pathname, canonicalLogoUrl, faviconUrl]);
 
   const activeMobile = useMemo(() => {
-    if (currentUser?.role === 'tenant') {
-      if (location.pathname.startsWith('/app/documents')) return 'vault';
-      if (location.pathname.startsWith('/wishlist') || location.pathname.startsWith('/app/wishlist')) return 'wishlist';
-      if (location.pathname.startsWith('/marketplace')) return 'explore';
-      if (location.pathname.startsWith('/app/profile')) return 'profile';
-      return 'home';
-    }
-    if (!currentUser) {
-      if (location.pathname.startsWith('/wishlist')) return 'wishlist';
-      if (location.pathname.startsWith('/marketplace')) return 'explore';
-      if (isAuthRoute) return 'login';
-      return 'home';
-    }
+    if (location.pathname.startsWith('/marketplace')) return 'explore';
+    if (location.pathname.startsWith('/wishlist') || location.pathname.startsWith('/app/wishlist')) return 'wishlist';
     if (location.pathname.startsWith('/app/documents')) return 'vault';
-    if (location.pathname.startsWith('/marketplace')) return 'property';
     if (location.pathname.startsWith('/app/profile')) return 'account';
     return 'home';
-  }, [currentUser, isAuthRoute, location.pathname]);
+  }, [location.pathname]);
 
   const go = (path: string) => {
     navigate(path);
@@ -420,42 +407,106 @@ export default function FrontLayout() {
       </Box>
 
       <BottomNavigation
-          className="sa-app-bottom-navigation sa-global-mobile-bottom-navigation"
-          showLabels
-          value={activeMobile}
-          onChange={(_event, value) => {
-            const paths: Record<string, string> = currentUser?.role === 'tenant'
-              ? { home: '/', explore: '/marketplace', vault: '/app/documents', wishlist: '/wishlist', profile: '/app/profile' }
-              : currentUser
-                ? { home: '/', vault: '/app/documents', property: '/marketplace', account: '/app/profile' }
-                : { home: '/', explore: '/marketplace', wishlist: '/wishlist', login: '/auth/login' };
-            if (paths[value]) navigate(paths[value]);
-          }}
-          sx={{
-            position: 'fixed', left: 0, right: 0, bottom: 0, height: `calc(${design.bottomAppBar.height}px + env(safe-area-inset-bottom))`, zIndex: theme.zIndex.appBar + 2,
-            borderTop: '1px solid', borderColor: 'divider', borderRadius: 0, bgcolor: design.bottomAppBar.background, opacity: design.bottomAppBar.opacity, pb: 'env(safe-area-inset-bottom)', backdropFilter: design.bottomAppBar.blur ? `blur(${design.bottomAppBar.blur}px)` : 'none', boxShadow: design.bottomAppBar.shadow === 'none' ? 'none' : '0 -12px 32px rgba(15,23,42,.12)',
-            '& .MuiBottomNavigationAction-root': { minWidth: 0, px: design.bottomAppBar.itemGap, color: design.bottomAppBar.inactiveColor, '&.Mui-selected': { color: design.bottomAppBar.activeColor } },
-            '& .MuiBottomNavigationAction-label': { fontSize: design.bottomAppBar.labelSize, fontWeight: 750 },
-          }}
-        >
-          {currentUser?.role === 'tenant' ? <>
-            <BottomNavigationAction value="home" label="Home" onClick={() => navigate('/')} icon={configuredBottomIcon(design, 'home', <HomeRoundedIcon />)} />
-            <BottomNavigationAction value="explore" label="Explore" onClick={() => navigate('/marketplace')} icon={configuredBottomIcon(design, 'explore', <ExploreRoundedIcon />)} />
-            <BottomNavigationAction value="vault" label="Vault" onClick={() => navigate('/app/documents')} icon={configuredBottomIcon(design, 'vault', <FolderRoundedIcon />)} />
-            <BottomNavigationAction value="wishlist" label="Wishlist" onClick={() => navigate('/wishlist')} icon={configuredBottomIcon(design, 'wishlist', <FavoriteBorderRoundedIcon />)} />
-            <BottomNavigationAction value="profile" label="Profile" onClick={() => navigate('/app/profile')} icon={configuredBottomIcon(design, 'profile', <PersonRoundedIcon />)} />
-          </> : !currentUser ? <>
-            <BottomNavigationAction value="home" label="Home" onClick={() => navigate('/')} icon={configuredBottomIcon(design, 'home', <HomeRoundedIcon />)} />
-            <BottomNavigationAction value="explore" label="Explore" onClick={() => navigate('/marketplace')} icon={configuredBottomIcon(design, 'explore', <ExploreRoundedIcon />)} />
-            <BottomNavigationAction value="wishlist" label="Wishlist" onClick={() => navigate('/wishlist')} icon={configuredBottomIcon(design, 'wishlist', <FavoriteBorderRoundedIcon />)} />
-            <BottomNavigationAction value="login" label="Login" onClick={() => navigate('/auth/login')} icon={configuredBottomIcon(design, 'login', <LoginRoundedIcon />)} />
-          </> : <>
-            <BottomNavigationAction value="home" label="Home" icon={configuredBottomIcon(design, 'home', <HomeRoundedIcon />)} />
-            <BottomNavigationAction value="vault" label="Vault" icon={configuredBottomIcon(design, 'vault', <FolderRoundedIcon />)} />
-            <BottomNavigationAction value="property" label="Property" icon={configuredBottomIcon(design, 'property', <StorefrontRoundedIcon />)} />
-            <BottomNavigationAction value="account" label="Account" icon={configuredBottomIcon(design, 'account', <PersonRoundedIcon />)} />
-          </>}
-        </BottomNavigation>
+        className="sa-app-bottom-navigation sa-global-mobile-bottom-navigation"
+        showLabels
+        value={activeMobile}
+        onChange={(_event, value) => {
+          const paths: Record<string, string> = {
+            home: '/',
+            explore: '/marketplace',
+            wishlist: '/wishlist',
+            vault: currentUser ? '/app/documents' : '/auth/login',
+            account: currentUser ? '/app/profile' : '/auth/login',
+          };
+          if (paths[value]) navigate(paths[value]);
+        }}
+        sx={{
+          display: { xs: 'flex', md: 'none' },
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 'calc(66px + env(safe-area-inset-bottom))',
+          zIndex: theme.zIndex.appBar + 2,
+          bgcolor: '#FFFFFF',
+          borderRadius: 0,
+          borderTop: '1px solid #EEF2F6',
+          pb: 'env(safe-area-inset-bottom)',
+          boxShadow: '0 -6px 20px rgba(15, 23, 42, 0.07)',
+          fontFamily: '"Open Sans", sans-serif',
+          '& .MuiBottomNavigationAction-root': {
+            position: 'relative',
+            minWidth: 0,
+            maxWidth: 'none',
+            flex: 1,
+            px: 0.5,
+            pt: 0.75,
+            pb: 0.45,
+            color: '#243247',
+            fontFamily: '"Open Sans", sans-serif',
+            transition: 'color .18s ease',
+            '& .MuiSvgIcon-root': {
+              fontSize: 25,
+              strokeWidth: 1.5,
+            },
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              left: '31%',
+              right: '31%',
+              bottom: 3,
+              height: 3,
+              borderRadius: 0,
+              bgcolor: 'transparent',
+              transition: 'background-color .18s ease',
+            },
+            '&.Mui-selected': {
+              color: '#0AA889',
+            },
+            '&.Mui-selected::after': {
+              bgcolor: '#0AA889',
+            },
+          },
+          '& .MuiBottomNavigationAction-label': {
+            mt: 0.1,
+            fontFamily: '"Open Sans", sans-serif',
+            fontSize: '10.5px',
+            lineHeight: 1.15,
+            fontWeight: 600,
+            letterSpacing: 0,
+            '&.Mui-selected': {
+              fontSize: '10.5px',
+              fontWeight: 600,
+            },
+          },
+        }}
+      >
+        <BottomNavigationAction
+          value="home"
+          label="Home"
+          icon={configuredBottomIcon(design, 'home', <HomeRoundedIcon />)}
+        />
+        <BottomNavigationAction
+          value="explore"
+          label="Explore"
+          icon={configuredBottomIcon(design, 'explore', <ExploreRoundedIcon />)}
+        />
+        <BottomNavigationAction
+          value="wishlist"
+          label="Wishlist"
+          icon={configuredBottomIcon(design, 'wishlist', <FavoriteBorderRoundedIcon />)}
+        />
+        <BottomNavigationAction
+          value="vault"
+          label="Vault"
+          icon={configuredBottomIcon(design, 'vault', <FolderRoundedIcon />)}
+        />
+        <BottomNavigationAction
+          value="account"
+          label="Account"
+          icon={configuredBottomIcon(design, 'account', <PersonRoundedIcon />)}
+        />
+      </BottomNavigation>
     </Box>
   );
 }
