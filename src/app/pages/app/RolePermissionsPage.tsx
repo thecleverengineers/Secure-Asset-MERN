@@ -9,14 +9,16 @@ import RestoreRounded from '@mui/icons-material/RestoreRounded';
 import SaveRounded from '@mui/icons-material/SaveRounded';
 import SecurityRounded from '@mui/icons-material/SecurityRounded';
 import { getRolePermissionCatalog, getRolePermissions, resetRolePermissions, updateRolePermissions, type RolePermissionEntry } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const ACTION_LABELS: Record<string, string> = {
   view: 'View', create: 'Create', edit: 'Edit', delete: 'Delete', approve: 'Approve', export: 'Export', download: 'Download', notify: 'Notify',
 };
-const ROLE_LABELS: Record<string, string> = { admin: 'Administrator', landlord: 'Landlord', tenant: 'Tenant', surveyor: 'Surveyor' };
+const ROLE_LABELS: Record<string, string> = { super_admin: 'Super Admin', admin: 'Administrator', landlord: 'Landlord', tenant: 'Tenant', surveyor: 'Surveyor' };
 const labelFor = (value = '') => value.replaceAll('_', ' ').replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 export default function RolePermissionsPage() {
+  const { user } = useAuth();
   const [role, setRole] = useState('tenant');
   const [roles, setRoles] = useState<string[]>(['admin', 'landlord', 'tenant', 'surveyor']);
   const [actions, setActions] = useState<string[]>(Object.keys(ACTION_LABELS));
@@ -26,6 +28,7 @@ export default function RolePermissionsPage() {
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const readOnlyRole = role === 'super_admin' || (role === 'admin' && user?.role !== 'super_admin');
 
   async function load(nextRole = role) {
     setLoading(true); setError('');
@@ -90,8 +93,8 @@ export default function RolePermissionsPage() {
       </Box>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.2}>
         <Button variant="outlined" startIcon={<RefreshRounded />} onClick={() => void load()} disabled={saving}>Refresh</Button>
-        <Button variant="outlined" color="warning" startIcon={<RestoreRounded />} onClick={() => void reset()} disabled={saving}>Reset role</Button>
-        <Button variant="contained" startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <SaveRounded />} onClick={() => void save()} disabled={saving}>Save permissions</Button>
+        <Button variant="outlined" color="warning" startIcon={<RestoreRounded />} onClick={() => void reset()} disabled={saving || readOnlyRole}>Reset role</Button>
+        <Button variant="contained" startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <SaveRounded />} onClick={() => void save()} disabled={saving || readOnlyRole}>Save permissions</Button>
       </Stack>
     </Stack>
 
@@ -107,6 +110,7 @@ export default function RolePermissionsPage() {
       </Stack>
     </Paper>
 
+    {readOnlyRole && <Alert icon={<SecurityRounded />} severity="warning" sx={{ mb: 2 }}>{role === 'super_admin' ? 'Super Admin authority is immutable by design.' : 'Only a Super Admin can change Administrator permissions.'}</Alert>}
     <Alert icon={<SecurityRounded />} severity="info" sx={{ mb: 3 }}>Removing <strong>View</strong> hides the feature and blocks its direct URL/API. Action permissions never grant access without View. For mapped resources, the feature and resource action must both be enabled.</Alert>
 
     <Stack spacing={3}>
@@ -118,12 +122,12 @@ export default function RolePermissionsPage() {
             <Stack direction={{ xs: 'column', xl: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ xl: 'center' }}>
               <Box sx={{ minWidth: { xl: 250 } }}><Stack direction="row" spacing={1} alignItems="center"><Typography fontWeight={900}>{entry.label}</Typography><Chip size="small" variant="outlined" label={entry.kind} /></Stack><Typography variant="caption" color="text.secondary">{entry.key}</Typography></Box>
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: .5, md: 1 }} alignItems={{ md: 'center' }} flexWrap="wrap" useFlexGap>
-                <FormControlLabel control={<Switch checked={entry.enabled} onChange={(_, checked) => patchEntry(entry.key, { enabled: checked })} />} label="Enabled" />
-                <TextField select size="small" label="Data scope" value={entry.scope} onChange={(event) => patchEntry(entry.key, { scope: event.target.value as RolePermissionEntry['scope'] })} sx={{ minWidth: 132 }}>
+                <FormControlLabel control={<Switch checked={entry.enabled} disabled={readOnlyRole} onChange={(_, checked) => patchEntry(entry.key, { enabled: checked })} />} label="Enabled" />
+                <TextField select size="small" label="Data scope" value={entry.scope} disabled={readOnlyRole} onChange={(event) => patchEntry(entry.key, { scope: event.target.value as RolePermissionEntry['scope'] })} sx={{ minWidth: 132 }}>
                   {['all', 'own', 'assigned', 'public'].map((scope) => <MenuItem key={scope} value={scope}>{labelFor(scope)}</MenuItem>)}
                 </TextField>
                 <Stack direction="row" spacing={.2} flexWrap="wrap" useFlexGap>
-                  {actions.map((action) => <FormControlLabel key={action} sx={{ mr: .5 }} control={<Checkbox size="small" checked={entry.actions.includes(action)} onChange={(event) => toggleAction(entry, action, event.target.checked)} />} label={<Typography variant="caption">{ACTION_LABELS[action] || labelFor(action)}</Typography>} />)}
+                  {actions.map((action) => <FormControlLabel key={action} sx={{ mr: .5 }} control={<Checkbox size="small" checked={entry.actions.includes(action)} disabled={readOnlyRole} onChange={(event) => toggleAction(entry, action, event.target.checked)} />} label={<Typography variant="caption">{ACTION_LABELS[action] || labelFor(action)}</Typography>} />)}
                 </Stack>
               </Stack>
             </Stack>
