@@ -196,7 +196,7 @@ export default function UtilityPage() {
     const scrollToSection = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     const accountRole = accountFeatures.join(' · ');
     const memberSince = user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-    const lastLogin = user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Current session';
+    const lastLogin = user?.lastLogin ? new Date(user.lastLoginAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Current session';
     const details = [
       { label: 'Full Name', value: profile.name || user?.name || 'SecureAsset member', icon: BadgeRounded },
       { label: 'Email Address', value: user?.email || 'Not added', icon: EmailRounded },
