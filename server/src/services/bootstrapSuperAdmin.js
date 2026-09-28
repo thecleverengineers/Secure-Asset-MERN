@@ -11,10 +11,12 @@ export async function ensureBootstrapSuperAdmin() {
   const name = String(process.env.BOOTSTRAP_SUPER_ADMIN_NAME || 'Secure Asset Super Admin').trim() || 'Secure Asset Super Admin';
 
   if (!email) throw new Error('BOOTSTRAP_SUPER_ADMIN_EMAIL is required when bootstrap is enabled');
-  if (password.length < 8) throw new Error('BOOTSTRAP_SUPER_ADMIN_PASSWORD must contain at least 8 characters');
 
   let user = await User.findOne({ email }).select('+password');
   const created = !user;
+  const resetPassword = String(process.env.RESET_BOOTSTRAP_SUPER_ADMIN_PASSWORD || '').toUpperCase() === 'YES';
+  if ((created || resetPassword) && password.length < 8) throw new Error('BOOTSTRAP_SUPER_ADMIN_PASSWORD must contain at least 8 characters when creating or resetting a Super Admin');
+
   if (!user) {
     user = new User({
       name,
@@ -41,7 +43,7 @@ export async function ensureBootstrapSuperAdmin() {
       criticalActionReauth: true,
       trustedDevicesOnly: Boolean(user.superAdminSecurity?.trustedDevicesOnly),
     };
-    if (String(process.env.RESET_BOOTSTRAP_SUPER_ADMIN_PASSWORD || '').toUpperCase() === 'YES') user.password = password;
+    if (resetPassword) user.password = password;
   }
 
   await user.save();
