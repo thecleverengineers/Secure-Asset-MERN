@@ -60,7 +60,12 @@ export const optionalAuthenticate = asyncHandler(async (req, res, next) => {
 });
 
 export const authorize = (...roles) => (req, _res, next) => {
-  if (!req.user || !roles.includes(req.user.role)) return next(new ApiError(403, 'You do not have permission to perform this action'));
+  if (!req.user) return next(new ApiError(403, 'You do not have permission to perform this action'));
+  const role = String(req.user.role || '').toLowerCase();
+  const allowed = new Set(roles.map((item) => String(item).toLowerCase()));
+  const permitted = allowed.has(role)
+    || (role === 'super_admin' && (allowed.has('admin') || allowed.has('manager')));
+  if (!permitted) return next(new ApiError(403, 'You do not have permission to perform this action'));
   next();
 };
 
@@ -91,7 +96,7 @@ export const requireDeviceUnlock = asyncHandler(async (req, _res, next) => {
 
 export const authorizeSurveyorMode = asyncHandler(async (req, _res, next) => {
   if (!req.user) throw new ApiError(401, 'Authentication required');
-  if (req.user.role === 'admin' || req.user.role === 'surveyor') return next();
+  if (['super_admin', 'admin', 'surveyor'].includes(req.user.role)) return next();
   if (req.user.role !== 'tenant') throw new ApiError(403, 'Surveyor features are not available for this account');
   const { getActiveSurveyorSubscription } = await import('../services/surveyorSubscription.js');
   await getActiveSurveyorSubscription(req.user._id);
