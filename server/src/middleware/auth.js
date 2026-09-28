@@ -18,12 +18,32 @@ export async function hydrateTenantCapabilities(user) {
   return user;
 }
 
+function isAllowedSuperAdminSecurityBootstrap(req) {
+  const pathname = String(req.originalUrl || req.url || '').split('?')[0].replace(/^\/api(?:\/v1)?/, '');
+  return pathname === '/auth/me'
+    || pathname === '/auth/security'
+    || pathname === '/auth/logout'
+    || pathname === '/auth/change-password'
+    || pathname.startsWith('/auth/two-factor/')
+    || pathname.startsWith('/auth/sessions/');
+}
+
+function assertSuperAdminSecondFactor(req, user) {
+  const role = String(user?.role || '').toLowerCase();
+  const required = role === 'super_admin' && user?.superAdminSecurity?.twoFactorRequired !== false;
+  const enabled = Boolean(user?.twoFactor?.enabled || user?.twoFactorEnabled);
+  if (required && !enabled && !isAllowedSuperAdminSecurityBootstrap(req)) {
+    throw new ApiError(428, 'Super Admin authenticator 2FA enrollment is required before privileged access');
+  }
+}
+
 export const authenticate = asyncHandler(async (req, res, next) => {
   const serverSession = await resolveServerSession(req, res, { renew: true, allowLegacy: true });
   if (serverSession?.user) {
     req.user = await hydrateTenantCapabilities(serverSession.user);
     req.session = serverSession;
     req.authMethod = 'server-session';
+    assertSuperAdminSecondFactor(req, req.user);
     return next();
   }
   const header = req.headers.authorization || '';
@@ -35,6 +55,7 @@ export const authenticate = asyncHandler(async (req, res, next) => {
   if (!user || user.status !== 'active') throw new ApiError(401, 'Account is unavailable');
   req.user = await hydrateTenantCapabilities(user);
   req.authMethod = 'legacy-bearer';
+  assertSuperAdminSecondFactor(req, req.user);
   next();
 });
 
