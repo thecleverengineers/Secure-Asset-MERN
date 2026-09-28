@@ -71,7 +71,7 @@ export const uploadSurveyorVerificationAsset = asyncHandler(async (req, res) => 
 });
 
 export const uploadSiteAsset = asyncHandler(async (req, res) => {
-  if (req.user.role !== 'admin') throw new ApiError(403, 'Administrator access required');
+  if (!['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase())) throw new ApiError(403, 'Administrator access required');
   const uploaded = await persistImage(req);
   await AuditLog.create({ user: req.user._id, role: req.user.role, action: 'upload', module: 'site-assets', updatedValue: uploaded, ip: req.ip, device: req.get('user-agent') });
   res.status(201).json({ success: true, data: uploaded });
