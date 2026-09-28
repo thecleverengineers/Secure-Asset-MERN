@@ -46,7 +46,7 @@ import {
   getDriveBreadcrumbs, getDriveComments, getDriveFile, getDriveItems, getDriveSharedWithMe, permanentlyDeleteDriveItem,
   revokeDrivePublicLink, setDriveFileApproval, shareDriveItem, updateDriveFile, updateDriveFolder, uploadDriveFile, uploadDriveVersion,
   beginDeviceUnlockAuthentication, clearDeviceUnlockToken, completeDeviceUnlockAuthentication, getSecurityOverview,
-  hasVaultPinUnlockToken, setVaultPin as updateVaultPin, unlockVaultPin,
+  hasVaultPinUnlockToken, requestVaultPinOtp, setVaultPin as updateVaultPin, unlockVaultPin,
 } from '../../services/api';
 import { useActionDialog } from '../../components/shared/useActionDialog';
 import { useSite } from '../../context/SiteContext';
@@ -180,6 +180,10 @@ export default function DocumentVaultPage() {
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [pinSaveBusy, setPinSaveBusy] = useState(false);
+  const [vaultOtp, setVaultOtp] = useState('');
+  const [vaultOtpRequested, setVaultOtpRequested] = useState(false);
+  const [vaultOtpBusy, setVaultOtpBusy] = useState(false);
+  const [vaultOtpMaskedMobile, setVaultOtpMaskedMobile] = useState('');
   const [unlockPin, setUnlockPin] = useState('');
   const [pinUnlockBusy, setPinUnlockBusy] = useState(false);
   const [pinDialogError, setPinDialogError] = useState('');
@@ -445,21 +449,37 @@ export default function DocumentVaultPage() {
   }
 
   function openVaultPinDialog() {
-    setNewPin(''); setConfirmPin(''); setPinDialogError('');
+    setNewPin(''); setConfirmPin(''); setVaultOtp(''); setVaultOtpRequested(false); setVaultOtpMaskedMobile(''); setPinDialogError('');
     setPinDialogOpen(true);
+  }
+
+  async function sendVaultPinOtp() {
+    setVaultOtpBusy(true); setPinDialogError('');
+    try {
+      const result = await requestVaultPinOtp();
+      setVaultOtpRequested(true);
+      setVaultOtpMaskedMobile(result.data?.maskedMobile || '');
+      setVaultOtp('');
+      toast.success(result.message || 'Vault security OTP sent by SMS');
+    } catch (error: any) {
+      setPinDialogError(error.message || 'Could not send the vault security OTP');
+    } finally {
+      setVaultOtpBusy(false);
+    }
   }
 
   async function saveVaultPin() {
     if (!/^\d{6}$/.test(newPin)) { setPinDialogError('Choose a six-digit security code'); return; }
     if (newPin !== confirmPin) { setPinDialogError('The two security codes do not match'); return; }
+    if (vaultPinEnabled && !/^\d{6}$/.test(vaultOtp)) { setPinDialogError('Enter the six-digit SMS OTP sent to your registered mobile number'); return; }
     setPinSaveBusy(true); setPinDialogError('');
     try {
       const wasLocked = vaultLocked;
       const wasPinEnabled = vaultPinEnabled;
-      await updateVaultPin(newPin);
+      await updateVaultPin(newPin, wasPinEnabled ? vaultOtp : undefined);
       setVaultPinEnabled(true); setVaultLockRequired(true); setPinDialogOpen(false);
-      setNewPin(''); setConfirmPin(''); setVaultLockError('');
-      toast.success(wasPinEnabled ? 'Document Vault security code changed' : 'Security code created. Document Vault unlocked.');
+      setNewPin(''); setConfirmPin(''); setVaultOtp(''); setVaultOtpRequested(false); setVaultOtpMaskedMobile(''); setVaultLockError('');
+      toast.success(wasPinEnabled ? 'Document Vault security code changed after SMS verification' : 'Security code created. Document Vault unlocked.');
       if (wasLocked || !wasPinEnabled) {
         setVaultUnlocking(true);
         await load();
@@ -583,17 +603,27 @@ export default function DocumentVaultPage() {
         </Stack>
       </Stack>
     </Box>}
-    <ProfessionalDialog className="sa-vault-pin-dialog" open={pinDialogOpen} onClose={() => !pinSaveBusy && setPinDialogOpen(false)} fullWidth maxWidth="xs" enableMinimize={false} enableMaximize={false} sx={{ zIndex: 1700 }}>
-      <DialogTitle sx={{ fontWeight: 900 }}>{vaultPinEnabled ? 'Change vault security code' : 'Protect the Document Vault'}</DialogTitle>
+    <ProfessionalDialog className="sa-vault-pin-dialog" open={pinDialogOpen} onClose={() => !pinSaveBusy && !vaultOtpBusy && setPinDialogOpen(false)} fullWidth maxWidth="xs" enableMinimize={false} enableMaximize={false} sx={{ zIndex: 1700 }}>
+      <DialogTitle sx={{ fontWeight: 900 }}>{vaultPinEnabled ? 'Change or reset vault security code' : 'Protect the Document Vault'}</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={1.6} sx={{ mt: .5 }}>
-          <Alert severity="info">Create a six-digit code for fast, private access to your Document Vault. No SMS verification is required.</Alert>
+          <Alert severity="info">{vaultPinEnabled ? 'For your security, changing or resetting the Vault PIN requires SMS OTP verification on your registered mobile number.' : 'Create a six-digit code for fast, private access to your Document Vault. Initial PIN creation does not require SMS verification.'}</Alert>
           {pinDialogError && <Alert severity="error">{pinDialogError}</Alert>}
-          <TextField fullWidth autoFocus label="New six-digit security code" type="password" value={newPin} onChange={(event) => setNewPin(event.target.value.replace(/\D/g, '').slice(0, 6))} inputProps={{ inputMode: 'numeric', maxLength: 6, autoComplete: 'new-password' }} />
+          {vaultPinEnabled && <Box sx={{ p: 1.2, border: '1px solid', borderColor: 'divider', borderRadius: 2.5 }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}>
+              <Box>
+                <Typography sx={{ fontWeight: 800, fontSize: 12.5 }}>SMS verification</Typography>
+                <Typography color="text.secondary" sx={{ mt: .2, fontSize: 10.5 }}>{vaultOtpRequested ? `OTP sent to ${vaultOtpMaskedMobile || 'your registered mobile'}` : 'Send a one-time password to your registered mobile.'}</Typography>
+              </Box>
+              <Button size="small" variant="outlined" disabled={vaultOtpBusy} onClick={() => void sendVaultPinOtp()} sx={{ textTransform: 'none', flexShrink: 0 }}>{vaultOtpBusy ? 'Sending…' : vaultOtpRequested ? 'Resend OTP' : 'Send OTP'}</Button>
+            </Stack>
+            {vaultOtpRequested && <TextField fullWidth autoFocus sx={{ mt: 1.25 }} label="6-digit SMS OTP" value={vaultOtp} onChange={(event) => setVaultOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} inputProps={{ inputMode: 'numeric', maxLength: 6, autoComplete: 'one-time-code' }} />}
+          </Box>}
+          <TextField fullWidth autoFocus={!vaultPinEnabled} label="New six-digit security code" type="password" value={newPin} onChange={(event) => setNewPin(event.target.value.replace(/\D/g, '').slice(0, 6))} inputProps={{ inputMode: 'numeric', maxLength: 6, autoComplete: 'new-password' }} />
           <TextField fullWidth label="Confirm security code" type="password" value={confirmPin} onChange={(event) => setConfirmPin(event.target.value.replace(/\D/g, '').slice(0, 6))} inputProps={{ inputMode: 'numeric', maxLength: 6, autoComplete: 'new-password' }} />
         </Stack>
       </DialogContent>
-      <DialogActions><Button onClick={() => setPinDialogOpen(false)} disabled={pinSaveBusy}>Cancel</Button><Button variant="contained" disabled={pinSaveBusy || newPin.length !== 6 || confirmPin.length !== 6} onClick={() => void saveVaultPin()}>{pinSaveBusy ? 'Saving…' : vaultPinEnabled ? 'Change security code' : 'Protect vault'}</Button></DialogActions>
+      <DialogActions><Button onClick={() => setPinDialogOpen(false)} disabled={pinSaveBusy || vaultOtpBusy}>Cancel</Button><Button variant="contained" disabled={pinSaveBusy || vaultOtpBusy || newPin.length !== 6 || confirmPin.length !== 6 || (vaultPinEnabled && vaultOtp.length !== 6)} onClick={() => void saveVaultPin()}>{pinSaveBusy ? 'Verifying & saving…' : vaultPinEnabled ? 'Verify OTP & change code' : 'Protect vault'}</Button></DialogActions>
     </ProfessionalDialog>
     <input ref={inputRef} hidden type="file" multiple onChange={handleFiles} />
     <input ref={scanRef} hidden type="file" accept="image/jpeg,image/png" multiple capture="environment" onChange={handleScan} />
