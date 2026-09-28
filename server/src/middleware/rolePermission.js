@@ -76,14 +76,14 @@ export const requireTenantSubscriptionAccount = asyncHandler(async (req, _res, n
 export const requireSubscriptionPaymentProofUpload = asyncHandler(async (req, _res, next) => {
   if (!req.user) throw new ApiError(401, 'Authentication required');
   const role = String(req.user.role || '').trim().toLowerCase();
-  if (!['tenant', 'admin'].includes(role)) {
+  if (!['tenant', 'admin', 'super_admin'].includes(role)) {
     throw new ApiError(403, 'Only tenant accounts can submit subscription payment proof');
   }
   if (req.get('x-secureasset-upload-purpose') !== 'subscription_payment_proof') {
     throw new ApiError(400, 'Invalid subscription payment proof upload request');
   }
-  const landlordSubscriptionVisible = role === 'admin' || await featureAllowed('module:subscription', req.user, 'view');
-  const surveyorSubscriptionVisible = role === 'admin' || await featureAllowed('module:surveyor-subscription', req.user, 'view');
+  const landlordSubscriptionVisible = ['admin', 'super_admin'].includes(role) || await featureAllowed('module:subscription', req.user, 'view');
+  const surveyorSubscriptionVisible = ['admin', 'super_admin'].includes(role) || await featureAllowed('module:surveyor-subscription', req.user, 'view');
   if (!landlordSubscriptionVisible && !surveyorSubscriptionVisible) {
     throw new ApiError(403, 'Your account cannot access subscription payments');
   }
