@@ -81,6 +81,7 @@ const HIDDEN_MENU_KEYS = new Set(['audit-logs', 'subscription-payment-approvals'
 const TENANT_ONLY_ACTIVATION_KEYS = new Set(['subscription', 'surveyor-subscription']);
 const ADMIN_DOCUMENT_VAULT: MenuDef = { key: 'documents', label: 'Document Vault', icon: FolderRounded, path: '/app/documents', section: 'workspace', sectionOrder: 1, sortOrder: 20, mobilePrimary: true };
 const ADMIN_APPROVAL_CENTER: MenuDef = { key: 'approvals', label: 'Approval Center', icon: ApprovalRounded, path: '/app/approvals', section: 'workspace', sectionOrder: 1, sortOrder: 10.0005 };
+const SUPER_ADMIN_CONTROL_CENTER: MenuDef = { key: 'super-admin', label: 'Super Admin', icon: SecurityRounded, path: '/app/super-admin', section: 'workspace', sectionOrder: 1, sortOrder: 10.0001 };
 const SURVEYOR_WORKFLOW_LABELS: Record<string, string> = {
   'surveyor-dashboard': 'Surveyor Workspace',
   'survey-job-marketplace': 'Quote Requests',
@@ -90,6 +91,7 @@ const SURVEYOR_WORKFLOW_LABELS: Record<string, string> = {
 
 const items: Record<string, MenuDef> = {
   dashboard: { key: 'dashboard', label: 'Dashboard', icon: DashboardRounded },
+  'super-admin': SUPER_ADMIN_CONTROL_CENTER,
   users: { key: 'users', label: 'Users', icon: PeopleRounded },
   properties: { key: 'properties', label: 'My Properties', icon: ApartmentRounded },
   'my-listings': { key: 'my-listings', label: 'My Listings', icon: ApartmentRounded },
@@ -187,6 +189,7 @@ function tenantCapabilityEnabled(user: any, capability: 'landlord' | 'surveyor')
 }
 
 const roleMenus: Record<UserRole, string[]> = {
+  super_admin: ['dashboard', 'super-admin', 'approvals', 'design-studio', 'role-permissions', 'site-admin', 'site-enquiries', 'users', 'properties', 'tenant-profiles', 'occupants', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'reminder-rules', 'leases', 'surveys', 'applications', 'payments', 'complaints', 'surveyor-plans', 'surveyor-profiles', 'survey-services', 'survey-jobs', 'survey-quotations', 'survey-projects', 'survey-reports', 'survey-disputes', 'survey-promotions', 'facilities', 'facility-bookings', 'documents', 'drive-admin', 'notifications', 'messages', 'reports', 'audit-logs', 'settings'],
   admin: ['dashboard', 'approvals', 'design-studio', 'role-permissions', 'site-admin', 'site-enquiries', 'users', 'properties', 'tenant-profiles', 'occupants', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'reminder-rules', 'leases', 'surveys', 'applications', 'payments', 'complaints', 'surveyor-plans', 'surveyor-profiles', 'survey-services', 'survey-jobs', 'survey-quotations', 'survey-projects', 'survey-reports', 'survey-disputes', 'survey-promotions', 'facilities', 'facility-bookings', 'documents', 'drive-admin', 'notifications', 'messages', 'reports', 'audit-logs', 'settings'],
   manager: ['dashboard', 'properties', 'tenant-profiles', 'tenant-kyc', 'occupants', 'applications', 'tenant-interviews', 'property-visits', 'tenancies', 'rental-invoices', 'utility-readings', 'leases', 'surveys', 'payments', 'complaints', 'attendance', 'facilities', 'facility-bookings', 'documents', 'messages', 'notifications', 'reports'],
   landlord: ['dashboard', 'my-listings', 'survey-jobs', 'applications', 'tenants', 'tenancies', 'tenancy-history', 'property-visits', 'rental-invoices', 'utility-readings', 'leases', 'payments', 'transactions', 'agreement-templates', 'survey-projects', 'active-projects', 'documents'],
@@ -271,7 +274,7 @@ function placeDocumentVaultAfterDashboard(menu: MenuDef[]) {
 }
 
 function placeAdminApprovalCenterAfterDashboard(menu: MenuDef[], user: any) {
-  if (String(user?.role || '').toLowerCase() !== 'admin') return menu;
+  if (!['admin', 'super_admin'].includes(String(user?.role || '').toLowerCase())) return menu;
   const dashboard = menu.find((item) => item.key === 'dashboard');
   const approval = menu.find((item) => item.key === 'approvals') || ADMIN_APPROVAL_CENTER;
   if (!dashboard) return menu;
@@ -291,8 +294,9 @@ function placeAdminApprovalCenterAfterDashboard(menu: MenuDef[], user: any) {
 function enforceRoleNavigation(menu: MenuDef[], user: any) {
   const role = String(user?.role || '').toLowerCase();
   const roleSafe = role === 'tenant' ? menu : menu.filter((item) => !TENANT_ONLY_ACTIVATION_KEYS.has(item.key));
-  if (role !== 'admin') return roleSafe;
+  if (!['admin', 'super_admin'].includes(role)) return roleSafe;
   let adminSafe = [...roleSafe];
+  if (role === 'super_admin' && !adminSafe.some((item) => item.key === 'super-admin')) adminSafe = [SUPER_ADMIN_CONTROL_CENTER, ...adminSafe];
   if (!adminSafe.some((item) => item.key === 'approvals')) adminSafe = [ADMIN_APPROVAL_CENTER, ...adminSafe];
   if (!adminSafe.some((item) => item.key === 'documents')) adminSafe = [ADMIN_DOCUMENT_VAULT, ...adminSafe];
   return adminSafe;
@@ -373,7 +377,7 @@ export default function AppShell() {
     && !HIDDEN_MENU_KEYS.has(module.key)
     && !(TENANT_ONLY_ACTIVATION_KEYS.has(module.key) && user?.role !== 'tenant')
     && !(user?.role === 'tenant' && tenantProfileOnlyKeys.has(module.key))
-    && !(user?.role === 'admin' && ['tenant-kyc', 'surveyor-verifications', 'subscription-payment-approvals'].includes(module.key)),
+    && !(['admin', 'super_admin'].includes(String(user?.role || '')) && ['tenant-kyc', 'surveyor-verifications', 'subscription-payment-approvals'].includes(module.key)),
   ).map((module) => ({
     key: module.key, label: user?.role === 'landlord' && landlordFeatureKeys.has(module.key) ? landlordFeatureLabel(module.key, configuredModuleLabel(module)) : configuredModuleLabel(module), path: module.key === 'agreement-templates' ? '/app/agreement-templates' : module.path || `/app/${module.key}`, section: user?.role === 'tenant' && landlordFeatureKeys.has(module.key) ? 'landlord_features' : user?.role === 'tenant' && surveyorFeatureKeys.has(module.key) ? 'surveyor_features' : module.section, sectionOrder: Number(module.sectionOrder ?? 999), sortOrder: Number(module.sortOrder ?? 0), mobilePrimary: Boolean(module.mobilePrimary), badge: module.badge, placement: 'sidebar' as const,
     icon: resolveIconComponent(module.icon) || iconByName[normalizeIconName(module.icon)] || items[module.key]?.icon || SettingsRounded,
