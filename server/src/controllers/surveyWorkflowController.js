@@ -95,19 +95,19 @@ async function ensureDirectMilestonePayment(project, milestone, actorId) {
 }
 
 async function requireLandlord(req) {
-  if (req.user?.role === 'admin') return null;
+  if (['super_admin', 'admin'].includes(String(req.user?.role || '').toLowerCase())) return null;
   return getActiveLandlordSubscription(req.user._id);
 }
 
 async function requireSurveyor(req) {
-  if (req.user?.role === 'admin') return null;
+  if (['super_admin', 'admin'].includes(String(req.user?.role || '').toLowerCase())) return null;
   return getActiveSurveyorSubscription(req.user._id);
 }
 
 async function projectForSide(projectId, req, side) {
   const project = await SurveyProject.findById(projectId);
   if (!project) throw new ApiError(404, 'Survey project not found');
-  if (req.user?.role !== 'admin') {
+  if (!['super_admin', 'admin'].includes(String(req.user?.role || '').toLowerCase())) {
     const owner = side === 'landlord' ? project.client : project.surveyor;
     if (!sameId(owner, req.user._id)) throw new ApiError(403, `Only the assigned ${side} can perform this milestone action`);
     if (side === 'landlord') await requireLandlord(req);
@@ -348,7 +348,7 @@ export const listSurveyJobBids = asyncHandler(async (req, res) => {
 });
 
 export const hireSurveyor = asyncHandler(async (req, res) => {
-  const result = await acceptSurveyQuotation({ quotationId: req.params.quotationId, actorId: req.user._id, isAdmin: req.user.role === 'admin' });
+  const result = await acceptSurveyQuotation({ quotationId: req.params.quotationId, actorId: req.user._id, isAdmin: ['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()) });
   await writeAudit(req, { action: 'survey-quotation:hired', module: 'survey-quotations', recordId: result.quotation._id, updatedValue: { quotation: result.quotation.toObject(), project: result.project.toObject() } });
   res.json({ success: true, data: result, message: 'Surveyor hired and project created' });
 });
@@ -608,7 +608,7 @@ async function workflowProject(req, side = 'participant', { allowClosed = true }
     project.workflowStage = normalizedStage;
     await project.save();
   }
-  const admin = req.user?.role === 'admin';
+  const admin = ['super_admin', 'admin'].includes(String(req.user?.role || '').toLowerCase());
   const landlord = sameId(project.client, req.user?._id);
   const surveyor = sameId(project.surveyor, req.user?._id);
   if (!admin && side === 'landlord' && !landlord) throw new ApiError(403, 'Only the landlord who hired the Surveyor can perform this action');
@@ -621,7 +621,7 @@ async function workflowProject(req, side = 'participant', { allowClosed = true }
 }
 
 async function notifySurveyAdmins({ title, message, projectId, event }) {
-  const admins = await User.find({ role: 'admin', status: 'active' }).select('_id').lean();
+  const admins = await User.find({ role: { $in: ['super_admin', 'admin'] }, status: 'active' }).select('_id').lean();
   await Promise.all(admins.map((admin) => createNotification({
     user: admin._id, title, message, category: 'survey', actionUrl: `/app/survey-projects/${projectId}`,
     metadata: { projectId, event },
@@ -710,8 +710,8 @@ async function projectBundle(project, req) {
     updatedAt: surveyorVerification?.updatedAt || null,
   } : null;
   data.permissions = {
-    landlord: req.user.role === 'admin' || sameId(data.client, req.user._id),
-    surveyor: req.user.role === 'admin' || sameId(data.surveyor, req.user._id),
+    landlord: ['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()) || sameId(data.client, req.user._id),
+    surveyor: ['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()) || sameId(data.surveyor, req.user._id),
   };
   return data;
 }
@@ -736,7 +736,7 @@ export const listSurveyorProposals = asyncHandler(async (req, res) => {
 
 export const listSurveyProjects = asyncHandler(async (req, res) => {
   const { page, limit, skip } = paging(req.query);
-  const participant = req.user.role === 'admin' ? {} : { $or: [{ client: req.user._id }, { surveyor: req.user._id }] };
+  const participant = ['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()) ? {} : { $or: [{ client: req.user._id }, { surveyor: req.user._id }] };
   const filter = { ...participant };
   if (req.query.stage) filter.workflowStage = String(req.query.stage);
   const [records, total] = await Promise.all([
@@ -1235,7 +1235,7 @@ export const acceptSurveyPayment = asyncHandler(async (req, res) => {
   const payment = await Payment.findOne({
     _id: req.params.paymentId,
     surveyProject: project._id,
-    payee: req.user.role === 'admin' ? project.surveyor : req.user._id,
+    payee: ['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()) ? project.surveyor : req.user._id,
     type: { $in: ['survey_advance', 'survey_milestone', 'survey_final'] },
   });
   if (!payment) throw new ApiError(404, 'Survey payment not found in this project');
@@ -1558,7 +1558,7 @@ export const rejectSurveyFinalPayment = asyncHandler(async (req, res) => {
   const payment = await Payment.findOne({
     _id: req.params.paymentId,
     surveyProject: project._id,
-    payee: req.user.role === 'admin' ? project.surveyor : req.user._id,
+    payee: ['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()) ? project.surveyor : req.user._id,
     type: 'survey_final',
     status: { $in: ['pending', 'partial', 'overdue'] },
   });
