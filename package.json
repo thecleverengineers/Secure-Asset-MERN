@@ -68,7 +68,8 @@
     "db:repair-legacy-objectids": "node scripts/repair-legacy-objectid-placeholders.js",
     "pm2:reconcile": "node scripts/reconcile-pm2-release.js --prepare",
     "pm2:verify": "node scripts/reconcile-pm2-release.js --verify",
-    "nginx:repair": "bash scripts/repair-auth-routing.sh --nginx-only"
+    "nginx:repair": "bash scripts/repair-auth-routing.sh --nginx-only",
+    "seed:super-admin": "node server/src/seeds/ensureSuperAdmin.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.821.0",
