@@ -44,6 +44,7 @@ const AddTenancyPage = lazyWithRetry(() => import('./pages/app/AddTenancyPage'))
 const ApplicationDetailsPage = lazyWithRetry(() => import('./pages/app/ApplicationDetailsPage'));
 const LandlordTransactionsPage = lazyWithRetry(() => import('./pages/app/LandlordTransactionsPage'));
 const SuperAdminControlCenterPage = lazyWithRetry(() => import('./pages/app/SuperAdminControlCenterPage'));
+const AdminModuleHubPage = lazyWithRetry(() => import('./pages/app/AdminModuleHubPage'));
 
 function AccessDenied() {
   return <Box className="sa-reference-content" sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', p: 3 }}><Box sx={{ textAlign: 'center', maxWidth: 480 }}><Alert severity="error" sx={{ mb: 2 }}>Access denied</Alert><Typography variant="h4" sx={{ fontWeight: 900 }}>You do not have access to this module.</Typography><Button href="/app/dashboard" variant="contained" sx={{ mt: 3 }}>Return to dashboard</Button></Box></Box>;
@@ -142,6 +143,7 @@ export const router = createBrowserRouter([
         { path: 'application_details/:applicationId', Component: ApplicationDetailsPage },
         { path: 'transactions', Component: LandlordTransactionsPage },
         { path: 'super-admin', Component: SuperAdminControlCenterPage },
+        { path: 'admin/:moduleKey', Component: AdminModuleHubPage },
         { path: 'notification', element: <Navigate to="/app/notifications" replace /> },
         { path: ':module', Component: ModulePage },
       ],
