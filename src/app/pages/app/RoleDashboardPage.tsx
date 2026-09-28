@@ -56,6 +56,7 @@ const baseCards = [
 ] as const;
 
 const cardsByRole: Record<string, string[]> = {
+  super_admin: ['totalProperties', 'totalUnits', 'occupiedUnits', 'vacantUnits', 'totalTenants', 'activeUsers', 'pendingApplications', 'pendingSurveys', 'monthlyRentCollection', 'outstandingDues', 'openComplaints', 'expiringLeases', 'pendingApprovals'],
   admin: ['totalProperties', 'totalUnits', 'occupiedUnits', 'vacantUnits', 'totalTenants', 'activeUsers', 'pendingApplications', 'pendingSurveys', 'monthlyRentCollection', 'outstandingDues', 'openComplaints', 'expiringLeases'],
   manager: ['totalProperties', 'occupiedUnits', 'vacantUnits', 'pendingApplications', 'pendingSurveys', 'monthlyRentCollection', 'outstandingDues', 'openComplaints', 'expiringLeases', 'pendingApprovals'],
   tenant: ['monthlyRentCollection', 'outstandingDues', 'openComplaints', 'expiringLeases'],
@@ -244,7 +245,7 @@ export default function RoleDashboardPage() {
   const tenantCapabilities = dashboardQuery.data?.tenantCapabilities || { landlord: false, surveyor: false };
   const error = dashboardQuery.error instanceof Error ? dashboardQuery.error.message : dashboardQuery.error ? 'Dashboard data could not be loaded.' : (dashboardQuery.data?.error || '');
 
-  const visible = useMemo(() => baseCards.filter(([key]) => cardsByRole[user?.role || 'user'].includes(key)), [user?.role]);
+  const visible = useMemo(() => baseCards.filter(([key]) => (cardsByRole[user?.role || 'user'] || cardsByRole.user).includes(key)), [user?.role]);
   const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
   const isLandlord = Boolean(user?.role === 'landlord' || (user?.role === 'tenant' && tenantCapabilities.landlord));
   const isSurveyor = Boolean(user?.role === 'surveyor' || (user?.role === 'tenant' && tenantCapabilities.surveyor));
