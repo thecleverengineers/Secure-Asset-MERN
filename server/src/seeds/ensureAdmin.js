@@ -30,7 +30,7 @@ try {
   } else {
     console.warn(`Bootstrap mobile ${admin.phone} is already used by another account; preserving that account and keeping the administrator's existing mobile.`);
   }
-  user.role = 'admin';
+  if (user.role !== 'super_admin') user.role = 'admin';
   user.status = 'active';
   user.mobileVerifiedAt ||= new Date();
   user.kycStatus = 'verified';
