@@ -9,11 +9,11 @@ import {
   PlatformModule, ContentPage, NotificationPreference, IntegrationSetting,
 } from '../models/index.js';
 
-const allRoles = ['admin', 'manager', 'landlord', 'tenant', 'user', 'surveyor'];
+const allRoles = ['super_admin', 'admin', 'manager', 'landlord', 'tenant', 'user', 'surveyor'];
 
 export const resources = {
   users: {
-    model: User, readRoles: ['admin', 'manager'], createRoles: ['admin'], updateRoles: ['admin'], deleteRoles: ['admin'],
+    model: User, readRoles: ['super_admin', 'admin', 'manager'], createRoles: ['super_admin', 'admin'], updateRoles: ['super_admin', 'admin'], deleteRoles: ['super_admin', 'admin'],
     search: ['name', 'email', 'phone', 'region', 'country', 'state', 'city'], populate: 'assignedProperties',
     writable: ['name', 'email', 'phone', 'password', 'role', 'avatar', 'status', 'kycStatus', 'country', 'state', 'city', 'region', 'assignedProperties', 'customPermissions'],
   },
