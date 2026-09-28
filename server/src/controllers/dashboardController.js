@@ -15,6 +15,7 @@ export const overview = asyncHandler(async (req, res) => {
   const leaseExpiry = new Date(now.getTime() + 60 * 86400000);
   let propertyIds = [];
   const effectiveRole = getEffectiveRole(user);
+  const isAdministrator = ['super_admin', 'admin'].includes(String(user.role || '').toLowerCase());
   const landlordView = effectiveRole === 'landlord';
   const surveyorView = effectiveRole === 'surveyor';
   if (user.role === 'manager') {
@@ -32,15 +33,15 @@ export const overview = asyncHandler(async (req, res) => {
   }
 
   const scopedProperty = { $in: propertyIds };
-  const propertyFilter = user.role === 'admin' ? {} : { _id: scopedProperty };
-  const unitFilter = user.role === 'admin' ? {} : { property: scopedProperty };
-  const tenantFilter = user.role === 'admin' ? {} : landlordView || user.role === 'manager' ? { property: scopedProperty } : effectiveRole === 'tenant' ? { user: user._id } : { _id: null };
-  const leaseFilter = user.role === 'admin' ? {} : landlordView || user.role === 'manager' ? { property: scopedProperty } : effectiveRole === 'tenant' ? { tenant: user._id } : { _id: null };
-  const surveyFilter = user.role === 'admin' ? {} : surveyorView ? { surveyor: user._id } : landlordView || user.role === 'manager' ? { property: scopedProperty } : { _id: null };
-  const applicationFilter = user.role === 'admin' ? {} : landlordView ? { landlord: user._id } : user.role === 'manager' ? { property: scopedProperty } : (effectiveRole === 'tenant' || user.role === 'user') ? { applicant: user._id } : { _id: null };
-  const paymentFilter = user.role === 'admin' ? {} : landlordView ? { payee: user._id } : user.role === 'manager' ? { property: scopedProperty } : (effectiveRole === 'tenant' || user.role === 'user') ? { payer: user._id } : { _id: null };
-  const complaintFilter = user.role === 'admin' ? {} : landlordView || user.role === 'manager' ? { property: scopedProperty } : (effectiveRole === 'tenant' || user.role === 'user') ? { raisedBy: user._id } : { _id: null };
-  const approvalFilter = user.role === 'admin' ? {} : landlordView || user.role === 'manager' ? { $or: [{ property: scopedProperty }, { requester: user._id }] } : { requester: user._id };
+  const propertyFilter = isAdministrator ? {} : { _id: scopedProperty };
+  const unitFilter = isAdministrator ? {} : { property: scopedProperty };
+  const tenantFilter = isAdministrator ? {} : landlordView || user.role === 'manager' ? { property: scopedProperty } : effectiveRole === 'tenant' ? { user: user._id } : { _id: null };
+  const leaseFilter = isAdministrator ? {} : landlordView || user.role === 'manager' ? { property: scopedProperty } : effectiveRole === 'tenant' ? { tenant: user._id } : { _id: null };
+  const surveyFilter = isAdministrator ? {} : surveyorView ? { surveyor: user._id } : landlordView || user.role === 'manager' ? { property: scopedProperty } : { _id: null };
+  const applicationFilter = isAdministrator ? {} : landlordView ? { landlord: user._id } : user.role === 'manager' ? { property: scopedProperty } : (effectiveRole === 'tenant' || user.role === 'user') ? { applicant: user._id } : { _id: null };
+  const paymentFilter = isAdministrator ? {} : landlordView ? { payee: user._id } : user.role === 'manager' ? { property: scopedProperty } : (effectiveRole === 'tenant' || user.role === 'user') ? { payer: user._id } : { _id: null };
+  const complaintFilter = isAdministrator ? {} : landlordView || user.role === 'manager' ? { property: scopedProperty } : (effectiveRole === 'tenant' || user.role === 'user') ? { raisedBy: user._id } : { _id: null };
+  const approvalFilter = isAdministrator ? {} : landlordView || user.role === 'manager' ? { $or: [{ property: scopedProperty }, { requester: user._id }] } : { requester: user._id };
 
   const [
     totalProperties, totalUnits, occupiedUnits, totalTenants, activeUsers,
@@ -52,7 +53,7 @@ export const overview = asyncHandler(async (req, res) => {
     Unit.countDocuments(unitFilter),
     Unit.countDocuments({ ...unitFilter, status: 'occupied' }),
     Tenant.countDocuments({ ...tenantFilter, status: 'active' }),
-    user.role === 'admin' ? User.countDocuments({ status: 'active' }) : Promise.resolve(0),
+    isAdministrator ? User.countDocuments({ status: 'active' }) : Promise.resolve(0),
     Application.countDocuments({ ...applicationFilter, status: { $in: ['submitted', 'under_review', 'documents_pending'] } }),
     Survey.countDocuments({ ...surveyFilter, status: { $in: ['assigned', 'in_progress', 'submitted', 'returned', 'overdue'] } }),
     Payment.aggregate([{ $match: { ...paymentFilter, status: 'paid', paidAt: { $gte: monthStart, $lt: monthEnd } } }, { $group: { _id: null, total: { $sum: '$paidAmount' } } }]),
@@ -62,7 +63,7 @@ export const overview = asyncHandler(async (req, res) => {
     Approval.countDocuments({ ...approvalFilter, status: 'pending' }),
     Survey.aggregate([{ $match: surveyFilter }, { $group: { _id: '$status', value: { $sum: 1 } } }, { $sort: { value: -1 } }]),
     Complaint.aggregate([{ $match: complaintFilter }, { $group: { _id: '$status', value: { $sum: 1 } } }, { $sort: { value: -1 } }]),
-    AuditLog.find(user.role === 'admin' ? {} : { user: user._id }).sort('-createdAt').limit(8).populate('user', 'name role').lean(),
+    AuditLog.find(isAdministrator ? {} : { user: user._id }).sort('-createdAt').limit(8).populate('user', 'name role').lean(),
   ]);
 
   const revenueTrend = [];
