@@ -67,7 +67,7 @@ The parties agree to the terms recorded in this stamp-paper document and any law
 };
 
 function isAgreementManager(user) {
-  return String(user?.role || '').toLowerCase() === 'admin' || capabilityRolesForUser(user).includes('landlord');
+  return ['super_admin', 'admin'].includes(String(user?.role || '').toLowerCase()) || capabilityRolesForUser(user).includes('landlord');
 }
 
 function normalizeType(value) {
@@ -306,7 +306,7 @@ async function requestForParticipant(id, user) {
   if (!mongoose.isValidObjectId(id)) throw new ApiError(404, 'Agreement request not found');
   const request = await AgreementRequest.findById(id).populate('application property space rentalUnit template landlord tenant securityDepositPayment');
   if (!request) throw new ApiError(404, 'Agreement request not found');
-  const administrator = String(user?.role || '').toLowerCase() === 'admin';
+  const administrator = ['super_admin', 'admin'].includes(String(user?.role || '').toLowerCase());
   const firstParty = sameId(request.landlord, user?._id);
   const secondParty = sameId(request.tenant, user?._id);
   if (!administrator && !firstParty && !secondParty) {
@@ -638,7 +638,7 @@ function assertFirstParty(request, user, message = 'Only the landlord-enabled fi
 }
 
 function assertSecurityDepositLandlord(request, user, message = 'Only the receiving landlord can verify or reject this security deposit payment') {
-  if (String(user?.role || '').toLowerCase() === 'admin'
+  if (['super_admin', 'admin'].includes(String(user?.role || '').toLowerCase())
     || !capabilityRolesForUser(user).includes('landlord')
     || !sameId(request.landlord, user?._id)) {
     throw new ApiError(403, message);
@@ -953,7 +953,7 @@ export const prepareAgreementRequest = asyncHandler(async (req, res) => {
   const application = await loadApplication(req.body.application);
   if (!isApplicationAccepted(application.status)) throw new ApiError(409, 'Accept the application before preparing its agreement');
   const property = application.property;
-  if (String(req.user.role || '').toLowerCase() !== 'admin' && !sameId(property.owner, req.user._id) && !sameId(application.landlord, req.user._id)) {
+  if (!['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()) && !sameId(property.owner, req.user._id) && !sameId(application.landlord, req.user._id)) {
     throw new ApiError(403, 'You can only prepare agreements for your own properties');
   }
   const agreementType = normalizeType(property.purpose || property.listingType || (property.isSale ? 'sale' : 'rent'));
@@ -1684,7 +1684,7 @@ export const closeAgreementCycle = asyncHandler(async (req, res) => {
 });
 
 export const listAgreementRequests = asyncHandler(async (req, res) => {
-  const administrator = String(req.user?.role || '').toLowerCase() === 'admin';
+  const administrator = ['super_admin', 'admin'].includes(String(req.user?.role || '').toLowerCase());
   const filter = administrator
     ? {}
     : { $or: [
