@@ -514,7 +514,7 @@ async function publishApprovedSurveyorProfile(verification, reviewerId) {
 }
 
 export const reviewVerification = asyncHandler(async (req, res) => {
-  if (req.user.role !== 'admin') throw new ApiError(403, 'Admin access required');
+  if (!['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase())) throw new ApiError(403, 'Admin access required');
   const status = String(req.body.status || '');
   if (!['under_review', 'changes_required', 'verified', 'rejected', 'suspended', 'expired'].includes(status)) throw new ApiError(422, 'Invalid verification status');
   const verification = await SurveyorVerification.findById(req.params.id);
@@ -636,7 +636,7 @@ export const dashboard = asyncHandler(async (req, res) => {
 });
 
 export const acceptQuotation = asyncHandler(async (req, res) => {
-  const result = await acceptSurveyQuotation({ quotationId: req.params.id, actorId: req.user._id, isAdmin: req.user.role === 'admin' });
+  const result = await acceptSurveyQuotation({ quotationId: req.params.id, actorId: req.user._id, isAdmin: ['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()) });
   await writeLog(req, 'survey-quotation:accepted', 'survey-quotations', result.quotation);
   res.json({ success: true, data: result, message: 'Quotation accepted and project created' });
 });
