@@ -27,6 +27,7 @@ const LoginPage = lazyWithRetry(() => import('./pages/LoginPage'));
 const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'));
 const PublicDrivePage = lazyWithRetry(() => import('./pages/PublicDrivePage'));
 const RoleDashboardPage = lazyWithRetry(() => import('./pages/app/RoleDashboardPage'));
+const SuperAdminCommandCenterPage = lazyWithRetry(() => import('./pages/app/SuperAdminCommandCenterPage'));
 const ModulePage = lazyWithRetry(() => import('./pages/app/ModulePage'));
 const SubscriptionPaymentPage = lazyWithRetry(() => import('./pages/app/SubscriptionPaymentPage'));
 const ApplyPropertyPage = lazyWithRetry(() => import('./pages/app/ApplyPropertyPage'));
@@ -121,6 +122,7 @@ export const router = createBrowserRouter([
       children: [
         { index: true, element: <Navigate to="dashboard" replace /> },
         { path: 'dashboard', Component: RoleDashboardPage },
+        { element: <ProtectedRoute roles={['super_admin']} />, children: [{ path: 'super-admin', Component: SuperAdminCommandCenterPage }] },
         { path: 'subscription-payment', Component: SubscriptionPaymentPage },
         { path: 'apply_property/:propertyId', Component: ApplyPropertyPage },
         { path: 'apply-property/:propertyId', element: <LegacyPropertyActionRedirect target="apply_property" /> },
@@ -146,6 +148,7 @@ export const router = createBrowserRouter([
     }],
   },
   { path: '/dashboard', element: <Navigate to="/app/dashboard" replace /> },
+  { path: '/super-admin/dashboard', element: <Navigate to="/app/super-admin" replace /> },
   { path: '/access-denied', Component: AccessDenied },
   { path: '*', element: <Navigate to="/" replace /> },
 ]);
