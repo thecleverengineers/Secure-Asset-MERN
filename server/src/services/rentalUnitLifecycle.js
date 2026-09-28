@@ -31,7 +31,7 @@ export async function propertyManagedBy(user, propertyId, { rentOnly = true } = 
   if (rentOnly && String(property.listingType || property.purpose) !== 'rent') {
     throw new ApiError(409, 'Manage Rooms is available only for rent properties');
   }
-  const admin = String(user?.role || '').toLowerCase() === 'admin';
+  const admin = ['super_admin', 'admin'].includes(String(user?.role || '').toLowerCase());
   const landlord = capabilityRolesForUser(user).includes('landlord') && sameId(property.owner, user?._id);
   const manager = String(user?.role || '').toLowerCase() === 'manager'
     && (sameId(property.manager, user?._id) || (user?.assignedProperties || []).some((id) => sameId(id, property._id)));
