@@ -23,7 +23,7 @@ export function isApplicationAccepted(status) {
 
 export function isApplicationDecisionActor(user, application) {
   const role = String(user?.role || '').trim().toLowerCase();
-  return role === 'admin' || role === 'manager' || sameId(application?.landlord, user?._id);
+  return role === 'super_admin' || role === 'admin' || role === 'manager' || sameId(application?.landlord, user?._id);
 }
 
 // A final application decision is intentionally one-way. The only permitted
