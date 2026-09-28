@@ -1,5 +1,5 @@
 export type ObjectId = string;
-export type UserRole = 'admin' | 'manager' | 'landlord' | 'tenant' | 'user' | 'surveyor'; // user is legacy; new accounts are tenants
+export type UserRole = 'super_admin' | 'admin' | 'manager' | 'landlord' | 'tenant' | 'user' | 'surveyor'; // user is legacy; new accounts are tenants
 export type KycStatus = 'not_started' | 'incomplete' | 'submitted' | 'under_review' | 'changes_required' | 'verified' | 'rejected' | 'expired' | 'suspended' | 'pending';
 export type PropertyType = string;
 export type PropertyStatus = 'draft' | 'pending_approval' | 'available' | 'partially_occupied' | 'occupied' | 'reserved' | 'rented' | 'sold' | 'leased' | 'maintenance' | 'unavailable' | 'inactive' | 'archived' | 'pending';
@@ -10,6 +10,8 @@ export interface User {
   email: string;
   phone?: string;
   role: UserRole;
+  adminScope?: 'none' | 'assigned' | 'global';
+  superAdminSecurity?: { twoFactorRequired?: boolean; criticalActionReauth?: boolean; trustedDevicesOnly?: boolean };
   avatar?: string;
   status: 'pending_verification' | 'active' | 'suspended' | 'locked';
   kycStatus: KycStatus;
