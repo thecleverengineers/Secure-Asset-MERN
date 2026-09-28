@@ -394,7 +394,7 @@ export const streamTenantKycDocument = asyncHandler(async (req, res) => {
 });
 
 export const reviewPublicListingApproval = asyncHandler(async (req, res) => {
-  if (req.user.role !== 'admin') throw new ApiError(403, 'Admin access required');
+  if (!['admin', 'super_admin'].includes(req.user.role)) throw new ApiError(403, 'Admin access required');
   const decision = String(req.body.status || req.body.decision || '').toLowerCase();
   const reason = String(req.body.reason || req.body.notes || '').trim();
   if (!['approved', 'rejected'].includes(decision)) throw new ApiError(422, 'Public listing decision must be approved or rejected');
