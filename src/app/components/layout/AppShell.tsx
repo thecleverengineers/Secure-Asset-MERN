@@ -72,7 +72,7 @@ import { safeRecordArray } from '../../utils/runtimeData';
 import '../../../styles/bottom-appbar-premium.css';
 import '../../../styles/role-workspace-premium.css';
 
-type MenuDef = { key: string; label: string; icon: any; path?: string; mobilePrimary?: boolean; section?: string; sectionOrder?: number; sortOrder?: number; badge?: string; placement?: 'sidebar' | 'header' | 'bottom' | 'both' };
+type MenuDef = { key: string; label: string; icon: any; path?: string; mobilePrimary?: boolean; section?: string; sectionOrder?: number; sortOrder?: number; badge?: string; placement?: 'sidebar' | 'header' | 'bottom' | 'both'; matchPrefixes?: string[] };
 const PROPERTY_DETAIL_ONLY_MENU_KEYS = new Set(['property-spaces', 'property-media', 'property-promotions']);
 const HIDDEN_MENU_KEYS = new Set(['audit-logs', 'subscription-payment-approvals']);
 // Plan activation is a tenant-owned capability workflow. Legacy landlord and
@@ -81,6 +81,42 @@ const HIDDEN_MENU_KEYS = new Set(['audit-logs', 'subscription-payment-approvals'
 const TENANT_ONLY_ACTIVATION_KEYS = new Set(['subscription', 'surveyor-subscription']);
 const ADMIN_DOCUMENT_VAULT: MenuDef = { key: 'documents', label: 'Document Vault', icon: FolderRounded, path: '/app/documents', section: 'workspace', sectionOrder: 1, sortOrder: 20, mobilePrimary: true };
 const ADMIN_APPROVAL_CENTER: MenuDef = { key: 'approvals', label: 'Approval Center', icon: ApprovalRounded, path: '/app/approvals', section: 'workspace', sectionOrder: 1, sortOrder: 10.0005 };
+const ADMIN_MODULAR_MENU: MenuDef[] = [
+  { key: 'dashboard', label: 'Dashboard', icon: DashboardRounded, path: '/app/dashboard', section: 'workspace', sectionOrder: 1, sortOrder: 10 },
+  { key: 'approvals', label: 'Approval Center', icon: ApprovalRounded, path: '/app/approvals', section: 'workspace', sectionOrder: 1, sortOrder: 20 },
+  {
+    key: 'admin-people-access', label: 'People & Access', icon: PeopleRounded, path: '/app/admin/people-access', section: 'workspace', sectionOrder: 1, sortOrder: 30,
+    matchPrefixes: ['/app/users', '/app/tenant-profiles', '/app/occupants', '/app/tenant-interviews', '/app/role-permissions', '/app/tenant-kyc'],
+  },
+  {
+    key: 'admin-property-tenancy', label: 'Property & Tenancy', icon: HomeWorkRounded, path: '/app/admin/property-tenancy', section: 'workspace', sectionOrder: 1, sortOrder: 40,
+    matchPrefixes: ['/app/properties', '/app/property-management', '/app/property-details', '/app/applications', '/app/application_details', '/app/property-visits', '/app/tenancies', '/app/tenancy_details', '/app/rental-management', '/app/leases', '/app/complaints', '/app/facilities', '/app/facility-bookings'],
+  },
+  {
+    key: 'admin-finance-billing', label: 'Finance & Billing', icon: PaymentsRounded, path: '/app/admin/finance-billing', section: 'workspace', sectionOrder: 1, sortOrder: 50,
+    matchPrefixes: ['/app/rental-invoices', '/app/payments', '/app/utility-readings', '/app/reminder-rules', '/app/subscription-payment-approvals'],
+  },
+  {
+    key: 'admin-survey-operations', label: 'Survey Operations', icon: AssignmentRounded, path: '/app/admin/survey-operations', section: 'workspace', sectionOrder: 1, sortOrder: 60,
+    matchPrefixes: ['/app/surveys', '/app/surveyor-plans', '/app/surveyor-profiles', '/app/survey-services', '/app/survey-jobs', '/app/survey-quotations', '/app/survey-projects', '/app/survey-reports', '/app/survey-disputes', '/app/survey-promotions', '/app/surveyor-verifications'],
+  },
+  {
+    key: 'admin-documents-drive', label: 'Documents & Drive', icon: FolderRounded, path: '/app/admin/documents-drive', section: 'workspace', sectionOrder: 1, sortOrder: 70,
+    matchPrefixes: ['/app/documents', '/app/drive-admin'],
+  },
+  {
+    key: 'admin-communication', label: 'Communication', icon: MessageRounded, path: '/app/admin/communication', section: 'workspace', sectionOrder: 1, sortOrder: 80,
+    matchPrefixes: ['/app/notifications', '/app/messages', '/app/site-enquiries'],
+  },
+  {
+    key: 'admin-reports-analytics', label: 'Reports & Analytics', icon: AssessmentRounded, path: '/app/admin/reports-analytics', section: 'workspace', sectionOrder: 1, sortOrder: 90,
+    matchPrefixes: ['/app/reports'],
+  },
+  {
+    key: 'admin-platform-administration', label: 'Platform Administration', icon: SettingsRounded, path: '/app/admin/platform-administration', section: 'workspace', sectionOrder: 1, sortOrder: 100,
+    matchPrefixes: ['/app/site-admin', '/app/design-studio', '/app/settings', '/app/integration-settings', '/app/platform-modules', '/app/backup-recovery'],
+  },
+];
 const SUPER_ADMIN_CONTROL_CENTER: MenuDef = { key: 'super-admin', label: 'Super Admin', icon: SecurityRounded, path: '/app/super-admin', section: 'workspace', sectionOrder: 1, sortOrder: 10.0001 };
 const SURVEYOR_WORKFLOW_LABELS: Record<string, string> = {
   'surveyor-dashboard': 'Surveyor Workspace',
@@ -453,6 +489,7 @@ export default function AppShell() {
     return result;
   }, [appModules.length, designedMenu, hasLandlordSubscription, hasSurveyorSubscription, hasTenantSubscription, tenantSubscription.landlord, tenantSubscription.surveyor, user?.role]);
   const menu = useMemo(() => {
+    if (user?.role === 'admin') return ADMIN_MODULAR_MENU;
     const source = user?.role === 'tenant' && hasTenantSubscription
       ? placeDocumentVaultAfterDashboard(tenantCapabilityMenu)
       : isRegularTenant ? regularTenantMenu : placeDocumentVaultAfterDashboard(designedMenu);
@@ -497,6 +534,7 @@ export default function AppShell() {
     const [targetPath, targetSearch = ''] = String(item.path || `/app/${item.key}`).split('?');
     const currentPath = location.pathname === '/app' ? '/app/dashboard' : location.pathname;
     const normalizedTarget = targetPath === '/app' ? '/app/dashboard' : targetPath;
+    if (item.matchPrefixes?.some((prefix) => currentPath === prefix || currentPath.startsWith(`${prefix}/`))) return true;
     if (normalizedTarget !== currentPath
       && !(item.key === 'my-listings' && location.pathname.startsWith('/app/property-details/'))
       && !(item.key === 'tenancy-history' && location.pathname.startsWith('/app/property_tenancy_history/'))
