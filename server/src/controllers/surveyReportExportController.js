@@ -14,7 +14,7 @@ function escapeXml(value) { return String(value ?? '').replace(/[<>&'"]/g, (m) =
 async function loadReport(req) {
   const report = await SurveyReport.findById(req.params.id).populate('project').populate('client', 'name email phone').populate('surveyor', 'name email phone').lean();
   if (!report) throw new ApiError(404, 'Survey report not found');
-  if (req.user.role !== 'admin' && !sameId(report.surveyor, req.user._id) && !sameId(report.client, req.user._id)) throw new ApiError(403, 'Report access denied');
+  if (!['super_admin', 'admin'].includes(String(req.user.role || '').toLowerCase()) && !sameId(report.surveyor, req.user._id) && !sameId(report.client, req.user._id)) throw new ApiError(403, 'Report access denied');
   return report;
 }
 
