@@ -1153,7 +1153,7 @@ export async function getSuperAdminFinance() { return request<ApiResponse<Record
 export async function getSuperAdminSecurityEvents(limit = 50) { return request<ApiResponse<Record<string, any>>>(`/super-admin/security-events?limit=${limit}`, { cache: 'no-store' }); }
 export async function getSuperAdminSystemHealth() { return request<ApiResponse<Record<string, any>>>('/super-admin/system-health', { cache: 'no-store' }); }
 export async function getSuperAdminUserOverview(id: string) { return request<ApiResponse<Record<string, any>>>(`/super-admin/users/${encodeURIComponent(id)}/overview`, { cache: 'no-store' }); }
-export async function runSuperAdminUserAction(id: string, body: { action: string; reason: string; role?: string; confirmation?: string }) {
+export async function runSuperAdminUserAction(id: string, body: { action: string; reason: string; role?: string; confirmation?: string; currentPassword: string; twoFactorCode: string }) {
   return request<ApiResponse<Record<string, any>>>(`/super-admin/users/${encodeURIComponent(id)}/actions`, { method: 'POST', body: JSON.stringify(body) });
 }
 
