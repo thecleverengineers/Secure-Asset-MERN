@@ -216,37 +216,19 @@ export default function NotificationCenterPage() {
     data-secureasset-notification-center="premium-reference-v161"
     sx={{ width: '100%', maxWidth: 1320, mx: 'auto', px: { xs: 1.1, sm: 2, lg: 2.5 }, pb: { xs: 11, md: 5 }, fontFamily: '"Open Sans", sans-serif' }}
   >
-    <Box
-      sx={{
-        position: 'relative',
-        overflow: 'hidden',
-        minHeight: { xs: 154, md: 174 },
-        borderRadius: { xs: '18px', md: '20px' },
-        border: '1px solid rgba(24,91,124,.16)',
-        background: 'linear-gradient(112deg,#062F52 0%,#0A5676 50%,#064B65 100%)',
-        boxShadow: '0 18px 44px rgba(8,49,76,.16)',
-        mb: 1.7,
-      }}
-    >
-      <Box sx={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 78% 38%, rgba(54,166,229,.28), transparent 24%), radial-gradient(circle at 65% 110%, rgba(44,190,213,.20), transparent 38%)' }} />
-      <Box sx={{ position: 'absolute', right: { xs: -20, sm: 80, md: 150 }, top: { xs: 16, md: 18 }, opacity: .95 }}>
-        <Badge badgeContent={unread} color="error" max={99} sx={{ '& .MuiBadge-badge': { top: 8, right: 7, fontSize: 12, minWidth: 28, height: 28, borderRadius: '14px', fontWeight: 800, border: '2px solid rgba(255,255,255,.85)' } }}>
-          <Box sx={{ width: { xs: 92, md: 122 }, height: { xs: 92, md: 122 }, borderRadius: '50%', display: 'grid', placeItems: 'center', color: '#DDF4FF', background: 'radial-gradient(circle, rgba(91,192,255,.32), rgba(16,91,134,.04) 68%, transparent 70%)', filter: 'drop-shadow(0 14px 18px rgba(0,18,38,.28))' }}>
-            <NotificationsRounded sx={{ fontSize: { xs: 62, md: 82 } }} />
-          </Box>
-        </Badge>
+    <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" gap={1} sx={{ mb: 1.2, px: .2 }}>
+      <Box>
+        <Stack direction="row" alignItems="center" spacing={.8}>
+          <Typography sx={{ color: '#10283C', fontSize: { xs: 22, md: 27 }, fontWeight: 800, letterSpacing: '-.02em' }}>Notifications</Typography>
+          {unread > 0 && <Box sx={{ minWidth: 24, height: 24, px: .7, borderRadius: '12px', bgcolor: '#FF3864', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 800 }}>{unread}</Box>}
+        </Stack>
+        <Typography sx={{ mt: .35, color: '#728795', fontSize: { xs: 10.8, md: 11.5 } }}>Stay updated with important activities, approvals and workspace updates.</Typography>
       </Box>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ position: 'relative', px: { xs: 2, sm: 2.6, md: 3.1 }, py: { xs: 2.1, md: 2.7 }, minHeight: { xs: 154, md: 174 } }}>
-        <Box sx={{ maxWidth: { xs: '75%', sm: 520 } }}>
-          <Typography sx={{ color: '#fff', fontSize: { xs: 24, md: 30 }, fontWeight: 800, letterSpacing: '-.02em' }}>Notifications</Typography>
-          <Typography sx={{ mt: .7, color: 'rgba(255,255,255,.82)', fontSize: { xs: 11.5, md: 13 }, lineHeight: 1.55, maxWidth: 480 }}>Stay updated with important activities, approvals and updates across your SecureAsset workspace.</Typography>
-        </Box>
-        <Box sx={{ display: { xs: 'none', md: 'block' }, width: 180, color: '#fff', mr: 1 }}>
-          <Typography sx={{ fontSize: 12, fontWeight: 700, lineHeight: 1.5 }}>Real-time Updates<br />for a Safer<br />Property Ecosystem</Typography>
-          <Box sx={{ mt: 1.1, width: 30, height: 2, bgcolor: 'rgba(255,255,255,.6)' }} />
-        </Box>
+      <Stack direction="row" spacing={.75}>
+        <Tooltip title="Refresh"><span><IconButton onClick={() => void load()} disabled={loading} sx={{ width: 38, height: 38, borderRadius: '10px', border: '1px solid #DCE8EF', bgcolor: '#fff' }}><RefreshRounded sx={{ fontSize: 18 }} /></IconButton></span></Tooltip>
+        <Tooltip title="Notification preferences"><IconButton onClick={() => setPreferencesOpen(true)} sx={{ width: 38, height: 38, borderRadius: '10px', border: '1px solid #DCE8EF', bgcolor: '#fff' }}><TuneRounded sx={{ fontSize: 18 }} /></IconButton></Tooltip>
       </Stack>
-    </Box>
+    </Stack>
 
     <Stack direction="row" spacing={.8} sx={{ overflowX: 'auto', pb: .8, mb: .5, px: .1, '&::-webkit-scrollbar': { height: 4 }, '&::-webkit-scrollbar-thumb': { bgcolor: 'rgba(21,99,138,.18)', borderRadius: 99 } }}>
       {(Object.keys(filterLabels) as NotificationFilter[]).map((key) => (
