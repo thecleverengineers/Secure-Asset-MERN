@@ -969,7 +969,7 @@ export const listTenantApplications = asyncHandler(async (req, res) => {
 export const listOwnedProperties = asyncHandler(async (req, res) => {
   const config = resources.properties;
   await assertResourceAction('properties', req.user, 'view', config, ApiError);
-  if (req.user.role !== 'admin' && !capabilityRolesForUser(req.user).includes('landlord')) {
+  if (!['admin', 'super_admin'].includes(req.user.role) && !capabilityRolesForUser(req.user).includes('landlord')) {
     throw new ApiError(403, 'An active Landlord capability is required to view My Listings');
   }
   const pagination = listPagination(req);
@@ -1080,7 +1080,7 @@ export const updateResource = asyncHandler(async (req, res) => {
     throw new ApiError(422, 'Add a reason before rejecting this application');
   }
   if (req.params.resource === 'properties' && changes.visibility !== undefined) changes.visibility = normalizePropertyVisibility(changes.visibility);
-  if (req.params.resource === 'users' && req.user.role !== 'admin') delete changes.role;
+  if (req.params.resource === 'users' && !['admin', 'super_admin'].includes(req.user.role)) delete changes.role;
   if (req.user.role === 'surveyor' && req.params.resource === 'surveys') changes = pick(changes, ['responses', 'gps', 'photos', 'signatureUrl', 'notes', 'offlineId', 'syncStatus']);
   if (['tenant', 'user'].includes(req.user.role) && req.params.resource === 'complaints') changes = pick(changes, ['title', 'description', 'category', 'priority', 'attachments']);
   if (['tenant', 'user'].includes(req.user.role) && req.params.resource === 'applications') {
@@ -1196,7 +1196,7 @@ export const updateResource = asyncHandler(async (req, res) => {
       changes.status = 'pending_approval';
     }
   }
-  if (req.user.role === 'admin' && req.params.resource === 'properties') {
+  if (['admin', 'super_admin'].includes(req.user.role) && req.params.resource === 'properties') {
     // Admin approval is the only path that can move a landlord property into
     // the public marketplace. The admin may approve from the status action or
     // by setting publicationStatus directly in the property editor.
@@ -1215,7 +1215,7 @@ export const updateResource = asyncHandler(async (req, res) => {
       changes.publishedAt = undefined;
     }
   }
-  if (req.user.role === 'admin' && req.params.resource === 'surveyor-profiles' && changes.publicationStatus !== undefined) {
+  if (['admin', 'super_admin'].includes(req.user.role) && req.params.resource === 'surveyor-profiles' && changes.publicationStatus !== undefined) {
     changes.visibility = changes.publicationStatus === 'published' ? 'public' : 'private';
   }
   if (req.params.resource === 'properties' && !isLandlordActor(req.user) && changes.visibility !== undefined) {
@@ -1380,10 +1380,10 @@ export const updateResource = asyncHandler(async (req, res) => {
   if (req.params.resource === 'payments' && record.rentalInvoice) {
     throw new ApiError(403, 'Rental payment status is protected. Use the tenant submission and landlord approval actions.');
   }
-  if (req.params.resource === 'payments' && changes.status === 'paid' && ['landlord_subscription', 'surveyor_subscription', 'survey_advance', 'survey_milestone', 'survey_final', 'facility_booking'].includes(record.type) && req.user.role !== 'admin') {
+  if (req.params.resource === 'payments' && changes.status === 'paid' && ['landlord_subscription', 'surveyor_subscription', 'survey_advance', 'survey_milestone', 'survey_final', 'facility_booking'].includes(record.type) && !['admin', 'super_admin'].includes(req.user.role)) {
     throw new ApiError(403, 'Only an administrator or verified payment webhook can confirm this payment');
   }
-  if (req.params.resource === 'site-settings' && req.user.role === 'admin') synchroniseSiteBrandAssets(changes, previousValue);
+  if (req.params.resource === 'site-settings' && ['admin', 'super_admin'].includes(req.user.role)) synchroniseSiteBrandAssets(changes, previousValue);
   if (changes.password && req.params.resource === 'users') record.password = changes.password;
   if (req.params.resource === 'applications' && changes.status === 'approved') { changes.acceptedAt = new Date(); changes.acceptedBy = req.user._id; }
   if (req.params.resource === 'applications' && changes.status === 'rejected') { changes.rejectedAt = new Date(); changes.rejectionReason = changes.remarks || req.body.comment || req.body.remarks; }
@@ -1505,10 +1505,10 @@ export const changeStatus = asyncHandler(async (req, res) => {
   }
   if (req.params.resource === 'properties') {
     const approvalStatuses = new Set(['available', 'partially_occupied', 'occupied', 'reserved', 'rented', 'sold', 'leased', 'maintenance', 'unavailable', 'inactive']);
-    if (req.user.role !== 'admin' && record.status === 'pending_approval' && status !== 'pending_approval') {
+    if (!['admin', 'super_admin'].includes(req.user.role) && record.status === 'pending_approval' && status !== 'pending_approval') {
       throw new ApiError(403, 'Only an administrator can approve this property for marketplace publication');
     }
-    if (req.user.role === 'admin' && approvalStatuses.has(status) && record.visibility === 'public') {
+    if (['admin', 'super_admin'].includes(req.user.role) && approvalStatuses.has(status) && record.visibility === 'public') {
       record.publicationStatus = 'published'; record.publishedAt = new Date();
       record.publicListingApproval = {
         status: 'approved',
@@ -1523,7 +1523,7 @@ export const changeStatus = asyncHandler(async (req, res) => {
       record.publicationStatus = status === 'archived' ? 'archived' : 'draft'; record.publishedAt = undefined;
     }
   }
-  if (req.params.resource === 'payments' && status === 'paid' && ['landlord_subscription', 'surveyor_subscription', 'survey_advance', 'survey_milestone', 'survey_final', 'facility_booking'].includes(record.type) && req.user.role !== 'admin') {
+  if (req.params.resource === 'payments' && status === 'paid' && ['landlord_subscription', 'surveyor_subscription', 'survey_advance', 'survey_milestone', 'survey_final', 'facility_booking'].includes(record.type) && !['admin', 'super_admin'].includes(req.user.role)) {
     throw new ApiError(403, 'Only an administrator or verified payment webhook can confirm this payment');
   }
   if (req.params.resource === 'applications') {
@@ -1580,7 +1580,7 @@ export const changeStatus = asyncHandler(async (req, res) => {
     record.activity.push({ kind: status === 'approved' ? 'accepted' : status === 'rejected' ? 'rejected' : 'status_changed', title: status === 'approved' ? 'Application accepted' : status === 'rejected' ? 'Application rejected' : `Application moved to ${status.replaceAll('_', ' ')}`, detail: status === 'rejected' ? record.rejectionReason : String(req.body.comment || ''), actor: req.user._id, audience: 'all', at: new Date() });
   }
   if (req.params.resource === 'payments' && status === 'paid') { record.paidAt = new Date(); record.paidAmount = record.amount; }
-  if (req.params.resource === 'survey-services' && req.user.role === 'admin') {
+  if (req.params.resource === 'survey-services' && ['admin', 'super_admin'].includes(req.user.role)) {
     record.moderation = { status: status === 'published' ? 'approved' : status === 'unpublished' ? 'rejected' : record.moderation?.status, reviewedBy: req.user._id, reason: req.body.comment, reviewedAt: new Date() };
     if (status === 'published') record.visibility = 'public';
   }
