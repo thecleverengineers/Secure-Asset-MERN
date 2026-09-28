@@ -8,13 +8,13 @@ const objectIdString = (value) => value ? String(value._id || value) : '';
 
 async function relatedContactIds(user) {
   const userId = user._id;
-  if (['admin', 'manager'].includes(user.role)) {
+  if (['super_admin', 'admin', 'manager'].includes(user.role)) {
     const rows = await User.find({ _id: { $ne: userId }, status: 'active' }).select('_id').lean();
     return new Set(rows.map((row) => String(row._id)));
   }
   const ids = new Set();
   const [support, conversations, applications, tenancies, visits, properties, projects, jobs, quotations] = await Promise.all([
-    User.find({ role: { $in: ['admin', 'manager'] }, status: 'active' }).select('_id').lean(),
+    User.find({ role: { $in: ['super_admin', 'admin', 'manager'] }, status: 'active' }).select('_id').lean(),
     Conversation.find({ participants: userId }).select('participants').lean(),
     Application.find({ $or: [{ applicant: userId }, { landlord: userId }] }).select('applicant landlord').lean(),
     Tenancy.find({ $or: [{ tenant: userId }, { landlord: userId }] }).select('tenant landlord').lean(),
@@ -51,7 +51,7 @@ export async function listMessagingContactsForUser(user, search = '') {
 }
 
 export async function assertMessagingParticipants(user, participantIds) {
-  if (['admin', 'manager'].includes(user.role)) return;
+  if (['super_admin', 'admin', 'manager'].includes(user.role)) return;
   const allowed = await relatedContactIds(user);
   const denied = participantIds.filter((id) => String(id) !== String(user._id) && !allowed.has(String(id)));
   if (denied.length) throw new ApiError(403, 'You can only start conversations with users connected to your property, tenancy, survey, application or support workflow');
