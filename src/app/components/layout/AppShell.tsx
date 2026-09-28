@@ -1,4 +1,4 @@
-import { Fragment, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import {
   AppBar, Avatar, Badge, Box, BottomNavigation, BottomNavigationAction, Button, DialogContent, Divider, Drawer,
@@ -57,7 +57,7 @@ import KeyboardArrowDownRounded from '@mui/icons-material/KeyboardArrowDownRound
 import KeyboardArrowUpRounded from '@mui/icons-material/KeyboardArrowUpRounded';
 import PaletteRounded from '@mui/icons-material/PaletteRounded';
 import HomeRounded from '@mui/icons-material/HomeRounded';
-import FavoriteRounded from '@mui/icons-material/FavoriteRounded';
+import FavoriteBorderRounded from '@mui/icons-material/FavoriteBorderRounded';
 import AdminPanelSettingsRounded from '@mui/icons-material/AdminPanelSettingsRounded';
 import { LogoMark } from '../premium/LogoMark';
 import { useAuth } from '../../context/AuthContext';
@@ -317,12 +317,6 @@ function configuredModuleLabel(module: Record<string, any>) {
 
 function landlordFeatureLabel(key: string, fallback: string) {
   return LANDLORD_FEATURE_LABELS[key] || fallback;
-}
-
-function configuredBottomIcon(design: any, key: string, fallback: ReactNode) {
-  const assets = design?.iconAssets?.bottomAppBar || {};
-  const source = String(assets[key] || assets[key.replace(/^mobile-/, '')] || '').trim();
-  return source ? <Box component="img" src={source} alt="" aria-hidden="true" sx={{ width: design.bottomAppBar.iconSize, height: design.bottomAppBar.iconSize, objectFit: 'contain' }} /> : fallback;
 }
 
 export default function AppShell() {
@@ -682,34 +676,22 @@ export default function AppShell() {
   );
 
   const width = collapsed ? collapsedWidth : drawerWidth;
-  const mobilePropertyPath = menu.some((item) => item.key === 'properties') ? '/app/properties' : menu.some((item) => item.key === 'my-property') ? '/app/my-property' : menu.some((item) => item.key === 'marketplace') ? '/marketplace' : '/app/dashboard';
-  const mobileBottomItems = user?.role === 'tenant' && hasLandlordSubscription
-    ? [
-      { key: 'mobile-home', label: 'Home', path: '/app/dashboard', icon: HomeRounded },
-      { key: 'mobile-listings', label: 'Listings', path: '/app/my-listings', icon: ApartmentRounded },
-      { key: 'mobile-applications', label: 'Applications', path: '/app/applications', icon: FactCheckRounded },
-      { key: 'mobile-tenancies', label: 'Tenancies', path: '/app/tenancies', icon: HomeWorkRounded },
-      { key: 'mobile-profile', label: 'Account', path: '/app/profile', icon: PersonRounded },
-    ]
-    : user?.role === 'tenant'
-    ? [
-      { key: 'mobile-home', label: 'Home', path: '/app/dashboard', icon: HomeRounded },
-      { key: 'mobile-explore', label: 'Explore', path: '/marketplace', icon: ExploreRounded },
-      { key: 'mobile-vault', label: 'Vault', path: '/app/documents', icon: FolderRounded },
-      { key: 'mobile-wishlist', label: 'Wishlist', path: '/app/wishlist', icon: FavoriteRounded },
-      { key: 'mobile-profile', label: 'Profile', path: '/app/profile', icon: PersonRounded },
-    ]
-    : [
-      { key: 'mobile-home', label: 'Home', path: '/app/dashboard', icon: HomeRounded },
-      { key: 'mobile-vault', label: 'Vault', path: '/app/documents', icon: FolderRounded },
-      { key: 'mobile-property', label: 'Property', path: mobilePropertyPath, icon: ApartmentRounded },
-      { key: 'mobile-account', label: 'Account', path: '/app/profile', icon: PersonRounded },
-    ];
-  const mobileBottomValue = user?.role === 'tenant' && hasLandlordSubscription
-    ? location.pathname.startsWith('/app/my-listings') || location.pathname.startsWith('/app/property-details') ? 'mobile-listings' : location.pathname.startsWith('/app/applications') ? 'mobile-applications' : location.pathname.startsWith('/app/tenancies') || location.pathname.startsWith('/app/tenancy_details') ? 'mobile-tenancies' : location.pathname.startsWith('/app/profile') || location.pathname.startsWith('/app/documents') || location.pathname.startsWith('/app/notifications') || location.pathname.startsWith('/app/security') ? 'mobile-profile' : 'mobile-home'
-    : user?.role === 'tenant'
-    ? location.pathname.startsWith('/app/documents') ? 'mobile-vault' : location.pathname.startsWith('/app/wishlist') ? 'mobile-wishlist' : location.pathname.startsWith('/marketplace') ? 'mobile-explore' : location.pathname.startsWith('/app/profile') ? 'mobile-profile' : 'mobile-home'
-    : location.pathname.startsWith('/app/documents') ? 'mobile-vault' : location.pathname.startsWith('/app/property') || location.pathname.startsWith('/app/my-property') || location.pathname.startsWith('/marketplace') ? 'mobile-property' : location.pathname.startsWith('/app/profile') ? 'mobile-account' : 'mobile-home';
+  const mobileBottomItems = [
+    { key: 'mobile-home', label: 'Home', path: '/app/dashboard', icon: HomeRounded },
+    { key: 'mobile-explore', label: 'Explore', path: '/marketplace', icon: ExploreRounded },
+    { key: 'mobile-wishlist', label: 'Wishlist', path: '/wishlist', icon: FavoriteBorderRounded },
+    { key: 'mobile-vault', label: 'Vault', path: '/app/documents', icon: FolderRounded },
+    { key: 'mobile-account', label: 'Account', path: '/app/profile', icon: PersonRounded },
+  ];
+  const mobileBottomValue = location.pathname.startsWith('/marketplace')
+    ? 'mobile-explore'
+    : location.pathname.startsWith('/wishlist') || location.pathname.startsWith('/app/wishlist')
+      ? 'mobile-wishlist'
+      : location.pathname.startsWith('/app/documents')
+        ? 'mobile-vault'
+        : location.pathname.startsWith('/app/profile') || location.pathname.startsWith('/app/security')
+          ? 'mobile-account'
+          : 'mobile-home';
   const currentModule = menu.find((item) => isItemActive(item)) || menu.find((item) => item.key === currentKey);
   const pageTitle = currentModule?.label || moduleLabel(currentKey);
   const canAddProperty = ['admin', 'manager', 'landlord'].includes(String(user?.role)) || hasLandlordSubscription;
@@ -791,7 +773,7 @@ export default function AppShell() {
       <BottomNavigation
         component="nav"
         aria-label="Mobile app navigation"
-        className="sa-app-bottom-navigation sa-global-mobile-bottom-navigation sa-premium-bottom-appbar"
+        className="sa-app-bottom-navigation sa-global-mobile-bottom-navigation"
         value={mobileBottomValue}
         onChange={(_e, value) => {
           const item = mobileBottomItems.find((candidate) => candidate.key === value);
@@ -799,104 +781,96 @@ export default function AppShell() {
         }}
         showLabels
         sx={{
+          display: { xs: 'flex', md: 'none' },
           position: 'fixed',
-          left: { xs: 12, sm: 18 },
-          right: { xs: 12, sm: 18 },
-          bottom: { xs: 'max(10px, env(safe-area-inset-bottom))', sm: 12 },
-          zIndex: theme.zIndex.appBar,
-          height: { xs: 68, sm: 72 },
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: theme.zIndex.appBar + 2,
+          height: 'calc(66px + env(safe-area-inset-bottom))',
           minHeight: 0,
-          border: '1px solid rgba(188, 211, 229, .78)',
-          borderRadius: '22px !important',
+          bgcolor: '#FFFFFF',
+          borderTop: '1px solid #EEF2F6',
+          borderRadius: '0 !important',
+          p: 0,
+          pb: 'env(safe-area-inset-bottom)',
           overflow: 'visible',
-          bgcolor: 'rgba(255,255,255,.94)',
-          opacity: 1,
-          p: { xs: '6px 5px', sm: '7px 8px' },
-          backdropFilter: 'blur(22px) saturate(165%)',
-          WebkitBackdropFilter: 'blur(22px) saturate(165%)',
-          boxShadow: '0 14px 36px rgba(16,49,83,.14), 0 2px 8px rgba(0,159,144,.06), inset 0 1px 0 rgba(255,255,255,.92)',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            inset: '0 12%',
-            top: -1,
-            height: 1,
-            background: 'linear-gradient(90deg, transparent, rgba(0,159,144,.48), transparent)',
-          },
+          boxShadow: '0 -6px 20px rgba(15, 23, 42, 0.07)',
+          fontFamily: '"Open Sans", sans-serif',
           '& .MuiBottomNavigationAction-root': {
-            color: '#7185A5 !important',
+            position: 'relative',
+            flex: 1,
             minWidth: 0,
             maxWidth: 'none',
-            px: { xs: .35, sm: .75 },
-            py: .35,
-            mx: { xs: .1, sm: .25 },
+            px: 0.5,
+            pt: 0.75,
+            pb: 0.45,
+            mx: 0,
             my: 0,
-            borderRadius: '15px !important',
-            position: 'relative',
-            transition: 'color .18s ease, background-color .18s ease, transform .18s ease',
+            color: '#243247',
+            borderRadius: '0 !important',
+            fontFamily: '"Open Sans", sans-serif',
+            transition: 'color .18s ease',
           },
           '& .MuiBottomNavigationAction-root:hover': {
-            color: '#0B2057 !important',
-            bgcolor: 'rgba(238,245,253,.84)',
+            color: '#243247',
+            bgcolor: 'transparent',
           },
           '& .MuiBottomNavigationAction-root.Mui-selected': {
-            color: '#087F76 !important',
-            bgcolor: 'rgba(238,248,248,.94)',
-            transform: 'translateY(-1px)',
+            color: '#0AA889',
+            bgcolor: 'transparent',
+            transform: 'none',
           },
-          '& .MuiBottomNavigationAction-root.Mui-selected::before': {
+          '& .MuiBottomNavigationAction-root::after': {
             content: '""',
             position: 'absolute',
-            left: '24%',
-            right: '24%',
-            top: -7,
+            left: '31%',
+            right: '31%',
+            bottom: 3,
             height: 3,
-            borderRadius: '0 0 999px 999px',
-            background: 'linear-gradient(90deg,#00B391,#007C8A)',
-            boxShadow: '0 2px 8px rgba(0,159,144,.25)',
+            borderRadius: 0,
+            bgcolor: 'transparent',
+            transition: 'background-color .18s ease',
+          },
+          '& .MuiBottomNavigationAction-root.Mui-selected::after': {
+            bgcolor: '#0AA889',
           },
           '& .MuiBottomNavigationAction-root .MuiSvgIcon-root': {
-            fontSize: { xs: 21, sm: 22 },
-            transition: 'transform .18s ease, filter .18s ease',
-          },
-          '& .MuiBottomNavigationAction-root.Mui-selected .MuiSvgIcon-root': {
-            transform: 'scale(1.08)',
-            filter: 'drop-shadow(0 3px 6px rgba(0,159,144,.14))',
-          },
-          '& .MuiBottomNavigationAction-root > img': {
-            width: { xs: 21, sm: 22 },
-            height: { xs: 21, sm: 22 },
-            objectFit: 'contain',
+            fontSize: 25,
+            transform: 'none',
+            filter: 'none',
           },
           '& .MuiBottomNavigationAction-label': {
             display: 'block !important',
             visibility: 'visible !important',
             opacity: '1 !important',
             transform: 'none !important',
+            mt: 0.1,
             color: 'inherit !important',
-            fontSize: { xs: '9.25px !important', sm: '9.75px !important' },
-            fontWeight: '500 !important',
+            fontFamily: '"Open Sans", sans-serif !important',
+            fontSize: '10.5px !important',
             lineHeight: 1.15,
-            mt: .35,
-            letterSpacing: '-.01em',
+            fontWeight: '600 !important',
+            letterSpacing: 0,
             whiteSpace: 'nowrap',
           },
           '& .MuiBottomNavigationAction-root.Mui-selected .MuiBottomNavigationAction-label': {
-            color: '#0B2057 !important',
+            color: '#0AA889 !important',
             fontWeight: '600 !important',
           },
         }}
       >
         {mobileBottomItems.map((item) => {
           const Icon = item.icon;
-          return <BottomNavigationAction
-            key={item.key}
-            value={item.key}
-            label={item.label}
-            aria-label={item.label}
-            onClick={() => { navigate(item.path); setMobileOpen(false); }}
-            icon={configuredBottomIcon(design, item.key, <Icon />)}
-          />;
+          return (
+            <BottomNavigationAction
+              key={item.key}
+              value={item.key}
+              label={item.label}
+              aria-label={item.label}
+              icon={<Icon />}
+            />
+          );
         })}
       </BottomNavigation>
 
