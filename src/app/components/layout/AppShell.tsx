@@ -677,11 +677,11 @@ export default function AppShell() {
 
   const width = collapsed ? collapsedWidth : drawerWidth;
   const mobileBottomItems = [
-    { key: 'mobile-home', label: 'Home', path: '/app/dashboard', icon: HomeRounded },
-    { key: 'mobile-explore', label: 'Explore', path: '/marketplace', icon: ExploreRounded },
-    { key: 'mobile-wishlist', label: 'Wishlist', path: '/wishlist', icon: FavoriteBorderRounded },
-    { key: 'mobile-vault', label: 'Vault', path: '/app/documents', icon: FolderRounded },
-    { key: 'mobile-account', label: 'Account', path: '/app/profile', icon: PersonRounded },
+    { key: 'mobile-home', label: 'Home', path: '/app/dashboard', iconUrl: 'https://img.icons8.com/fluency/48/home.png', accent: '#2563EB', hover: '#EFF6FF' },
+    { key: 'mobile-explore', label: 'Explore', path: '/marketplace', iconUrl: 'https://img.icons8.com/fluency/48/compass.png', accent: '#F97316', hover: '#FFF7ED' },
+    { key: 'mobile-wishlist', label: 'Wishlist', path: '/wishlist', iconUrl: 'https://img.icons8.com/fluency/48/heart.png', accent: '#EC4899', hover: '#FDF2F8' },
+    { key: 'mobile-vault', label: 'Vault', path: '/app/documents', iconUrl: 'https://img.icons8.com/fluency/48/security-shield.png', accent: '#059669', hover: '#ECFDF5' },
+    { key: 'mobile-account', label: 'Account', path: '/app/profile', iconUrl: 'https://img.icons8.com/fluency/48/user-male-circle.png', accent: '#7C3AED', hover: '#F5F3FF' },
   ];
   const mobileBottomValue = location.pathname.startsWith('/marketplace')
     ? 'mobile-explore'
@@ -807,19 +807,9 @@ export default function AppShell() {
             pb: 0.45,
             mx: 0,
             my: 0,
-            color: '#243247',
             borderRadius: '0 !important',
             fontFamily: '"Open Sans", sans-serif',
-            transition: 'color .18s ease',
-          },
-          '& .MuiBottomNavigationAction-root:hover': {
-            color: '#243247',
-            bgcolor: 'transparent',
-          },
-          '& .MuiBottomNavigationAction-root.Mui-selected': {
-            color: '#0AA889',
-            bgcolor: 'transparent',
-            transform: 'none',
+            transition: 'color .18s ease, background-color .18s ease',
           },
           '& .MuiBottomNavigationAction-root::after': {
             content: '""',
@@ -831,14 +821,6 @@ export default function AppShell() {
             borderRadius: 0,
             bgcolor: 'transparent',
             transition: 'background-color .18s ease',
-          },
-          '& .MuiBottomNavigationAction-root.Mui-selected::after': {
-            bgcolor: '#0AA889',
-          },
-          '& .MuiBottomNavigationAction-root .MuiSvgIcon-root': {
-            fontSize: 25,
-            transform: 'none',
-            filter: 'none',
           },
           '& .MuiBottomNavigationAction-label': {
             display: 'block !important',
@@ -854,24 +836,24 @@ export default function AppShell() {
             letterSpacing: 0,
             whiteSpace: 'nowrap',
           },
-          '& .MuiBottomNavigationAction-root.Mui-selected .MuiBottomNavigationAction-label': {
-            color: '#0AA889 !important',
-            fontWeight: '600 !important',
-          },
         }}
       >
-        {mobileBottomItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <BottomNavigationAction
-              key={item.key}
-              value={item.key}
-              label={item.label}
-              aria-label={item.label}
-              icon={<Icon />}
-            />
-          );
-        })}
+        {mobileBottomItems.map((item) => (
+          <BottomNavigationAction
+            key={item.key}
+            value={item.key}
+            label={item.label}
+            aria-label={item.label}
+            icon={<Box component="img" src={item.iconUrl} alt="" aria-hidden="true" sx={{ width: 25, height: 25, objectFit: 'contain' }} />}
+            sx={{
+              color: mobileBottomValue === item.key ? item.accent : '#334155',
+              '&:hover': { color: item.accent, bgcolor: item.hover },
+              '&.Mui-selected': { color: item.accent, bgcolor: item.hover, transform: 'none' },
+              '&.Mui-selected::after': { bgcolor: item.accent },
+              '& .MuiBottomNavigationAction-label': { color: 'inherit !important' },
+            }}
+          />
+        ))}
       </BottomNavigation>
 
       <Tooltip title={moduleError || 'Help & support'}><IconButton aria-label="Open help and support" onClick={() => navigate('/contact')} sx={{ position: 'fixed', right: { xs: 20, md: 26 }, bottom: { xs: 94, md: 26 }, bgcolor: 'primary.main', color: 'primary.contrastText', border: '1px solid rgba(255,255,255,.30)', boxShadow: '0 12px 28px rgba(7,46,59,.20)', '&:hover': { bgcolor: 'primary.dark' } }}><HelpOutlineRounded fontSize="small" /></IconButton></Tooltip>
