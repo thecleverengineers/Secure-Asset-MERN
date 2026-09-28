@@ -79,7 +79,7 @@ export default function ResetPasswordPage() {
             <Button className="sa-submit-button" component={Link} to="/auth/login?reset=success" variant="contained" size="large">Continue to sign in</Button>
           </Stack>
         ) : (
-          <Box component="form" className="sa-login-form sa-reset-form" onSubmit={submit}>
+          <Box component="form" className="sa-login-form sa-reset-form" noValidate onSubmit={submit}>
             <Stack spacing={1.7}>
               <TextField
                 className="sa-login-field"

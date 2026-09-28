@@ -159,7 +159,7 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
         </Stack>
         <Typography className="sa-login-title">{titles[mode]}</Typography><Typography className="sa-login-subtitle">{subtitles[mode]}</Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}{message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
-        <Box component="form" className="sa-login-form" onSubmit={submit}><Stack spacing={1.7}>
+        <Box component="form" className="sa-login-form" noValidate onSubmit={submit}><Stack spacing={1.7}>
           {mode === 'login' && identifierField}
           {mode === 'login' && passwordField()}
           {mode === 'login' && <Stack direction="row" justifyContent="flex-end" sx={{ mt: -.65 }}><MuiLink className="sa-login-forgot" data-secureasset-forgot-password-link="dedicated-reset-v160" href="/auth/reset-password" underline="none">Forgot password?</MuiLink></Stack>}

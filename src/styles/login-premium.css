@@ -391,18 +391,47 @@
   background: #fff;
   transition: none;
 }
-.sa-login-field .MuiOutlinedInput-notchedOutline { border-color: #cfdbe5; }
-.sa-login-field .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline { border-color: #cfdbe5; }
-.sa-login-field .MuiOutlinedInput-root.Mui-focused {
-  background: #fff;
-  box-shadow: none;
+.sa-login-field .MuiOutlinedInput-root,
+.sa-login-field .MuiOutlinedInput-root:hover,
+.sa-login-field .MuiOutlinedInput-root.Mui-focused,
+.sa-login-field .MuiOutlinedInput-root.Mui-error {
+  background: #fff !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
-.sa-login-field .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #cfdbe5;
-  border-width: 1px;
+.sa-login-field .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline,
+.sa-login-field .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline,
+.sa-login-field .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline,
+.sa-login-field .MuiOutlinedInput-root.Mui-error .MuiOutlinedInput-notchedOutline {
+  border-color: #cfdbe5 !important;
+  border-width: 1px !important;
 }
-.sa-login-field .MuiInputLabel-root { color: #677993; font-size: 12px; }
-.sa-login-field .MuiInputLabel-root.Mui-focused { color: #677993; }
+.sa-login-field .MuiInputLabel-root,
+.sa-login-field .MuiInputLabel-root.Mui-focused,
+.sa-login-field .MuiInputLabel-root.Mui-error {
+  color: #677993 !important;
+  font-size: 12px;
+}
+.sa-login-field input,
+.sa-login-field input:hover,
+.sa-login-field input:focus,
+.sa-login-field input:focus-visible,
+.sa-login-field input:active,
+.sa-login-field input:invalid {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.sa-login-field input:-webkit-autofill,
+.sa-login-field input:-webkit-autofill:hover,
+.sa-login-field input:-webkit-autofill:focus,
+.sa-login-field input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  -webkit-text-fill-color: #18282d !important;
+  caret-color: #18282d !important;
+  border-radius: inherit !important;
+  transition: background-color 9999s ease-out 0s;
+}
 .sa-login-field .MuiInputAdornment-root .MuiSvgIcon-root { color: #6e8199; font-size: 20px; }
 .sa-login-field .MuiFormHelperText-root { color: #7b8aa0; font-size: 9px; }
 .sa-login-forgot {
@@ -487,7 +516,8 @@
 .sa-auth-protection-title.MuiTypography-root { color: #15344f; font-size: 10.5px; font-weight: 700; }
 .sa-auth-protection-copy.MuiTypography-root { margin-top: 2px; color: #72839a; font-size: 9.5px; line-height: 1.45; }
 .sa-auth-support-copy.MuiTypography-root { margin-top: 12px; color: #8b98aa; font-size: 9px; text-align: center; }
-.sa-login-panel :is(button,a,input):focus-visible { outline: 2px solid #0bb8a4; outline-offset: 3px; }
+.sa-login-panel :is(button,a):focus-visible { outline: 2px solid #0bb8a4; outline-offset: 3px; }
+.sa-login-panel input:focus-visible { outline: none !important; }
 
 .sa-reset-form .sa-reset-otp input {
   text-align: center;
