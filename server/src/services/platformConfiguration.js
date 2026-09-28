@@ -273,21 +273,21 @@ export async function getApplicationNavigation(user) {
     if (String(user?.role || '').toLowerCase() === 'landlord' && !LANDLORD_SIDEBAR_KEYS.has(module.key)) continue;
     const landlordWorkspace = effectiveRole === 'landlord' || (String(user?.role || '').toLowerCase() === 'tenant' && (user?.landlordEnabled || String(user?.activeMode || '').toLowerCase() === 'landlord'));
     if (landlordWorkspace && LANDLORD_RETIRED_SURVEY_MODULE_KEYS.has(module.key)) continue;
-    if (effectiveRole === 'admin' && (ADMIN_HIDDEN_SIDEBAR_KEYS.has(module.key) || ['landlords', 'manage landlords'].includes(normalizedLabel))) continue;
-    if (module.featureFlag && !user.customPermissions?.includes(module.featureFlag) && effectiveRole !== 'admin') continue;
+    if (['super_admin', 'admin'].includes(effectiveRole) && (ADMIN_HIDDEN_SIDEBAR_KEYS.has(module.key) || ['landlords', 'manage landlords'].includes(normalizedLabel))) continue;
+    if (module.featureFlag && !user.customPermissions?.includes(module.featureFlag) && !['super_admin', 'admin'].includes(effectiveRole)) continue;
     if (await canAccessPlatformModule(module, user)) visible.push(module);
   }
   // Document Vault is an admin platform surface, not an optional menu item.
   // Recover it from the release defaults when an older/custom catalog has
   // disabled or omitted its record so admins never lose the secure drive link.
-  if (effectiveRole === 'admin' && !visible.some((module) => module.key === 'documents')) {
+  if (['super_admin', 'admin'].includes(effectiveRole) && !visible.some((module) => module.key === 'documents')) {
     const fallback = DEFAULT_PLATFORM_MODULES.find((module) => module.scope === 'app' && module.key === 'documents');
     if (fallback) visible.unshift({
       ...fallback,
       enabled: true,
-      roles: ['admin'],
+      roles: effectiveRole === 'super_admin' ? ['super_admin', 'admin'] : ['admin'],
       modes: ['regular'],
-      accessRules: [{ roles: ['admin'], modes: ['regular'] }],
+      accessRules: [{ roles: effectiveRole === 'super_admin' ? ['super_admin', 'admin'] : ['admin'], modes: ['regular'] }],
       metadata: { ...(fallback.metadata || {}), sidebarVisible: true, adminWorkspaceManaged: true },
     });
   }
