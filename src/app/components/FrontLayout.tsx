@@ -221,6 +221,14 @@ export default function FrontLayout() {
     return 'home';
   }, [location.pathname]);
 
+  const mobileBottomItems = [
+    { key: 'home', label: 'Home', path: '/', iconUrl: 'https://img.icons8.com/fluency/48/home.png', accent: '#2563EB', hover: '#EFF6FF' },
+    { key: 'explore', label: 'Explore', path: '/marketplace', iconUrl: 'https://img.icons8.com/fluency/48/compass.png', accent: '#F97316', hover: '#FFF7ED' },
+    { key: 'wishlist', label: 'Wishlist', path: '/wishlist', iconUrl: 'https://img.icons8.com/fluency/48/heart.png', accent: '#EC4899', hover: '#FDF2F8' },
+    { key: 'vault', label: 'Vault', path: currentUser ? '/app/documents' : '/auth/login', iconUrl: 'https://img.icons8.com/fluency/48/security-shield.png', accent: '#059669', hover: '#ECFDF5' },
+    { key: 'account', label: 'Account', path: currentUser ? '/app/profile' : '/auth/login', iconUrl: 'https://img.icons8.com/fluency/48/user-male-circle.png', accent: '#7C3AED', hover: '#F5F3FF' },
+  ];
+
   const go = (path: string) => {
     navigate(path);
     setOpen(false);
@@ -406,14 +414,8 @@ export default function FrontLayout() {
         showLabels
         value={activeMobile}
         onChange={(_event, value) => {
-          const paths: Record<string, string> = {
-            home: '/',
-            explore: '/marketplace',
-            wishlist: '/wishlist',
-            vault: currentUser ? '/app/documents' : '/auth/login',
-            account: currentUser ? '/app/profile' : '/auth/login',
-          };
-          if (paths[value]) navigate(paths[value]);
+          const item = mobileBottomItems.find((candidate) => candidate.key === value);
+          if (item) navigate(item.path);
         }}
         sx={{
           display: { xs: 'flex', md: 'none' },
@@ -437,13 +439,9 @@ export default function FrontLayout() {
             px: 0.5,
             pt: 0.75,
             pb: 0.45,
-            color: '#243247',
+            borderRadius: '0 !important',
             fontFamily: '"Open Sans", sans-serif',
-            transition: 'color .18s ease',
-            '& .MuiSvgIcon-root': {
-              fontSize: 25,
-              strokeWidth: 1.5,
-            },
+            transition: 'color .18s ease, background-color .18s ease',
             '&::after': {
               content: '""',
               position: 'absolute',
@@ -454,12 +452,6 @@ export default function FrontLayout() {
               borderRadius: 0,
               bgcolor: 'transparent',
               transition: 'background-color .18s ease',
-            },
-            '&.Mui-selected': {
-              color: '#0AA889',
-            },
-            '&.Mui-selected::after': {
-              bgcolor: '#0AA889',
             },
           },
           '& .MuiBottomNavigationAction-label': {
@@ -476,31 +468,22 @@ export default function FrontLayout() {
           },
         }}
       >
-        <BottomNavigationAction
-          value="home"
-          label="Home"
-          icon={<HomeRoundedIcon />}
-        />
-        <BottomNavigationAction
-          value="explore"
-          label="Explore"
-          icon={<ExploreRoundedIcon />}
-        />
-        <BottomNavigationAction
-          value="wishlist"
-          label="Wishlist"
-          icon={<FavoriteBorderRoundedIcon />}
-        />
-        <BottomNavigationAction
-          value="vault"
-          label="Vault"
-          icon={<FolderRoundedIcon />}
-        />
-        <BottomNavigationAction
-          value="account"
-          label="Account"
-          icon={<PersonRoundedIcon />}
-        />
+        {mobileBottomItems.map((item) => (
+          <BottomNavigationAction
+            key={item.key}
+            value={item.key}
+            label={item.label}
+            aria-label={item.label}
+            icon={<Box component="img" src={item.iconUrl} alt="" aria-hidden="true" sx={{ width: 25, height: 25, objectFit: 'contain' }} />}
+            sx={{
+              color: activeMobile === item.key ? item.accent : '#334155',
+              '&:hover': { color: item.accent, bgcolor: item.hover },
+              '&.Mui-selected': { color: item.accent, bgcolor: item.hover },
+              '&.Mui-selected::after': { bgcolor: item.accent },
+              '& .MuiBottomNavigationAction-label': { color: 'inherit !important' },
+            }}
+          />
+        ))}
       </BottomNavigation>
     </Box>
   );
