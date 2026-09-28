@@ -7,7 +7,7 @@ const TENANT_ACTIONS = ['view', 'create', 'edit', 'delete', 'download'];
 const LANDLORD_ACTIONS = ['view', 'create', 'edit', 'delete', 'approve', 'export', 'download', 'notify'];
 const SURVEYOR_ACTIONS = ['view', 'create', 'edit', 'download'];
 
-export const ROLE_KEYS = Object.freeze(['admin', 'landlord', 'tenant', 'surveyor']);
+export const ROLE_KEYS = Object.freeze(['super_admin', 'admin', 'landlord', 'tenant', 'surveyor']);
 export const LEGACY_ROLE_KEYS = Object.freeze(['manager', 'user']);
 
 const rolePermissionCache = new Map();
@@ -37,6 +37,7 @@ export function clearRolePermissionCache(role) {
 export function getEffectiveRole(user = {}) {
   const role = String(user.role || 'tenant').toLowerCase();
   const mode = String(user.activeMode || 'regular').toLowerCase();
+  if (role === 'super_admin') return 'super_admin';
   if (role === 'admin') return 'admin';
   if (role === 'landlord') return 'landlord';
   if (role === 'surveyor') return 'surveyor';
@@ -74,7 +75,9 @@ export function roleMatchesRule(user, rule = {}) {
   const mode = getEffectiveMode(user);
   const roles = Array.isArray(rule.roles) ? rule.roles.map((item) => String(item).toLowerCase()) : [];
   const modes = Array.isArray(rule.modes) ? rule.modes.map((item) => String(item).toLowerCase()) : [];
-  const roleAllowed = !roles.length || roles.includes(role) || roles.includes(effectiveRole) || (effectiveRole === 'admin' && roles.includes('manager'));
+  const roleAllowed = !roles.length || roles.includes(role) || roles.includes(effectiveRole)
+    || (effectiveRole === 'admin' && roles.includes('manager'))
+    || (effectiveRole === 'super_admin' && (roles.includes('admin') || roles.includes('manager')));
   const modeAllowed = !modes.length || modes.includes(mode) || modes.includes(String(user?.activeMode || 'regular').toLowerCase());
   return roleAllowed && modeAllowed;
 }
@@ -91,6 +94,7 @@ function sectionOrder(section) {
 
 function access(role, actions) { return { [role]: actions }; }
 function accessRulesFor(role) {
+  if (role === 'super_admin') return [{ roles: ['super_admin', 'admin', 'manager'], modes: ['regular'] }];
   if (role === 'admin') return [{ roles: ['admin', 'manager'], modes: ['regular'] }];
   if (role === 'landlord') return [{ roles: ['landlord'], modes: [] }, { roles: ['tenant'], modes: ['landlord'] }];
   if (role === 'surveyor') return [{ roles: ['surveyor'], modes: [] }, { roles: ['tenant'], modes: ['surveyor'] }];
@@ -98,7 +102,7 @@ function accessRulesFor(role) {
 }
 function module(key, label, section, role, options = {}) {
   const path = options.path || `/app/${options.resource || key}`;
-  const permissionActions = options.actions || (role === 'admin' ? ADMIN_ACTIONS : role === 'landlord' ? LANDLORD_ACTIONS : role === 'surveyor' ? SURVEYOR_ACTIONS : TENANT_ACTIONS);
+  const permissionActions = options.actions || (['super_admin', 'admin'].includes(role) ? ADMIN_ACTIONS : role === 'landlord' ? LANDLORD_ACTIONS : role === 'surveyor' ? SURVEYOR_ACTIONS : TENANT_ACTIONS);
   const rules = accessRulesFor(role);
   return {
     key, label, path,
@@ -305,6 +309,12 @@ export async function canAccessPlatformModule(moduleDef = {}, user = {}) {
   if (!moduleDef || moduleDef.enabled === false) return false;
   const roles = capabilityRolesForUser(user);
   for (const capabilityRole of roles) {
+    // The root role is intentionally not governed by editable permission documents.
+    // It inherits every administrator control-plane module by definition.
+    if (capabilityRole === 'super_admin') {
+      if (moduleDef.metadata?.role === 'admin') return true;
+      continue;
+    }
     if (capabilityRole === 'admin' && moduleDef.key === 'documents') return true;
     if (capabilityRole === 'admin' && moduleDef.key === 'role-permissions') return true;
     const permission = await rolePermissionDecision(capabilityRole, `module:${moduleDef.key}`, 'view');
@@ -381,18 +391,33 @@ const RESOURCE_ACCESS = Object.freeze({
 function permissionEntry(key, label, kind, category, actions, role) {
   return {
     key: String(key).toLowerCase(), label: String(label || key), kind, category: category || 'general', enabled: true,
-    actions: [...new Set(actions || [])], scope: normalizePermissionRole(role) === 'admin' ? 'all' : 'own',
+    actions: [...new Set(actions || [])], scope: ['super_admin', 'admin'].includes(normalizePermissionRole(role)) ? 'all' : 'own',
   };
 }
 
 export function defaultPermissionEntriesForRole(role = 'tenant') {
   const normalizedRole = normalizePermissionRole(role);
+  const permissionSourceRole = normalizedRole === 'super_admin' ? 'admin' : normalizedRole;
   const modules = RBAC_PLATFORM_MODULES
-    .filter((item) => item.scope === 'app' && item.metadata?.role === normalizedRole)
-    .map((item) => permissionEntry(`module:${item.key}`, item.label, 'module', item.section, item.metadata?.permissions?.[normalizedRole] || VIEW_ONLY, normalizedRole));
+    .filter((item) => item.scope === 'app' && item.metadata?.role === permissionSourceRole)
+    .map((item) => permissionEntry(
+      `module:${item.key}`,
+      item.label,
+      'module',
+      item.section,
+      normalizedRole === 'super_admin' ? ADMIN_ACTIONS : (item.metadata?.permissions?.[permissionSourceRole] || VIEW_ONLY),
+      normalizedRole,
+    ));
   const resources = Object.entries(RESOURCE_ACCESS)
-    .filter(([, accessMap]) => Array.isArray(accessMap?.[normalizedRole]))
-    .map(([key, accessMap]) => permissionEntry(`resource:${key}`, key.replaceAll('-', ' '), 'resource', 'resources', accessMap[normalizedRole], normalizedRole));
+    .filter(([, accessMap]) => normalizedRole === 'super_admin' || Array.isArray(accessMap?.[permissionSourceRole]))
+    .map(([key, accessMap]) => permissionEntry(
+      `resource:${key}`,
+      key.replaceAll('-', ' '),
+      'resource',
+      'resources',
+      normalizedRole === 'super_admin' ? ADMIN_ACTIONS : accessMap[permissionSourceRole],
+      normalizedRole,
+    ));
   const entries = [...modules, ...resources];
   return [...new Map(entries.map((entry) => [entry.key, entry])).values()]
     .sort((left, right) => left.category.localeCompare(right.category) || left.label.localeCompare(right.label));
@@ -440,6 +465,7 @@ export async function rolePermissionDecision(role, key, action = 'view') {
 }
 
 export async function featureAllowed(key, user, action = 'view') {
+  if (String(user?.role || '').toLowerCase() === 'super_admin') return true;
   if (String(key || '').toLowerCase() === 'module:documents' && String(user?.role || '').toLowerCase() === 'admin') return true;
   for (const capabilityRole of capabilityRolesForUser(user)) {
     if (capabilityRole === 'admin' && ['module:role-permissions', 'resource:role-permissions'].includes(String(key).toLowerCase())) return true;
@@ -450,6 +476,7 @@ export async function featureAllowed(key, user, action = 'view') {
 
 export async function permissionPayloadForResources(user = {}) {
   const roles = capabilityRolesForUser(user);
+  if (roles.includes('super_admin')) return Object.fromEntries(Object.keys(RESOURCE_ACCESS).map((key) => [key, [...ADMIN_ACTIONS]]));
   const entries = await Promise.all(Object.keys(RESOURCE_ACCESS).map(async (key) => {
     const actions = new Set();
     for (const role of roles) {
@@ -465,6 +492,7 @@ export async function permissionPayloadForResources(user = {}) {
 }
 
 export async function canResourceAction(resource, user, action = 'view', config = null) {
+  if (capabilityRolesForUser(user).includes('super_admin')) return true;
   for (const effectiveRole of capabilityRolesForUser(user)) {
     if (effectiveRole === 'admin' && resource === 'documents') return true;
     const modulePermission = await rolePermissionDecision(effectiveRole, `module:${resource}`, action);
@@ -496,6 +524,7 @@ export async function assertResourceAction(resource, user, action, config, ApiEr
 
 export function permissionPayloadForModules(modules = [], user = {}) {
   const roles = capabilityRolesForUser(user);
+  if (roles.includes('super_admin')) return Object.fromEntries(modules.map((item) => [item.key, [...ADMIN_ACTIONS]]));
   return Object.fromEntries(modules.map((item) => {
     const actions = new Set();
     for (const role of roles) {
