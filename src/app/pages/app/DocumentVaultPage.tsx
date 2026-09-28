@@ -455,11 +455,17 @@ export default function DocumentVaultPage() {
     setPinSaveBusy(true); setPinDialogError('');
     try {
       const wasLocked = vaultLocked;
+      const wasPinEnabled = vaultPinEnabled;
       await updateVaultPin(newPin);
       setVaultPinEnabled(true); setVaultLockRequired(true); setPinDialogOpen(false);
-      setNewPin(''); setConfirmPin('');
-      toast.success(vaultPinEnabled ? 'Document Vault security code changed' : 'Document Vault is now protected');
-      if (wasLocked) { setVaultLocked(false); void beginVaultUnlock(); }
+      setNewPin(''); setConfirmPin(''); setVaultLockError('');
+      toast.success(wasPinEnabled ? 'Document Vault security code changed' : 'Security code created. Document Vault unlocked.');
+      if (wasLocked || !wasPinEnabled) {
+        setVaultUnlocking(true);
+        await load();
+        setVaultUnlocking(false);
+        setVaultLocked(false);
+      }
     } catch (error: any) { setPinDialogError(error.message || 'Could not update the security code'); }
     finally { setPinSaveBusy(false); }
   }
@@ -481,9 +487,18 @@ export default function DocumentVaultPage() {
       const security = await getSecurityOverview();
       if (runId !== vaultUnlockRun.current) return;
       const pinEnabled = Boolean(security.data.vaultPinEnabled);
-      const deviceLockEnabled = Boolean(mobileOrTablet && security.data.deviceUnlockEnabled);
-      setVaultPinEnabled(pinEnabled); setVaultLockRequired(pinEnabled || deviceLockEnabled);
-      if (pinEnabled && !hasVaultPinUnlockToken()) {
+      // A six-digit Vault PIN is mandatory. When configured, it is the primary
+      // Vault gate and a successful PIN unlock is sufficient for this session.
+      const deviceLockEnabled = Boolean(!pinEnabled && mobileOrTablet && security.data.deviceUnlockEnabled);
+      setVaultPinEnabled(pinEnabled); setVaultLockRequired(true);
+      if (!pinEnabled) {
+        setVaultUnlocking(false);
+        setVaultLocked(true);
+        setVaultLockError('Create a six-digit security code before entering your Document Vault.');
+        setPinDialogOpen(true);
+        return;
+      }
+      if (!hasVaultPinUnlockToken()) {
         setVaultUnlocking(false); setVaultLocked(true); setVaultLockError('Enter your six-digit Document Vault security code to continue.');
         return;
       }
@@ -554,14 +569,14 @@ export default function DocumentVaultPage() {
         </Box>
         <Stack alignItems="center" spacing={.8}>
           <Chip className="sa-vault-unlock-chip" icon={<SecurityRounded />} label="Secure access protocol" size="small" />
-          <Typography className="sa-vault-unlock-title">{vaultLocked ? 'Document Vault is locked' : vaultLockRequired ? 'Confirm your security' : 'Unlocking your document vault'}</Typography>
-          <Typography className="sa-vault-unlock-subtitle">{vaultLocked ? vaultLockError : vaultPinEnabled ? 'Enter your six-digit security code to continue' : vaultLockRequired ? 'Use fingerprint, face unlock or your screen lock to continue' : 'Verifying your session and protected storage'}</Typography>
+          <Typography className="sa-vault-unlock-title">{vaultLocked ? (vaultPinEnabled ? 'Document Vault is locked' : 'Create your Vault security code') : vaultLockRequired ? 'Confirm your security' : 'Unlocking your document vault'}</Typography>
+          <Typography className="sa-vault-unlock-subtitle">{vaultLocked ? vaultLockError : vaultPinEnabled ? 'Enter your six-digit security code to continue' : 'Create a six-digit security code to protect and enter your vault'}</Typography>
         </Stack>
         {vaultLocked && vaultPinEnabled ? <Stack className="sa-vault-pin-unlock-form" alignItems="center" spacing={1.2}>
           <TextField className="sa-vault-pin-input" fullWidth autoFocus value={unlockPin} onChange={(event) => setUnlockPin(event.target.value.replace(/\D/g, '').slice(0, 6))} onKeyDown={(event) => { if (event.key === 'Enter') void unlockVaultWithPin(); }} type="password" label="6-digit security code" inputProps={{ inputMode: 'numeric', maxLength: 6, autoComplete: 'one-time-code', 'aria-label': 'Six-digit Document Vault security code' }} />
           <Button className="sa-vault-pin-unlock-button" fullWidth variant="contained" startIcon={<LockOpenRounded />} disabled={pinUnlockBusy || unlockPin.length !== 6} onClick={() => void unlockVaultWithPin()}>{pinUnlockBusy ? 'Verifying code…' : 'Unlock Document Vault'}</Button>
           <Button size="small" onClick={openVaultPinDialog} sx={{ color: 'rgba(232,250,255,.82)', textTransform: 'none' }}>Change or reset security code</Button>
-        </Stack> : vaultLocked ? <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}><Button className="sa-light-button" variant="contained" startIcon={<LockOpenRounded />} onClick={() => void beginVaultUnlock()} sx={{ bgcolor: '#8effc5', color: '#073a4c', '&:hover': { bgcolor: '#c1ffdf' } }}>Try device unlock again</Button><Button variant="outlined" onClick={() => window.location.assign('/app/security')} sx={{ color: 'white', borderColor: 'rgba(255,255,255,.4)' }}>Open Security</Button></Stack> : <Box className="sa-vault-unlock-progress"><Box className="sa-vault-unlock-progress-bar" /></Box>}
+        </Stack> : vaultLocked ? <Stack alignItems="center" spacing={1.1}><Button className="sa-light-button" variant="contained" startIcon={<SecurityRounded />} onClick={openVaultPinDialog} sx={{ bgcolor: '#8effc5', color: '#073a4c', '&:hover': { bgcolor: '#c1ffdf' } }}>Create 6-digit Security Code</Button><Typography sx={{ color: 'rgba(232,250,255,.72)', fontSize: 11, textAlign: 'center' }}>Create the code once, then the Vault opens immediately. No SMS OTP is required.</Typography></Stack> : <Box className="sa-vault-unlock-progress"><Box className="sa-vault-unlock-progress-bar" /></Box>}
         <Stack direction="row" spacing={2.2} className="sa-vault-unlock-signals">
           <Stack direction="row" alignItems="center" spacing={.55}><Box className="sa-vault-signal-dot" /> {vaultLocked ? 'Vault access paused' : vaultLockRequired ? 'Security verification required' : 'Identity verified'}</Stack>
           <Stack direction="row" alignItems="center" spacing={.55}><Box className="sa-vault-signal-dot" /> Access scope checked</Stack>
