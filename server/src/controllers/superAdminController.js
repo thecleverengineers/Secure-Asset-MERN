@@ -6,6 +6,7 @@ import {
 import { AuthSession } from '../models/session.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
+import { consumeBackupCode, decryptTwoFactorSecret, verifyTotp } from '../services/twoFactor.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const ADMIN_ROLES = ['super_admin', 'admin', 'manager'];
@@ -50,6 +51,39 @@ function publicUser(user) {
   delete data.otpExpiresAt;
   delete data.passwordResetTokenHash;
   return data;
+}
+
+async function verifyPrivilegedReauthentication(req) {
+  const currentPassword = String(req.body?.currentPassword || '');
+  const twoFactorCode = String(req.body?.twoFactorCode || '').trim();
+  if (!currentPassword || !twoFactorCode) {
+    throw new ApiError(422, 'Current password and authenticator code are required for privileged Super Admin actions');
+  }
+
+  const operator = await User.findById(req.user._id)
+    .select('+password +twoFactor.secretEncrypted +twoFactor.backupCodeHashes');
+  if (!operator || !(await operator.comparePassword(currentPassword))) {
+    throw new ApiError(401, 'Current password is invalid');
+  }
+  if (!operator.twoFactor?.enabled || !operator.twoFactor?.secretEncrypted) {
+    throw new ApiError(428, 'Authenticator 2FA must be enabled before privileged Super Admin actions');
+  }
+
+  let verified = false;
+  try {
+    verified = verifyTotp(decryptTwoFactorSecret(operator.twoFactor.secretEncrypted), twoFactorCode);
+  } catch {
+    verified = false;
+  }
+  if (!verified) {
+    const consumed = consumeBackupCode(operator.twoFactor.backupCodeHashes || [], twoFactorCode);
+    if (!consumed.valid) throw new ApiError(401, 'Authenticator or backup code is invalid');
+    operator.twoFactor.backupCodeHashes = consumed.remaining;
+  }
+
+  operator.twoFactor.lastVerifiedAt = new Date();
+  await operator.save({ validateModifiedOnly: true });
+  return operator;
 }
 
 export const overview = asyncHandler(async (_req, res) => {
@@ -195,6 +229,7 @@ export const userOverview = asyncHandler(async (req, res) => {
 
 export const userAction = asyncHandler(async (req, res) => {
   if (!mongoose.isValidObjectId(req.params.id)) throw new ApiError(422, 'Invalid user identifier');
+  await verifyPrivilegedReauthentication(req);
   const action = String(req.body?.action || '').trim().toLowerCase();
   const reason = String(req.body?.reason || '').trim();
   if (reason.length < 5) throw new ApiError(422, 'A clear audit reason of at least 5 characters is required');
