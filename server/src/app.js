@@ -36,6 +36,7 @@ import rolePermissionRoutes from './routes/rolePermissionRoutes.js';
 import agreementRoutes from './routes/agreementRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
 import backupRecoveryRoutes from './routes/backupRecoveryRoutes.js';
+import superAdminRoutes from './routes/superAdminRoutes.js';
 import { notFound, errorHandler } from './middleware/error.js';
 import { requestContext, rejectUnsafeObjectKeys } from './middleware/requestContext.js';
 import { mountProductionSpa } from './middleware/spa.js';
@@ -138,6 +139,7 @@ export function createApp() {
   app.use('/api/v1/public', publicRoutes);
   app.use('/api/v1/site', siteRoutes);
   app.use('/api/v1/permissions', rolePermissionRoutes);
+  app.use('/api/v1/super-admin', superAdminRoutes);
   app.use('/api/v1/dashboard', dashboardRoutes);
   app.use('/api/v1/rentals', rentalPaymentRoutes);
   app.use('/api/v1/resources', resourceRoutes);
