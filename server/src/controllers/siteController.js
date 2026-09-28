@@ -175,7 +175,7 @@ export const submitSiteEnquiry = asyncHandler(async (req, res) => {
   if (!body.name || (!body.email && !body.phone) || (body.type !== 'callback' && !body.message)) throw new ApiError(422, 'Name, message and email or phone are required');
   if (body.type === 'callback' && !body.phone) throw new ApiError(422, 'A phone number is required for a callback request');
   const data = await SiteEnquiry.create(body);
-  emitRealtime('site-enquiries', 'created', data, { roles: ['admin', 'manager'] });
+  emitRealtime('site-enquiries', 'created', data, { roles: ['super_admin', 'admin', 'manager'] });
   res.status(201).json({ success: true, data: { _id: data._id }, message: body.type === 'callback' ? 'Your callback request has been submitted' : 'Your enquiry has been submitted' });
 });
 
