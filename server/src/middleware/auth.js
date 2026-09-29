@@ -71,24 +71,52 @@ function isMobileOrTabletRequest(req) {
   return /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk|Kindle/i.test(req.get('user-agent') || '');
 }
 
-// Configured vault codes gate Drive APIs on every device. Registered
-// platform authenticators remain an additional mobile device-bound check.
+// A configured Vault PIN is the mandatory baseline credential. On a trusted
+// phone/tablet with WebAuthn enrolled, a successful fingerprint/face/screen-lock
+// assertion is an alternative unlock method — users never have to pass both
+// biometric verification and the six-digit PIN in the same unlock attempt.
 export const requireDeviceUnlock = asyncHandler(async (req, _res, next) => {
   const mobileRequest = isMobileOrTabletRequest(req);
   const user = await User.findById(req.user._id).select('+deviceUnlock +vaultPin');
-  if (user?.vaultPin?.enabled) {
-    const token = req.get('x-secureasset-vault-pin-unlock');
-    if (!token) throw new ApiError(423, 'Enter your six-digit code to unlock the Document Vault');
-    let payload;
-    try { payload = verifyVaultPinUnlockToken(token); } catch { throw new ApiError(423, 'Document Vault security session expired. Enter your code again.'); }
-    if (String(payload.sub) !== String(req.user._id) || Number(payload.ver) !== Number(user.vaultPin.version || 0)) throw new ApiError(423, 'Document Vault security code changed. Unlock the vault again.');
+  const pinEnabled = Boolean(user?.vaultPin?.enabled);
+  const deviceEnabled = Boolean(mobileRequest && user?.deviceUnlock?.enabled && user.deviceUnlock.credentials?.length);
+
+  const vaultToken = req.get('x-secureasset-vault-pin-unlock');
+  if (pinEnabled && vaultToken) {
+    try {
+      const payload = verifyVaultPinUnlockToken(vaultToken);
+      if (String(payload.sub) === String(req.user._id) && Number(payload.ver) === Number(user.vaultPin.version || 0)) return next();
+    } catch {
+      // A valid registered-device token can still satisfy the alternative gate.
+    }
   }
-  if (!mobileRequest || !user?.deviceUnlock?.enabled || !user.deviceUnlock.credentials?.length) return next();
-  const token = req.get('x-secureasset-device-unlock');
-  if (!token) throw new ApiError(423, 'Device unlock is required before accessing the mobile Document Vault');
-  let payload;
-  try { payload = verifyDeviceUnlockToken(token); } catch { throw new ApiError(423, 'Device unlock has expired. Verify this device again.'); }
-  if (String(payload.sub) !== String(req.user._id) || !user.deviceUnlock.credentials.some((credential) => credential.id === payload.cid)) throw new ApiError(423, 'This device is not authorised for the mobile Document Vault');
+
+  const deviceToken = req.get('x-secureasset-device-unlock');
+  if (deviceEnabled && deviceToken) {
+    try {
+      const payload = verifyDeviceUnlockToken(deviceToken);
+      if (String(payload.sub) === String(req.user._id) && user.deviceUnlock.credentials.some((credential) => credential.id === payload.cid)) return next();
+    } catch {
+      // Fall through to a single clear locked response below.
+    }
+  }
+
+  if (pinEnabled) {
+    throw new ApiError(
+      423,
+      deviceEnabled
+        ? 'Unlock the Document Vault with your six-digit security code or fingerprint/device verification'
+        : 'Enter your six-digit security code to unlock the Document Vault',
+    );
+  }
+
+  // Legacy accounts that enrolled device unlock before creating a Vault PIN
+  // remain protected by their registered platform authenticator until the UI
+  // guides them through mandatory PIN creation.
+  if (deviceEnabled) {
+    throw new ApiError(423, 'Device unlock is required before accessing the mobile Document Vault');
+  }
+
   next();
 });
 
