@@ -46,7 +46,7 @@ import {
   getDriveBreadcrumbs, getDriveComments, getDriveFile, getDriveItems, getDriveSharedWithMe, permanentlyDeleteDriveItem,
   revokeDrivePublicLink, setDriveFileApproval, shareDriveItem, updateDriveFile, updateDriveFolder, uploadDriveFile, uploadDriveVersion,
   beginDeviceUnlockAuthentication, clearDeviceUnlockToken, completeDeviceUnlockAuthentication, getSecurityOverview,
-  hasVaultPinUnlockToken, requestVaultPinOtp, setVaultPin as updateVaultPin, unlockVaultPin,
+  hasDeviceUnlockToken, hasVaultPinUnlockToken, requestVaultPinOtp, setVaultPin as updateVaultPin, unlockVaultPin,
 } from '../../services/api';
 import { useActionDialog } from '../../components/shared/useActionDialog';
 import { useSite } from '../../context/SiteContext';
@@ -176,6 +176,8 @@ export default function DocumentVaultPage() {
   const [vaultLockRequired, setVaultLockRequired] = useState(false);
   const [vaultLockError, setVaultLockError] = useState('');
   const [vaultPinEnabled, setVaultPinEnabled] = useState(false);
+  const [vaultDeviceUnlockEnabled, setVaultDeviceUnlockEnabled] = useState(false);
+  const [vaultDeviceUnlockBusy, setVaultDeviceUnlockBusy] = useState(false);
   const [pinDialogOpen, setPinDialogOpen] = useState(false);
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -500,6 +502,40 @@ export default function DocumentVaultPage() {
     finally { setPinUnlockBusy(false); }
   }
 
+  async function unlockVaultWithDevice() {
+    if (!mobileOrTablet) {
+      setVaultLockError('Fingerprint or device unlock is available on a trusted phone or tablet.');
+      return;
+    }
+    if (!vaultDeviceUnlockEnabled) {
+      setVaultLockError('Set up fingerprint, face unlock or screen lock from Security before using biometric Vault access.');
+      return;
+    }
+    if (!deviceUnlockSupported()) {
+      setVaultLockError('This browser cannot use secure device unlock. Use HTTPS and enable fingerprint, face unlock or a screen lock.');
+      return;
+    }
+    setVaultDeviceUnlockBusy(true); setVaultLockError('');
+    try {
+      const options = (await beginDeviceUnlockAuthentication()).data;
+      const credential = await navigator.credentials.get({ publicKey: authenticationOptionsForBrowser(options) });
+      await completeDeviceUnlockAuthentication(serializePublicKeyCredential(credential));
+      setVaultUnlocking(true);
+      await load();
+      setVaultUnlocking(false);
+      setVaultLocked(false);
+      toast.success('Document Vault unlocked with device verification');
+    } catch (error: any) {
+      const message = error?.name === 'NotAllowedError'
+        ? 'Fingerprint, face unlock or screen-lock verification was cancelled or timed out.'
+        : error?.message || 'Device verification failed.';
+      setVaultLockError(message);
+    } finally {
+      setVaultDeviceUnlockBusy(false);
+      setVaultUnlocking(false);
+    }
+  }
+
   async function beginVaultUnlock() {
     const runId = ++vaultUnlockRun.current;
     setVaultLocked(false); setVaultLockError(''); setVaultUnlocking(true);
@@ -507,10 +543,10 @@ export default function DocumentVaultPage() {
       const security = await getSecurityOverview();
       if (runId !== vaultUnlockRun.current) return;
       const pinEnabled = Boolean(security.data.vaultPinEnabled);
-      // A six-digit Vault PIN is mandatory. When configured, it is the primary
-      // Vault gate and a successful PIN unlock is sufficient for this session.
-      const deviceLockEnabled = Boolean(!pinEnabled && mobileOrTablet && security.data.deviceUnlockEnabled);
-      setVaultPinEnabled(pinEnabled); setVaultLockRequired(true);
+      const deviceLockEnabled = Boolean(mobileOrTablet && security.data.deviceUnlockEnabled);
+      setVaultPinEnabled(pinEnabled);
+      setVaultDeviceUnlockEnabled(deviceLockEnabled);
+      setVaultLockRequired(true);
       if (!pinEnabled) {
         setVaultUnlocking(false);
         setVaultLocked(true);
@@ -518,15 +554,13 @@ export default function DocumentVaultPage() {
         setPinDialogOpen(true);
         return;
       }
-      if (!hasVaultPinUnlockToken()) {
-        setVaultUnlocking(false); setVaultLocked(true); setVaultLockError('Enter your six-digit Document Vault security code to continue.');
+      if (!hasVaultPinUnlockToken() && !hasDeviceUnlockToken()) {
+        setVaultUnlocking(false);
+        setVaultLocked(true);
+        setVaultLockError(deviceLockEnabled
+          ? 'Unlock with fingerprint/device verification or enter your six-digit security code.'
+          : 'Enter your six-digit Document Vault security code to continue.');
         return;
-      }
-      if (deviceLockEnabled) {
-        if (!deviceUnlockSupported()) throw new Error('Secure device unlock requires HTTPS and a phone or tablet with screen lock, fingerprint or face unlock enabled.');
-        const options = (await beginDeviceUnlockAuthentication()).data;
-        const credential = await navigator.credentials.get({ publicKey: authenticationOptionsForBrowser(options) });
-        await completeDeviceUnlockAuthentication(serializePublicKeyCredential(credential));
       }
       if (runId !== vaultUnlockRun.current) return;
       await load();
@@ -555,7 +589,10 @@ export default function DocumentVaultPage() {
     const lockVault = () => {
       if (timer) window.clearTimeout(timer);
       clearDeviceUnlockToken();
-      setUnlockPin(''); setVaultLockError(vaultPinEnabled ? 'The vault was locked after inactivity. Enter your six-digit security code.' : 'The vault was locked after inactivity. Verify this device to continue.');
+      setUnlockPin('');
+      setVaultLockError(vaultPinEnabled
+        ? (vaultDeviceUnlockEnabled ? 'The vault was locked after inactivity. Unlock with fingerprint/device verification or your six-digit security code.' : 'The vault was locked after inactivity. Enter your six-digit security code.')
+        : 'The vault was locked after inactivity. Verify this device to continue.');
       setVaultLocked(true);
     };
     const armTimer = () => {
@@ -571,7 +608,7 @@ export default function DocumentVaultPage() {
       ['pointerdown', 'keydown', 'touchstart', 'scroll'].forEach((eventName) => window.removeEventListener(eventName, armTimer));
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [mobileOrTablet, vaultLockRequired, vaultLocked, vaultPinEnabled, vaultUnlocking]);
+  }, [mobileOrTablet, vaultDeviceUnlockEnabled, vaultLockRequired, vaultLocked, vaultPinEnabled, vaultUnlocking]);
 
   return <Box className="sa-document-vault-page sa-vault-premium" data-vault-theme={theme.palette.mode} aria-busy={vaultUnlocking || vaultLocked} sx={{ px: { xs: 2, sm: 3, lg: 4 }, pb: 5 }}>
     {(vaultUnlocking || vaultLocked) && <Box className="sa-vault-unlock-overlay" role={vaultLocked ? 'dialog' : 'status'} aria-modal={vaultLocked || undefined} aria-live="polite" aria-label="Unlocking secure document vault" data-vault-state={vaultLocked ? 'locked' : 'unlocking'}>
@@ -590,11 +627,14 @@ export default function DocumentVaultPage() {
         <Stack alignItems="center" spacing={.8}>
           <Chip className="sa-vault-unlock-chip" icon={<SecurityRounded />} label="Secure access protocol" size="small" />
           <Typography className="sa-vault-unlock-title">{vaultLocked ? (vaultPinEnabled ? 'Document Vault is locked' : 'Create your Vault security code') : vaultLockRequired ? 'Confirm your security' : 'Unlocking your document vault'}</Typography>
-          <Typography className="sa-vault-unlock-subtitle">{vaultLocked ? vaultLockError : vaultPinEnabled ? 'Enter your six-digit security code to continue' : 'Create a six-digit security code to protect and enter your vault'}</Typography>
+          <Typography className="sa-vault-unlock-subtitle">{vaultLocked ? vaultLockError : vaultPinEnabled ? (vaultDeviceUnlockEnabled ? 'Use fingerprint/device verification or your six-digit security code' : 'Enter your six-digit security code to continue') : 'Create a six-digit security code to protect and enter your vault'}</Typography>
         </Stack>
         {vaultLocked && vaultPinEnabled ? <Stack className="sa-vault-pin-unlock-form" alignItems="center" spacing={1.2}>
-          <TextField className="sa-vault-pin-input" fullWidth autoFocus value={unlockPin} onChange={(event) => setUnlockPin(event.target.value.replace(/\D/g, '').slice(0, 6))} onKeyDown={(event) => { if (event.key === 'Enter') void unlockVaultWithPin(); }} type="password" label="6-digit security code" inputProps={{ inputMode: 'numeric', maxLength: 6, autoComplete: 'one-time-code', 'aria-label': 'Six-digit Document Vault security code' }} />
-          <Button className="sa-vault-pin-unlock-button" fullWidth variant="contained" startIcon={<LockOpenRounded />} disabled={pinUnlockBusy || unlockPin.length !== 6} onClick={() => void unlockVaultWithPin()}>{pinUnlockBusy ? 'Verifying code…' : 'Unlock Document Vault'}</Button>
+          {vaultDeviceUnlockEnabled && <Button className="sa-vault-pin-unlock-button" fullWidth variant="contained" startIcon={<FingerprintRounded />} disabled={vaultDeviceUnlockBusy || pinUnlockBusy} onClick={() => void unlockVaultWithDevice()} sx={{ bgcolor: '#8effc5', color: '#073a4c', '&:hover': { bgcolor: '#c1ffdf' } }}>{vaultDeviceUnlockBusy ? 'Verifying device…' : 'Unlock with Fingerprint / Device'}</Button>}
+          {vaultDeviceUnlockEnabled && <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}><Divider sx={{ flex: 1, borderColor: 'rgba(255,255,255,.2)' }} /><Typography sx={{ color: 'rgba(232,250,255,.62)', fontSize: 10, fontWeight: 700 }}>OR USE SECURITY CODE</Typography><Divider sx={{ flex: 1, borderColor: 'rgba(255,255,255,.2)' }} /></Stack>}
+          <TextField className="sa-vault-pin-input" fullWidth autoFocus={!vaultDeviceUnlockEnabled} value={unlockPin} onChange={(event) => setUnlockPin(event.target.value.replace(/\D/g, '').slice(0, 6))} onKeyDown={(event) => { if (event.key === 'Enter') void unlockVaultWithPin(); }} type="password" label="6-digit security code" inputProps={{ inputMode: 'numeric', maxLength: 6, autoComplete: 'one-time-code', 'aria-label': 'Six-digit Document Vault security code' }} />
+          <Button className="sa-vault-pin-unlock-button" fullWidth variant="contained" startIcon={<LockOpenRounded />} disabled={pinUnlockBusy || vaultDeviceUnlockBusy || unlockPin.length !== 6} onClick={() => void unlockVaultWithPin()}>{pinUnlockBusy ? 'Verifying code…' : 'Unlock with 6-digit Code'}</Button>
+          {!vaultDeviceUnlockEnabled && mobileOrTablet && <Button size="small" onClick={() => window.location.assign('/app/security')} startIcon={<FingerprintRounded />} sx={{ color: 'rgba(232,250,255,.82)', textTransform: 'none' }}>Set up fingerprint / device unlock</Button>}
           <Button size="small" onClick={openVaultPinDialog} sx={{ color: 'rgba(232,250,255,.82)', textTransform: 'none' }}>Change or reset security code</Button>
         </Stack> : vaultLocked ? <Stack alignItems="center" spacing={1.1}><Button className="sa-light-button" variant="contained" startIcon={<SecurityRounded />} onClick={openVaultPinDialog} sx={{ bgcolor: '#8effc5', color: '#073a4c', '&:hover': { bgcolor: '#c1ffdf' } }}>Create 6-digit Security Code</Button><Typography sx={{ color: 'rgba(232,250,255,.72)', fontSize: 11, textAlign: 'center' }}>Create the code once, then the Vault opens immediately. No SMS OTP is required.</Typography></Stack> : <Box className="sa-vault-unlock-progress"><Box className="sa-vault-unlock-progress-bar" /></Box>}
         <Stack direction="row" spacing={2.2} className="sa-vault-unlock-signals">
