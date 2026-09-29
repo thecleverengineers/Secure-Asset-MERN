@@ -155,6 +155,7 @@ export function clearSession({ broadcast = true } = {}) {
 }
 export function setDeviceUnlockToken(token: string | null) { deviceUnlockToken = token || null; }
 export function setVaultPinUnlockToken(token: string | null) { vaultPinUnlockToken = token || null; }
+export function hasDeviceUnlockToken() { return Boolean(deviceUnlockToken); }
 export function hasVaultPinUnlockToken() { return Boolean(vaultPinUnlockToken); }
 export function clearDeviceUnlockToken() { deviceUnlockToken = null; vaultPinUnlockToken = null; }
 export function getCurrentUser(): User | null { return currentUser; }
