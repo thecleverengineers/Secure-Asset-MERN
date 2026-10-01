@@ -68,7 +68,7 @@ export default function ModulePage() {
     queryKey: ['app-configuration', user?._id, user?.role, user?.activeMode, user?.landlordEnabled, user?.surveyorEnabled],
     queryFn: getAppConfiguration,
     enabled: Boolean(user?._id),
-    staleTime: 30_000,
+    staleTime: 2 * 60_000,
     gcTime: 5 * 60_000,
     placeholderData: (previous) => previous,
   });
