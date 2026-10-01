@@ -1,4 +1,5 @@
 import { Fragment, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import {
   AppBar, Avatar, Badge, Box, BottomNavigation, BottomNavigationAction, Button, DialogContent, Divider, Drawer,
@@ -367,6 +368,7 @@ export default function AppShell() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -388,6 +390,10 @@ export default function AppShell() {
     try {
       const response = await getAppConfiguration();
       const modules = safeRecordArray(response?.data?.modules).filter((module) => typeof module.key === 'string' && module.key.trim());
+      queryClient.setQueryData(
+        ['app-configuration', user?._id, user?.role, user?.activeMode, user?.landlordEnabled, user?.surveyorEnabled],
+        response,
+      );
       setAppModules(modules);
       setModuleError('');
     } catch (error) { setModuleError((error as Error).message || 'Workspace navigation is using the secure role menu.'); }
@@ -552,7 +558,21 @@ export default function AppShell() {
     window.addEventListener('secureasset:site-changed', refreshModules);
     return () => window.removeEventListener('secureasset:site-changed', refreshModules);
   }, [user?._id, user?.activeMode]);
-  useEffect(() => { getUnreadNotificationCount().then((r) => setUnread(r.data.count)).catch(() => {}); }, [location.pathname]);
+  useEffect(() => {
+    let active = true;
+    const refreshUnread = () => {
+      getUnreadNotificationCount().then((r) => { if (active) setUnread(r.data.count); }).catch(() => {});
+    };
+    refreshUnread();
+    const timer = window.setInterval(refreshUnread, 2 * 60_000);
+    const onVisibility = () => { if (document.visibilityState === 'visible') refreshUnread(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [user?._id]);
   useEffect(() => {
     let mounted = true;
     if (user?.role !== 'tenant') {
