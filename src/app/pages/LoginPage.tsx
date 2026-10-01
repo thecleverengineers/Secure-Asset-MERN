@@ -184,12 +184,12 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
               bgcolor: appHeaderColor,
               color: '#FFFFFF',
               '&:hover': { bgcolor: appHeaderColor, filter: 'none' },
-              '&:active': { filter: 'brightness(.82)' },
+              '&:active': { filter: 'none' },
               '&:focus-visible': { outline: '3px solid rgba(11,82,112,.28)', outlineOffset: 2 },
               '&.Mui-disabled': { bgcolor: 'rgba(11,82,112,.48)', color: 'rgba(255,255,255,.92)' },
             }}
           >
-            {loading ? <CircularProgress size={22} color="inherit" /> : actionLabel}
+            <Box component="span" sx={{ opacity: loading ? 0 : 1, pointerEvents: 'none' }}>{actionLabel}</Box>{loading && <CircularProgress size={22} color="inherit" sx={{ position: 'absolute', left: '50%', top: '50%', ml: '-11px', mt: '-11px' }} />}
           </Button>
           {mode === 'two-factor' && <Button type="button" size="small" onClick={() => changeMode('login')}>Return to sign in</Button>}
         </Stack></Box>
