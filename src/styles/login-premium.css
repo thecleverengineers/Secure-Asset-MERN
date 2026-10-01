@@ -23,14 +23,17 @@
   font-family: 'Open Sans', sans-serif !important;
 }
 .sa-auth-desktop-frame {
-  min-height: 100dvh;
+    height: 100dvh;
+min-height: 100dvh;
   display: grid;
   grid-template-columns: minmax(0, 58%) minmax(430px, 42%);
   background: #fff;
+  overflow: hidden;
 }
 .sa-auth-hero {
   position: relative;
   min-height: 100dvh;
+  height: 100dvh;
   overflow: hidden;
   isolation: isolate;
   color: #fff;
@@ -328,12 +331,15 @@
 .sa-login-premium-form-column {
   position: relative;
   min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-gutter: stable;
+  scrollbar-gutter: stable both-edges;
+  overscroll-behavior: contain;
   padding: clamp(42px,7vh,72px) clamp(32px,4vw,76px) 54px;
   background:
     radial-gradient(circle at 100% 0%,rgba(0,184,166,.09),transparent 22rem),
@@ -621,8 +627,10 @@
 @media (max-width: 899px) {
   .sa-auth-desktop-frame {
     min-height: 100dvh;
+    height: auto;
     display: block;
     background: #fff;
+    overflow: visible;
   }
   .sa-auth-hero {
     min-height: 48dvh;
@@ -669,6 +677,7 @@
   .sa-auth-skyline { right: 24%; bottom: 0; height: 27%; opacity: .74; }
   .sa-login-premium-form-column {
     min-height: 52dvh;
+    height: auto;
     margin-top: -28px;
     padding: 0 18px max(28px,env(safe-area-inset-bottom));
     overflow: visible;
