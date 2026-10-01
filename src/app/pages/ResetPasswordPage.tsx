@@ -96,7 +96,7 @@ export default function ResetPasswordPage() {
                 {passwordField('Confirm new password', confirm, setConfirm)}
               </>}
               <Button type="submit" className="sa-submit-button" variant="contained" size="large" disabled={loading} sx={{ py: 1.35 }}>
-                {loading ? <CircularProgress size={22} color="inherit" /> : sent ? 'Reset password' : 'Send reset OTP'}
+                <Box component="span" sx={{ opacity: loading ? 0 : 1, pointerEvents: 'none' }}>{sent ? 'Reset password' : 'Send reset OTP'}</Box>{loading && <CircularProgress size={22} color="inherit" sx={{ position: 'absolute', left: '50%', top: '50%', ml: '-11px', mt: '-11px' }} />}
               </Button>
               {sent && <Button className="sa-reset-secondary-action" type="button" onClick={() => { setSent(false); setOtp(''); setMessage(''); }}>Use another account</Button>}
               <Button className="sa-reset-back-action" type="button" component={Link} to="/auth/login" startIcon={<ArrowBackRounded />}>Return to sign in</Button>
