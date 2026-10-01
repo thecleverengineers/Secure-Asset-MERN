@@ -67,6 +67,28 @@ const COMPACT_RESOURCE_MODULES = new Set([
   'agreement-templates', 'survey-jobs', 'survey-quotations', 'survey-projects',
 ]);
 
+type ResourceListSnapshot = {
+  rows: any[];
+  pagination: { page: number; totalPages: number; total: number; limit: number };
+};
+const resourceListCache = new Map<string, ResourceListSnapshot>();
+function resourceListCacheKey(userId: unknown, module: string, scope: string, params: Record<string, string | number | undefined>) {
+  const query = new URLSearchParams();
+  Object.entries(params)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .forEach(([key, value]) => {
+      if (value !== undefined && value !== null && String(value) !== '') query.set(key, String(value));
+    });
+  return `${String(userId || 'anonymous')}|${module}|${scope}|${query.toString()}`;
+}
+function cacheResourceList(key: string, snapshot: ResourceListSnapshot) {
+  resourceListCache.set(key, snapshot);
+  if (resourceListCache.size > 40) {
+    const oldestKey = resourceListCache.keys().next().value;
+    if (oldestKey) resourceListCache.delete(oldestKey);
+  }
+}
+
 const roles: UserRole[] = ['admin', 'manager', 'landlord', 'tenant', 'user', 'surveyor'];
 const configs: Record<string, Config> = {
   users: { singular: 'User', createRoles: ['admin'], editRoles: ['admin'], deleteRoles: ['admin'], columns: [{ path: 'name', label: 'Name' }, { path: 'email', label: 'Email' }, { path: 'role', label: 'Role', type: 'status' }, { path: 'kycStatus', label: 'KYC', type: 'status' }, { path: 'status', label: 'Status', type: 'status' }, { path: 'country', label: 'Country' }, { path: 'state', label: 'State' }, { path: 'city', label: 'City' }], fields: [{ name: 'avatar', label: 'Avatar', type: 'image' }, { name: 'name', label: 'Full name', required: true }, { name: 'email', label: 'Email', required: true }, { name: 'phone', label: 'Phone' }, { name: 'password', label: 'Password', type: 'password', required: true }, { name: 'role', label: 'Role', type: 'select', options: roles }, { name: 'status', label: 'Status', type: 'select', options: ['active', 'suspended', 'locked'] }, { name: 'kycStatus', label: 'KYC status', type: 'select', options: ['not_started', 'pending', 'verified', 'rejected'] }, { name: 'country', label: 'Country' }, { name: 'state', label: 'State / Province' }, { name: 'city', label: 'City' }] },
@@ -841,19 +863,39 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
   const { user } = useAuth();
   const isTenantApplications = module === 'applications' && user?.role === 'tenant' && tenantApplicationView;
   const isApplicationsWorkspace = module === 'applications' && !isTenantApplications;
+  const listScope = isMyListings ? 'my-listings' : isTenantApplications ? 'tenant-applications' : 'resource';
+  const initialSearch = searchParams.get('search') || '';
+  const initialStatus = searchParams.get('status') || '';
+  const initialProperty = searchParams.get('property') || '';
+  const initialListingPurpose = isMyListings ? (searchParams.get('purpose') || searchParams.get('listingType') || '') : '';
+  const initialListingVisibility = isMyListings ? (searchParams.get('visibility') || '') : '';
+  const initialListingVerification = isMyListings ? (searchParams.get('verification') || '') : '';
+  const initialListParams = {
+    page: 1,
+    limit: 20,
+    search: initialSearch,
+    status: initialStatus,
+    property: initialProperty,
+    ...(isMyListings ? {
+      listingPurpose: initialListingPurpose,
+      visibility: initialListingVisibility,
+      verification: initialListingVerification,
+    } : {}),
+  };
+  const initialSnapshot = resourceListCache.get(resourceListCacheKey(user?._id, module, listScope, initialListParams));
   const { data: siteData } = useSite();
   const realtime = useRealtime();
   const actions = useActionDialog();
   const theme = useTheme();
   const mobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [rows, setRows] = useState<any[]>([]);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0, limit: 20 });
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
-  const [listingPurpose, setListingPurpose] = useState('');
-  const [listingVisibility, setListingVisibility] = useState('');
-  const [listingVerification, setListingVerification] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<any[]>(() => initialSnapshot?.rows || []);
+  const [pagination, setPagination] = useState(() => initialSnapshot?.pagination || { page: 1, totalPages: 1, total: 0, limit: 20 });
+  const [search, setSearch] = useState(initialSearch);
+  const [status, setStatus] = useState(initialStatus);
+  const [listingPurpose, setListingPurpose] = useState(initialListingPurpose);
+  const [listingVisibility, setListingVisibility] = useState(initialListingVisibility);
+  const [listingVerification, setListingVerification] = useState(initialListingVerification);
+  const [loading, setLoading] = useState(() => !initialSnapshot);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [dialog, setDialog] = useState<{ mode: 'create' | 'edit' | 'view'; row?: any } | null>(null);
@@ -893,7 +935,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
 
   async function load(page = pagination.page, filters: { search?: string; status?: string; property?: string; listingPurpose?: string; visibility?: string; verification?: string } = {}) {
     if (!config) return;
-    setLoading(true); setError('');
+    setError('');
     const requestSearch = filters.search ?? search;
     const requestStatus = filters.status ?? status;
     const requestProperty = filters.property ?? (searchParams.get('property') || '');
@@ -913,7 +955,17 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
           verification: requestVerification,
         } : {}),
       };
+      const cacheKey = resourceListCacheKey(user?._id, module, listScope, params);
+      const cached = resourceListCache.get(cacheKey);
+      if (cached) {
+        setRows(cached.rows);
+        setPagination(cached.pagination);
+        setLoading(false);
+      } else if (!rows.length) {
+        setLoading(true);
+      }
       const result = await listRows(params);
+      cacheResourceList(cacheKey, { rows: result.data, pagination: result.pagination });
       setRows(result.data); setPagination(result.pagination);
     }
     catch (e) { setError((e as Error).message); }
@@ -1458,7 +1510,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
       </Box>
     </Paper> : <Paper className={`sa-surface-card${module === 'applications' ? ' sa-applications-filter-frame' : ''}`} elevation={0} sx={{ p: { xs: 1.4, sm: 1.7 }, mb: 2, borderRadius: 4, ...(module === 'applications' ? { borderColor: 'rgba(11,82,112,.16)', background: 'linear-gradient(145deg, #FFFFFF 0%, #F6FBFC 100%)' } : {}) }}><Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} spacing={1.2}><TextField fullWidth size="small" placeholder={`Search ${(isMyListings ? 'my listings' : moduleLabel(module)).toLowerCase()}…`} value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && load(1)} InputProps={{ startAdornment: <InputAdornment position="start"><SearchRounded fontSize="small" /></InputAdornment> }} />{config.statuses && <FormControl size="small" sx={{ minWidth: { sm: 185 } }}><InputLabel>Status</InputLabel><Select label="Status" value={status} onChange={(e) => { const next = e.target.value; setStatus(next); void load(1, { status: next }); }}><MenuItem value="">All statuses</MenuItem>{config.statuses.map((item) => <MenuItem key={item} value={item}>{optionText(item)}</MenuItem>)}</Select></FormControl>}<Button variant="contained" onClick={() => load(1)} sx={{ whiteSpace: 'nowrap' }}>Search</Button></Stack></Paper>}
 
-    {loading ? (
+    {loading && rows.length === 0 ? (
       <Box sx={{ py: 12, display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>
     ) : rows.length === 0 ? (
       <Paper className="sa-surface-card" elevation={0} sx={{ py: 10, textAlign: 'center', border: '1px dashed', borderColor: 'divider', borderRadius: 4 }}>
