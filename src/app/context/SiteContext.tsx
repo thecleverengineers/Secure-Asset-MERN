@@ -24,7 +24,7 @@ const defaults: SiteData = {
   carousel: [], sections: [], landlordPlans: [], propertyTypes: [], areaUnits: [], publicNavigation: [], featuredProperties: [], featuredSurveyors: [], seo: null, page: null,
 };
 const SiteContext = createContext<SiteContextValue>({ data: defaults, loading: true, refresh: async () => {} });
-const CACHE_TTL_MS = 15_000;
+const CACHE_TTL_MS = 2 * 60_000;
 
 function mergeSiteData(incoming: Partial<SiteData> = {}): SiteData {
   const source = safeRecord(incoming);
@@ -85,7 +85,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     await queryClient.fetchQuery({
       queryKey: ['site-config', requestedPath],
       queryFn: () => fetchSiteConfig(requestedPath),
-      staleTime: 0,
+      staleTime: CACHE_TTL_MS,
     });
   }, [fetchSiteConfig, queryClient]);
   useEffect(() => {
