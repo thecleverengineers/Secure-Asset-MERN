@@ -519,6 +519,73 @@
 .sa-login-panel :is(button,a):focus-visible { outline: 2px solid #0bb8a4; outline-offset: 3px; }
 .sa-login-panel input:focus-visible { outline: none !important; }
 
+/* Auth interactions must never inherit the application-wide hover-lift motion.
+   Keeping controls on a fixed plane removes mouse/touch click jerk and prevents
+   icon buttons from shifting the input layout by a pixel during hover/press. */
+.sa-auth-route-shell .MuiButton-root,
+.sa-auth-route-shell .MuiIconButton-root,
+.sa-auth-route-shell .MuiButtonBase-root {
+  transform: none !important;
+  translate: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+.sa-auth-route-shell .MuiButton-root {
+  transition:
+    background-color .14s ease,
+    border-color .14s ease,
+    color .14s ease,
+    box-shadow .14s ease,
+    opacity .14s ease !important;
+}
+.sa-auth-route-shell .MuiIconButton-root,
+.sa-auth-route-shell .MuiButtonBase-root:not(.MuiButton-root) {
+  transition:
+    background-color .12s ease,
+    color .12s ease,
+    box-shadow .12s ease,
+    opacity .12s ease !important;
+}
+.sa-auth-route-shell .MuiButton-root:hover,
+.sa-auth-route-shell .MuiButton-root:active,
+.sa-auth-route-shell .MuiButton-root.Mui-focusVisible,
+.sa-auth-route-shell .MuiIconButton-root:hover,
+.sa-auth-route-shell .MuiIconButton-root:active,
+.sa-auth-route-shell .MuiIconButton-root.Mui-focusVisible,
+.sa-auth-route-shell .MuiButtonBase-root:hover,
+.sa-auth-route-shell .MuiButtonBase-root:active {
+  transform: none !important;
+  translate: none !important;
+}
+.sa-auth-route-shell .MuiButton-root:active,
+.sa-auth-route-shell .MuiIconButton-root:active {
+  box-shadow: none !important;
+}
+.sa-login-panel .sa-submit-button.MuiButton-root {
+  position: relative;
+  width: 100%;
+  height: 54px;
+  min-height: 54px;
+  max-height: 54px;
+  overflow: hidden;
+  contain: layout paint;
+}
+.sa-login-panel .sa-submit-button .MuiCircularProgress-root {
+  flex: 0 0 22px;
+}
+.sa-login-panel .MuiIconButton-root {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+}
+.sa-auth-mode-nav,
+.sa-login-form,
+.sa-reset-form {
+  overflow-anchor: none;
+}
+.sa-login-premium-form-column {
+  overflow-anchor: none;
+}
+
 .sa-reset-form .sa-reset-otp input {
   text-align: center;
   font-size: 15px;
