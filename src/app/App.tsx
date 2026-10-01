@@ -11,6 +11,7 @@ import { queryClient } from './queryClient';
 import { normaliseDesignSystem, OPEN_SANS_FONT_FAMILY } from './designSystem';
 import ApplicationErrorBoundary from './components/shared/ApplicationErrorBoundary';
 import { WishlistProvider } from './context/WishlistContext';
+import { warmLazyModules } from './utils/lazyWithRetry';
 
 const SHADOWS = {
   none: 'none',
@@ -204,5 +205,12 @@ function ThemedApplication() {
 }
 
 export default function App() {
+  useEffect(() => {
+    // Start warming route chunks shortly after the first paint. The browser
+    // keeps these modules in its module cache, making later page transitions
+    // resolve without a visible blank/loading phase.
+    const timer = window.setTimeout(() => { void warmLazyModules(3); }, 350);
+    return () => window.clearTimeout(timer);
+  }, []);
   return <QueryClientProvider client={queryClient}><SiteProvider><ThemedApplication /></SiteProvider></QueryClientProvider>;
 }
