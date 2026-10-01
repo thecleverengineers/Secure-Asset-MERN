@@ -162,10 +162,10 @@ export default function ModulePage() {
   if ((module === 'site-admin' || module === 'settings' || module === 'integration-settings') && user?.role === 'admin') return renderLazy(<SiteAdministrationPage />);
   if (module === 'platform-modules' && user?.role === 'admin') return renderLazy(<NavigationManagementPage />);
   if (module === 'add_property' || module === 'add-property') return renderLazy(<AddPropertyPage />);
-  if (module === 'my-listings' && hasLandlordFeatures) return renderLazy(<ResourcePage resourceOverride="properties" />);
+  if (module === 'my-listings' && hasLandlordFeatures) return renderLazy(<ResourcePage key={module} resourceOverride="properties" />);
   if (module === 'tenancy-history' && hasLandlordFeatures) return renderLazy(<TenancyHistoryPage />);
   if (module === 'tenants' && hasLandlordFeatures) return renderLazy(<LandlordTenantsPage />);
-  if (module === 'my-applications' && user?.role === 'tenant') return renderLazy(<ResourcePage resourceOverride="applications" tenantApplicationView />);
+  if (module === 'my-applications' && user?.role === 'tenant') return renderLazy(<ResourcePage key={module} resourceOverride="applications" tenantApplicationView />);
   if (module === 'property-management' && (user?.role === 'admin' || user?.role === 'manager' || hasLandlordFeatures)) return renderLazy(<PropertyManagementPage />);
   if (module === 'rental-management' && user?.role === 'admin') return renderLazy(<RentalManagementAdminPage />);
   if (module === 'tenant-kyc' && ['admin', 'manager'].includes(String(user?.role || ''))) return renderLazy(<TenantKycAdminPage />);
@@ -176,7 +176,7 @@ export default function ModulePage() {
   if (module === 'notifications') return renderLazy(<NotificationCenterPage />);
   if (module === 'security') return renderLazy(<SecurityPage />);
   if (module === 'wishlist' || module === 'saved-properties') return renderLazy(<WishlistPage />);
-  if (configuredModule) return renderLazy(<ResourcePage />);
-  if (configurationQuery.isPending || configurationQuery.isError || !allowedModules.length) return renderLazy(<ResourcePage />);
+  if (configuredModule) return renderLazy(<ResourcePage key={module} />);
+  if (configurationQuery.isPending || configurationQuery.isError || !allowedModules.length) return renderLazy(<ResourcePage key={module} />);
   return renderLazy(<UtilityPage />);
 }
