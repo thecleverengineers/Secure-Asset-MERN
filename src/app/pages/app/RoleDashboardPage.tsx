@@ -201,7 +201,8 @@ export default function RoleDashboardPage() {
   const dashboardQuery = useQuery({
     queryKey: ['dashboard', user?._id, user?.activeMode, user?.landlordEnabled, user?.surveyorEnabled],
     enabled: Boolean(user?._id),
-    staleTime: 30_000,
+    staleTime: 60_000,
+    placeholderData: (previous) => previous,
     queryFn: async () => {
       let landlordEnabled = user?.role === 'landlord' || Boolean(user?.role === 'tenant' && user?.landlordEnabled);
       let surveyorEnabled = user?.role === 'surveyor' || Boolean(user?.role === 'tenant' && user?.surveyorEnabled);
