@@ -33,7 +33,7 @@ import {
   API_BASE, acceptSurveyQuotation, approveTenantSubscription, rejectTenantSubscription, changeResourceStatus, createResource, deleteResource, downloadReport, downloadSurveyReport, finalizeSurveyReport, fetchPropertyImageBlob, fetchPropertyMediaBlob, getAppConfiguration, getMyListings, getMyTenantApplications, getResource, updateResource, uploadDocument, uploadSiteAsset, paySurveyInvoice, reviewSurveyorVerification, decideRentalApplication,
   acceptRentalPayment, rejectRentalPayment, submitRentalInvoicePayment,
 } from '../../services/api';
-import type { Pagination, UserRole } from '../../services/types';
+import type { Pagination as PaginationState, UserRole } from '../../services/types';
 import { moduleLabel } from '../../components/layout/AppShell';
 import PageHeader from '../../components/layout/PageHeader';
 import CompactPageToolbar from '../../components/layout/CompactPageToolbar';
@@ -69,7 +69,7 @@ const COMPACT_RESOURCE_MODULES = new Set([
 
 type ResourceListSnapshot = {
   rows: any[];
-  pagination: Pagination;
+  pagination: PaginationState;
 };
 const resourceListCache = new Map<string, ResourceListSnapshot>();
 function resourceListCacheKey(userId: unknown, module: string, scope: string, params: Record<string, string | number | undefined>) {
@@ -889,7 +889,7 @@ export default function ResourcePage({ resourceOverride, tenantApplicationView =
   const theme = useTheme();
   const mobile = useMediaQuery(theme.breakpoints.down('md'));
   const [rows, setRows] = useState<any[]>(() => initialSnapshot?.rows || []);
-  const [pagination, setPagination] = useState<Pagination>(() => initialSnapshot?.pagination || { page: 1, totalPages: 1, total: 0, limit: 20 });
+  const [pagination, setPagination] = useState<PaginationState>(() => initialSnapshot?.pagination || { page: 1, totalPages: 1, total: 0, limit: 20 });
   const [search, setSearch] = useState(initialSearch);
   const [status, setStatus] = useState(initialStatus);
   const [listingPurpose, setListingPurpose] = useState(initialListingPurpose);
