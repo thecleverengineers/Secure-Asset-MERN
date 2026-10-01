@@ -69,7 +69,7 @@ const COMPACT_RESOURCE_MODULES = new Set([
 
 type ResourceListSnapshot = {
   rows: any[];
-  pagination: { page: number; totalPages: number; total: number; limit: number };
+  pagination: any;
 };
 const resourceListCache = new Map<string, ResourceListSnapshot>();
 function resourceListCacheKey(userId: unknown, module: string, scope: string, params: Record<string, string | number | undefined>) {
