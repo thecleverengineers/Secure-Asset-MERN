@@ -25,6 +25,7 @@ function socketOrigin() {
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const socketRef = useRef<Socket | null>(null);
   const presenceRef = useRef<Socket | null>(null);
+  const connectedIdentityRef = useRef('');
   const [status, setStatus] = useState<RealtimeStatus>('disconnected');
 
   const disconnect = useCallback(() => {
@@ -34,15 +35,23 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     presenceRef.current?.removeAllListeners();
     presenceRef.current?.disconnect();
     presenceRef.current = null;
+    connectedIdentityRef.current = '';
     setStatus('disconnected');
   }, []);
 
   const connect = useCallback(() => {
     const token = getToken();
+    const currentUser = getCurrentUser();
+    const identity = String(currentUser?._id || (token ? 'legacy-token' : ''));
     // The v98 cookie is HttpOnly, so an authenticated bootstrap profile is
     // the signal to connect. A memory bearer is accepted only for old servers.
-    if (!token && !getCurrentUser()) { disconnect(); return; }
+    if (!identity) { disconnect(); return; }
+    // Session renewal broadcasts are frequent and should not tear down two
+    // healthy sockets for the same signed-in user. Socket.IO already handles
+    // transient reconnects internally.
+    if (connectedIdentityRef.current === identity && socketRef.current && presenceRef.current) return;
     disconnect();
+    connectedIdentityRef.current = identity;
     setStatus('connecting');
     const socket = io(socketOrigin(), {
       path: '/socket.io',
