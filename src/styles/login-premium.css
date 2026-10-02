@@ -2656,3 +2656,51 @@
     font-size: 9px;
   }
 }
+
+
+/* v260 primary auth tabs and ghost placeholders */
+.sa-login-mode-link:hover,
+.sa-login-mode-link.is-active,
+.sa-login-mode-link.is-active:hover {
+  border-color: var(--mui-palette-primary-main, #1976d2) !important;
+  background: var(--mui-palette-primary-main, #1976d2) !important;
+  color: #ffffff !important;
+}
+
+.sa-login-field input::placeholder {
+  color: #82928a !important;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: .005em;
+  opacity: .42 !important;
+}
+
+.sa-login-field input::-webkit-input-placeholder {
+  color: #82928a !important;
+  font-style: italic;
+  opacity: .42 !important;
+}
+
+@media (max-width: 599px) {
+  .sa-auth-mobile-route-intro > h1.MuiTypography-root {
+    font-size: clamp(21px, 5.9vw, 25px);
+    line-height: 1.08;
+    letter-spacing: -.035em;
+  }
+
+  .sa-auth-mobile-route-intro > p.MuiTypography-root {
+    margin-top: 7px;
+  }
+
+  .sa-login-mode-link:hover,
+  .sa-login-mode-link.is-active,
+  .sa-login-mode-link.is-active:hover {
+    box-shadow: 0 4px 12px rgba(25, 118, 210, .16);
+  }
+}
+
+@media (max-width: 359px) {
+  .sa-auth-mobile-route-intro > h1.MuiTypography-root {
+    font-size: 20px;
+  }
+}
