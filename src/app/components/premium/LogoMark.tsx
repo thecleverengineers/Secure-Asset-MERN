@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { useSite } from '../../context/SiteContext';
 
@@ -15,27 +16,103 @@ export function resolveSiteLogoUrl(settings: Record<string, any> = {}, light = f
   ].map(nonEmptyString).find(Boolean) || '';
 }
 
+/**
+ * Brand-safe logo renderer.
+ *
+ * CMS logos are preferred, but Render's ephemeral filesystem can invalidate
+ * older /site-assets URLs after a deploy. A failed image therefore falls back
+ * immediately to a vector/text mark rendered by React itself. This keeps every
+ * shell usable and prevents the browser's broken-image icon/alt text from ever
+ * becoming the visible brand.
+ */
 export function LogoMark({ light = false }: { light?: boolean }) {
   const { data } = useSite();
   const settings = data.settings || {};
   const logoUrl = resolveSiteLogoUrl(settings, light);
+  const [failedLogoUrl, setFailedLogoUrl] = useState('');
   const name = settings.shortTitle || settings.siteTitle || 'SecureAsset';
-  const textColor = light ? '#ffffff' : '#0f172a';
-  const boxBg = light ? 'rgba(255, 255, 255, 0.15)' : '#0f172a';
-  const boxBorder = light ? 'rgba(255, 255, 255, 0.3)' : 'transparent';
-  const shapeBorder = '#ffffff';
+  const textColor = light ? '#ffffff' : '#12382d';
+  const markBg = light ? 'rgba(255,255,255,.14)' : '#12382d';
+  const markFg = light ? '#ffffff' : '#ffffff';
+  const canRenderImage = Boolean(logoUrl) && failedLogoUrl !== logoUrl;
+
+  useEffect(() => {
+    if (!logoUrl) setFailedLogoUrl('');
+  }, [logoUrl]);
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
-      {logoUrl ? (
-        <Box component="img" src={logoUrl} alt={`${name} logo`} sx={{ width: '100%', maxWidth: 186, height: 44, objectFit: 'contain', objectPosition: 'left center', display: 'block' }} />
+    <Box
+      className="sa-brand-logo-mark"
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 1.15,
+        minWidth: 0,
+        maxWidth: '100%',
+      }}
+    >
+      {canRenderImage ? (
+        <Box
+          component="img"
+          src={logoUrl}
+          alt=""
+          aria-label={`${name} logo`}
+          onError={() => setFailedLogoUrl(logoUrl)}
+          sx={{
+            width: 'auto',
+            maxWidth: 230,
+            height: 'auto',
+            maxHeight: 66,
+            objectFit: 'contain',
+            objectPosition: 'center',
+            display: 'block',
+          }}
+        />
       ) : (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, bgcolor: boxBg, border: `1px solid ${boxBorder}`, position: 'relative', overflow: 'hidden', borderRadius: '6px' }}>
-          <Box sx={{ position: 'absolute', width: '100%', height: '50%', top: 0, bgcolor: 'rgba(255,255,255,0.1)' }} />
-          <Box sx={{ width: 10, height: 10, border: `1.5px solid ${shapeBorder}`, transform: 'rotate(45deg)', borderRadius: '2px' }} />
-        </Box>
+        <>
+          <Box
+            aria-hidden="true"
+            sx={{
+              width: 34,
+              height: 34,
+              flex: '0 0 34px',
+              display: 'grid',
+              placeItems: 'center',
+              bgcolor: markBg,
+              border: light ? '1px solid rgba(255,255,255,.28)' : '1px solid rgba(18,56,45,.08)',
+              borderRadius: '10px',
+              boxShadow: light ? 'none' : '0 5px 14px rgba(18,56,45,.10)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            <Box
+              sx={{
+                width: 14,
+                height: 14,
+                border: `2px solid ${markFg}`,
+                borderRadius: '4px 4px 6px 6px',
+                transform: 'rotate(45deg)',
+              }}
+            />
+          </Box>
+          <Typography
+            component="span"
+            sx={{
+              color: textColor,
+              fontWeight: 850,
+              fontSize: '1.08rem',
+              lineHeight: 1,
+              letterSpacing: '-.035em',
+              whiteSpace: 'nowrap',
+              fontFamily: 'inherit',
+            }}
+          >
+            {String(name).replace(/SecureAsset/g, 'Secure Asset')}
+          </Typography>
+        </>
       )}
-      {!logoUrl && <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '1.02rem', color: textColor, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>{name}</Typography>}
     </Box>
   );
 }
