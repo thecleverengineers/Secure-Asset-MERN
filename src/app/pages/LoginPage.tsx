@@ -138,7 +138,7 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
   if (mode === 'otp') actionLabel = otpSent ? 'Verify OTP' : 'Continue';
   if (mode === 'two-factor') actionLabel = 'Verify and sign in';
 
-  return <Box className="sa-login-panel">
+  return <Box className={`sa-login-panel sa-login-panel-${mode}`}>
         <Box className="sa-auth-form-stage">
           <Stack className="sa-login-brand-row" direction="row" justifyContent="space-between" alignItems="center" gap={2}>
             <LogoMark />
