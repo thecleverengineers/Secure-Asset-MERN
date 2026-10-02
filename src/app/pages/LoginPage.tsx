@@ -40,6 +40,7 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
   const [tenantInvite, setTenantInvite] = useState<Record<string, any> | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [loginStep, setLoginStep] = useState<'identifier' | 'password'>('identifier');
   const titles: Record<Mode,string> = { login: content.loginTitle || 'Welcome back', register: content.registerTitle || 'Create your account', otp: content.otpTitle || 'Mobile OTP login', 'two-factor': 'Two-factor verification' };
   const subtitles: Record<Mode,string> = {
     login: content.loginSubtitle || 'Sign in using your email address or mobile number.',
@@ -76,17 +77,26 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
   }, [invitationToken]);
 
   useEffect(() => {
-    if (mode === 'two-factor') return;
-    const nextMode = invitationToken ? (modes.includes(mode) ? mode : 'register') : requestedAuthMode || (modes.includes(mode) ? mode : modes[0] || 'login');
-    if (nextMode !== mode) {
-      setMode(nextMode); setOtpSent(false); setOtp(''); setError(''); setMessage(''); setChallengeToken('');
-    }
-  }, [invitationToken, mode, modes, requestedAuthMode]);
+    if (invitationToken) return;
+    const nextMode = modes.includes(requestedAuthMode) ? requestedAuthMode : (modes[0] || 'login');
+    setMode((current) => current === 'two-factor' ? current : nextMode);
+    setOtpSent(false); setOtp(''); setError(''); setMessage(''); setChallengeToken('');
+    setLoginStep('identifier');
+  }, [invitationToken, modes, requestedAuthMode]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (loading) return;
-    setLoading(true); setError(''); setMessage('');
+    setError(''); setMessage('');
+    if (mode === 'login' && loginStep === 'identifier') {
+      if (!identifier.trim()) {
+        setError('Enter your email address or mobile number to continue.');
+        return;
+      }
+      setLoginStep('password');
+      return;
+    }
+    setLoading(true);
     try {
       if (mode === 'two-factor') {
         const signedIn = await auth.completeTwoFactor(challengeToken, otp);
@@ -127,6 +137,30 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
   }
 
   function selectDemo(account: string) { setIdentifier(account); setPassword('Demo@123'); }
+  async function switchToOtpLogin() {
+    if (loading) return;
+    if (!identifier.trim()) {
+      setError('Enter your email address or mobile number first.');
+      setLoginStep('identifier');
+      return;
+    }
+    setLoading(true); setError(''); setMessage('');
+    try {
+      const result = await sendOtp({ identifier });
+      setMode('otp'); setOtpSent(true); setOtp('');
+      setMessage(result.developmentOtp ? `Development OTP: ${result.developmentOtp}` : result.message || 'OTP sent to the registered mobile.');
+    } catch (exception) {
+      setError((exception as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function switchToPasswordLogin() {
+    setMode('login'); setOtpSent(false); setOtp(''); setError(''); setMessage('');
+    setLoginStep(identifier.trim() ? 'password' : 'identifier');
+  }
+
   async function resendRegistration() {
     setLoading(true); setError('');
     try { const result = await resendRegistrationOtp(phone); setMessage(result.developmentOtp ? `Development OTP: ${result.developmentOtp}` : result.message || 'OTP resent.'); }
@@ -138,7 +172,7 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
   const passwordField = (label = 'Password') => <TextField className="sa-login-field" label={label} type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} required helperText={mode === 'register' ? 'At least 8 characters with uppercase, lowercase and a number.' : '\u00a0'} InputProps={{ startAdornment: <InputAdornment position="start"><LockRounded fontSize="small" /></InputAdornment>, endAdornment: <InputAdornment position="end"><IconButton type="button" aria-label="Toggle password visibility" onClick={() => setShowPassword((value) => !value)}>{showPassword ? <VisibilityOffRounded /> : <VisibilityRounded />}</IconButton></InputAdornment> }} />;
 
   let actionLabel = 'Continue';
-  if (mode === 'login') actionLabel = 'Sign in';
+  if (mode === 'login') actionLabel = loginStep === 'identifier' ? 'Continue' : 'Sign in';
   if (mode === 'register') actionLabel = otpSent ? 'Verify mobile and create account' : 'Continue';
   if (mode === 'otp') actionLabel = otpSent ? 'Verify OTP' : 'Continue';
   if (mode === 'two-factor') actionLabel = 'Verify and sign in';
@@ -149,17 +183,19 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
             <LogoMark />
             <Chip className="sa-login-access-chip" label={mode === 'register' ? 'New account' : 'Secure access'} size="small" variant="outlined" />
           </Stack>
-          <Typography className="sa-login-title">{titles[mode]}</Typography><Typography className="sa-login-subtitle">{subtitles[mode]}</Typography>
+          <Typography className="sa-login-title">{titles[mode]}</Typography><Typography className="sa-login-subtitle">{mode === 'login' && loginStep === 'password' ? 'Enter your password to securely access your account.' : mode === 'otp' && otpSent ? 'Enter the six-digit OTP sent to your registered mobile.' : subtitles[mode]}</Typography>
           <Box className="sa-auth-feedback-slot" aria-live="polite">{error && <Alert severity="error">{error}</Alert>}{message && <Alert severity="success">{message}</Alert>}</Box>
           <Box component="form" className="sa-login-form" noValidate onSubmit={submit}><Stack spacing={1.7}>
-          {mode === 'login' && identifierField}
-          {mode === 'login' && passwordField()}
-          {mode === 'login' && <Stack direction="row" justifyContent="flex-end" sx={{ mt: -.65 }}><MuiLink component={RouterLink} className="sa-login-forgot" data-secureasset-forgot-password-link="dedicated-reset-v160" to="/auth/forgot-password" underline="none">Forgot password?</MuiLink></Stack>}
+          {mode === 'login' && loginStep === 'identifier' && identifierField}
+          {mode === 'login' && loginStep === 'password' && <Box className="sa-login-identity-summary"><Box><Typography className="sa-login-identity-label">Signing in as</Typography><Typography className="sa-login-identity-value">{identifier}</Typography></Box><Button type="button" className="sa-login-change-identity" onClick={() => { setLoginStep('identifier'); setPassword(''); setError(''); setMessage(''); }}>Change</Button></Box>}
+          {mode === 'login' && loginStep === 'password' && passwordField()}
+          {mode === 'login' && loginStep === 'password' && <Stack direction="row" justifyContent="flex-end" sx={{ mt: -.65 }}><MuiLink component={RouterLink} className="sa-login-forgot" data-secureasset-forgot-password-link="dedicated-reset-v160" to="/auth/forgot-password" underline="none">Forgot password?</MuiLink></Stack>}
 
           {mode === 'register' && !otpSent && <><TextField className="sa-login-field" label="Full name" value={name} onChange={(event) => setName(event.target.value)} required helperText={'\u00a0'} InputProps={{ readOnly: Boolean(invitationToken) }} /><TextField className="sa-login-field" label="Email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required helperText={'\u00a0'} InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }} /><TextField className="sa-login-field" label="Mobile number" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 12))} required helperText="Indian mobile number used for OTP verification." InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><PhoneAndroidRounded fontSize="small" /></InputAdornment> }} />{passwordField()}<FormControlLabel className="sa-register-consent" control={<Checkbox checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} size="small" />} label={<Typography component="span">I agree to the <MuiLink href="https://www.ahibi.in/terms" target="_blank" rel="noopener noreferrer" underline="hover">Terms of Service</MuiLink> and <MuiLink href="https://www.ahibi.in/privacy" target="_blank" rel="noopener noreferrer" underline="hover">Privacy Policy</MuiLink></Typography>} /></>}
           {mode === 'register' && otpSent && <><Alert severity="info">Enter the six-digit OTP sent to your mobile. Your account remains inactive until verification succeeds.</Alert><TextField className="sa-login-field" label="6-digit mobile OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required helperText={'\u00a0'} inputProps={{ inputMode: 'numeric', maxLength: 6 }} /><Button className="sa-auth-secondary-button" type="button" onClick={resendRegistration} disabled={loading}>Resend OTP</Button></>}
 
-          {mode === 'otp' && identifierField}
+          {mode === 'otp' && !otpSent && identifierField}
+          {mode === 'otp' && otpSent && <Box className="sa-login-identity-summary"><Box><Typography className="sa-login-identity-label">OTP sent for</Typography><Typography className="sa-login-identity-value">{identifier}</Typography></Box><Button type="button" className="sa-login-change-identity" onClick={() => { setOtpSent(false); setOtp(''); setError(''); setMessage(''); }}>Change</Button></Box>}
           {mode === 'otp' && otpSent && <TextField className="sa-login-field" label="6-digit OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required helperText={'\u00a0'} inputProps={{ inputMode: 'numeric', maxLength: 6 }} />}
 
           {mode === 'two-factor' && <TextField className="sa-login-field" label="Authenticator or backup code" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\s/g, '').slice(0, 16))} helperText={'\u00a0'} InputProps={{ startAdornment: <InputAdornment position="start"><SecurityRounded /></InputAdornment> }} required />}
@@ -168,12 +204,14 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
             className="sa-submit-button"
             variant="contained"
             size="large"
-            disabled={loading || inviteLoading || Boolean(invitationToken && !tenantInvite) || (mode === 'register' && !otpSent && !acceptedTerms)}
+            disabled={loading || inviteLoading || Boolean(invitationToken && !tenantInvite) || (mode === 'register' && !otpSent && !acceptedTerms) || (mode === 'login' && loginStep === 'identifier' && !identifier.trim()) || (mode === 'otp' && !otpSent && !identifier.trim())}
             disableElevation
           >
             <Box component="span" sx={{ opacity: loading ? 0 : 1, pointerEvents: 'none' }}>{actionLabel}</Box>{loading && <CircularProgress size={22} color="inherit" sx={{ position: 'absolute', left: '50%', top: '50%', ml: '-11px', mt: '-11px' }} />}
           </Button>
-          {mode === 'two-factor' && <Button className="sa-auth-secondary-button" type="button" size="small" onClick={() => { setMode('login'); setOtp(''); setError(''); }}>Return to sign in</Button>}
+          {mode === 'login' && loginStep === 'password' && content.allowOtpLogin !== false && <Button className="sa-auth-switch-method" type="button" onClick={switchToOtpLogin} disabled={loading}>Login with OTP instead</Button>}
+          {mode === 'otp' && <Button className="sa-auth-switch-method" type="button" onClick={switchToPasswordLogin} disabled={loading}>Use password instead</Button>}
+          {mode === 'two-factor' && <Button className="sa-auth-secondary-button" type="button" size="small" onClick={() => { setMode('login'); setOtp(''); setError(''); setLoginStep('password'); }}>Return to sign in</Button>}
           </Stack></Box>
           {invitationToken && inviteLoading && <Alert severity="info" sx={{ mb: 2 }}>Checking your tenant invitation…</Alert>}
           {invitationToken && tenantInvite && <Alert severity="info" sx={{ mb: 2 }}>Your landlord has invited you to SecureAsset. Create your password, verify your mobile number, then complete tenant KYC.</Alert>}
