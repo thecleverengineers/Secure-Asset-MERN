@@ -1066,3 +1066,130 @@
     line-height: 1.45;
   }
 }
+
+
+/* v243 mobile auth overflow hardening */
+@media (max-width: 899px) {
+  .sa-auth-route-shell,
+  .sa-login-premium-shell,
+  .sa-auth-desktop-frame,
+  .sa-auth-hero,
+  .sa-login-premium-form-column,
+  .sa-login-premium-card,
+  .sa-auth-route-stage,
+  .sa-login-panel {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .sa-auth-route-shell,
+  .sa-login-premium-shell,
+  .sa-auth-desktop-frame {
+    overflow-x: hidden !important;
+  }
+
+  .sa-auth-desktop-frame {
+    display: block !important;
+    grid-template-columns: none !important;
+  }
+
+  .sa-auth-hero {
+    width: 100vw;
+    max-width: 100vw;
+    overflow-x: hidden !important;
+  }
+
+  .sa-auth-hero::after {
+    width: 100%;
+    left: 0;
+  }
+
+  .sa-auth-hero-content {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .sa-auth-hero-logo {
+    max-width: calc(100vw - 48px);
+  }
+
+  .sa-login-premium-form-column {
+    max-width: 100vw;
+    margin-left: 0;
+    margin-right: 0;
+    overflow-x: hidden !important;
+  }
+
+  .sa-login-premium-card {
+    max-width: 100vw;
+    margin-left: auto;
+    margin-right: auto;
+    overflow-x: hidden !important;
+  }
+
+  .sa-auth-route-stage,
+  .sa-login-panel,
+  .sa-login-form,
+  .sa-login-form .MuiStack-root,
+  .sa-login-field,
+  .sa-login-field .MuiFormControl-root,
+  .sa-login-field .MuiInputBase-root {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .sa-login-mode-nav .MuiStack-root {
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .sa-auth-protection-note {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .sa-auth-protection-note > div {
+    min-width: 0;
+  }
+
+  .sa-auth-protection-title,
+  .sa-auth-protection-copy,
+  .sa-auth-support-copy {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
+
+@media (max-width: 599px) {
+  .sa-auth-hero-content {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .sa-auth-hero-logo {
+    left: 18px;
+    max-width: calc(100vw - 36px);
+  }
+
+  .sa-login-premium-form-column {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .sa-login-premium-card {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .sa-login-mode-link {
+    white-space: normal;
+    text-align: center;
+  }
+}
