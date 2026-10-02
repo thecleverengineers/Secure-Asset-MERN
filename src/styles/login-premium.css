@@ -1568,3 +1568,15 @@
     background: #ffffff !important;
   }
 }
+
+
+/* v247 center login heading copy */
+.sa-login-panel-login .sa-login-title.MuiTypography-root,
+.sa-login-panel-login .sa-login-subtitle.MuiTypography-root {
+  text-align: center;
+}
+
+.sa-login-panel-login .sa-login-subtitle.MuiTypography-root {
+  margin-left: auto;
+  margin-right: auto;
+}
