@@ -1580,3 +1580,13 @@
   margin-left: auto;
   margin-right: auto;
 }
+
+
+/* v248 login heading section spacing */
+.sa-login-panel-login .sa-login-title.MuiTypography-root {
+  margin-top: 20px !important;
+}
+
+.sa-login-panel-login .sa-login-subtitle.MuiTypography-root {
+  margin-bottom: 20px !important;
+}
