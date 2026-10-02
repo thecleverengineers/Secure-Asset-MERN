@@ -11,9 +11,8 @@ import { useSite } from '../../context/SiteContext';
 import '../../../styles/login-premium.css';
 
 const accessRoutes = [
-  { to: '/auth/login', label: 'Login', paths: ['/auth/login'] },
+  { to: '/auth/login', label: 'Login', paths: ['/auth/login', '/auth/otp-login', '/auth/otp_login', '/auth/verify-otp'] },
   { to: '/auth/register', label: 'Register', paths: ['/auth/register'] },
-  { to: '/auth/otp-login', label: 'OTP login', paths: ['/auth/otp-login', '/auth/otp_login', '/auth/verify-otp'] },
 ];
 
 /** A persistent frame for every public-auth route. */
