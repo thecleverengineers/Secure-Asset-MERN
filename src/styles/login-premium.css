@@ -2630,13 +2630,13 @@
   }
 
   .sa-auth-security-icon {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
 
   .sa-auth-security-copy.MuiTypography-root {
     max-width: 260px;
-    font-size: 10px;
+    font-size: 12px;
   }
 }
 
@@ -2648,12 +2648,12 @@
   }
 
   .sa-auth-security-icon {
-    width: 12px;
-    height: 12px;
+    width: 13px;
+    height: 13px;
   }
 
   .sa-auth-security-copy.MuiTypography-root {
-    font-size: 9px;
+    font-size: 12px;
   }
 }
 
