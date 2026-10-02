@@ -1940,3 +1940,143 @@
     max-height: 38px;
   }
 }
+
+
+/* v252 premium mobile auth vertical rhythm */
+@media (max-width: 599px) {
+  .sa-login-premium-form-column {
+    padding-top: max(14px, env(safe-area-inset-top));
+  }
+
+  .sa-login-premium-card {
+    padding-top: 0;
+  }
+
+  .sa-auth-mobile-logo {
+    min-height: 52px;
+    margin: 0 0 18px;
+    padding-top: 2px;
+  }
+
+  .sa-auth-mobile-logo img {
+    max-width: min(168px, 50vw);
+    max-height: 40px;
+  }
+
+  .sa-auth-mode-nav.sa-login-mode-nav {
+    margin-bottom: 26px !important;
+  }
+
+  .sa-auth-mode-nav.sa-login-mode-nav .MuiStack-root {
+    padding: 5px;
+    gap: 5px !important;
+    border-radius: 17px;
+  }
+
+  .sa-login-mode-link {
+    min-height: 42px;
+    border-radius: 12px;
+    font-size: 10px;
+  }
+
+  .sa-auth-route-stage {
+    padding-top: 0;
+  }
+
+  .sa-auth-form-stage {
+    padding-top: 0;
+  }
+
+  .sa-login-title.MuiTypography-root {
+    margin-top: 0 !important;
+  }
+
+  .sa-login-panel-login .sa-login-title.MuiTypography-root {
+    margin-top: 0 !important;
+  }
+
+  .sa-login-panel-login .sa-login-subtitle.MuiTypography-root {
+    margin-bottom: 28px !important;
+  }
+
+  .sa-login-subtitle.MuiTypography-root {
+    margin-bottom: 18px;
+  }
+
+  .sa-login-form > .MuiStack-root {
+    gap: 10px !important;
+  }
+
+  .sa-login-field .MuiFormHelperText-root {
+    margin-top: 3px;
+  }
+
+  .sa-login-forgot {
+    margin-top: -2px;
+    margin-bottom: 2px;
+  }
+
+  .sa-submit-button.MuiButton-root {
+    margin-top: 4px;
+  }
+
+  .sa-auth-protection-note {
+    margin-top: 18px;
+  }
+
+  .sa-auth-support-copy.MuiTypography-root {
+    margin-top: 8px;
+    padding-bottom: 2px;
+  }
+}
+
+@media (max-width: 359px) {
+  .sa-login-premium-form-column {
+    padding-top: max(10px, env(safe-area-inset-top));
+  }
+
+  .sa-auth-mobile-logo {
+    min-height: 46px;
+    margin-bottom: 14px;
+  }
+
+  .sa-auth-mobile-logo img {
+    max-width: min(148px, 50vw);
+    max-height: 36px;
+  }
+
+  .sa-auth-mode-nav.sa-login-mode-nav {
+    margin-bottom: 20px !important;
+  }
+
+  .sa-auth-mode-nav.sa-login-mode-nav .MuiStack-root {
+    padding: 4px;
+    gap: 4px !important;
+  }
+
+  .sa-login-mode-link {
+    min-height: 38px;
+  }
+
+  .sa-login-panel-login .sa-login-subtitle.MuiTypography-root {
+    margin-bottom: 22px !important;
+  }
+
+  .sa-login-form > .MuiStack-root {
+    gap: 8px !important;
+  }
+}
+
+@media (min-width: 431px) and (max-width: 599px) {
+  .sa-auth-mobile-logo {
+    margin-bottom: 20px;
+  }
+
+  .sa-auth-mode-nav.sa-login-mode-nav {
+    margin-bottom: 30px !important;
+  }
+
+  .sa-login-panel-login .sa-login-subtitle.MuiTypography-root {
+    margin-bottom: 30px !important;
+  }
+}
