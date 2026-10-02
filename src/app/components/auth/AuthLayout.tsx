@@ -60,6 +60,7 @@ export default function AuthLayout() {
 
         <Box ref={formColumnRef} className="sa-login-premium-form-column">
           <Box className="sa-login-premium-card">
+            <Box className="sa-auth-mobile-logo"><LogoMark /></Box>
             <Box className="sa-auth-route-stage"><Outlet /></Box>
             <Box component="nav" aria-label="Authentication options" className="sa-auth-mode-nav sa-login-mode-nav">
               <Stack direction="row" spacing={1} justifyContent="center" useFlexGap flexWrap="wrap">
