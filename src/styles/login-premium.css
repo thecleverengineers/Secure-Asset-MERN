@@ -2624,8 +2624,8 @@
   .sa-auth-protection-note.sa-auth-security-note {
     min-height: 68px;
     padding: 10px 14px;
-    border: 1px solid #e5ece8;
-    border-radius: 16px;
+    border: 0;
+    border-radius: 0;
     background: transparent;
     box-shadow: none;
   }
