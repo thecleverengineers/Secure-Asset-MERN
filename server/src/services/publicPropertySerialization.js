@@ -163,9 +163,10 @@ export function serializePublicRentalUnit(input) {
   const floor = asObject(doc.floor);
   const availabilityStatus = String(doc.availabilityStatus || 'AVAILABLE').toUpperCase();
   const canBook = ['AVAILABLE', 'APPLICATION_PENDING'].includes(availabilityStatus);
-  const availabilityLabel = availabilityStatus === 'APPLICATION_PENDING'
-    ? 'Application in progress'
-    : canBook ? 'Available to book' : 'Locked — already booked';
+  // Public marketplace exposes only two booking states. Pending applications
+  // never lock the room; the unit stays bookable until its lifecycle becomes
+  // non-accepting (reserved/agreement/payment/occupied/etc.).
+  const availabilityLabel = canBook ? 'Available to Book' : 'Locked-Already Booked';
   return {
     _id: doc._id,
     propertyId: doc.property?._id || doc.property,
