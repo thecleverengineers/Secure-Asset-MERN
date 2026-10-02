@@ -2376,3 +2376,219 @@
     margin-bottom: 28px !important;
   }
 }
+
+
+/* v258 premium mobile auth composition */
+@media (max-width: 599px) {
+  .sa-login-premium-card {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .sa-auth-mobile-logo {
+    margin-bottom: 22px;
+  }
+
+  .sa-auth-mobile-route-intro {
+    max-width: 390px;
+    margin-bottom: 22px;
+    padding: 0 10px;
+  }
+
+  .sa-auth-mobile-route-intro > h1.MuiTypography-root {
+    color: #12382d;
+    font-size: clamp(25px, 7vw, 30px);
+    font-weight: 850;
+    line-height: 1.05;
+    letter-spacing: -.04em;
+  }
+
+  .sa-auth-mobile-route-intro > p.MuiTypography-root {
+    max-width: 330px;
+    margin-top: 9px;
+    color: #71817a;
+    font-size: clamp(10px, 2.8vw, 11.5px);
+    font-weight: 500;
+    line-height: 1.55;
+    letter-spacing: -.005em;
+  }
+
+  .sa-auth-mode-nav.sa-login-mode-nav {
+    width: min(100%, 360px);
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-bottom: 26px !important;
+  }
+
+  .sa-auth-mode-nav.sa-login-mode-nav .MuiStack-root {
+    gap: 4px !important;
+    padding: 4px;
+    border: 1px solid #e3ebe7;
+    border-radius: 18px;
+    background: #f2f6f4;
+  }
+
+  .sa-login-mode-link {
+    min-height: 44px;
+    border-radius: 14px;
+    color: #738079;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: -.01em;
+  }
+
+  .sa-login-mode-link.is-active {
+    border-color: #087455 !important;
+    background: #087455;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(8, 116, 85, .14);
+  }
+
+  .sa-login-mode-link.is-active:hover {
+    background: #087455;
+    color: #ffffff;
+  }
+
+  .sa-auth-route-stage {
+    width: 100%;
+    max-width: 460px;
+    margin: 0 auto;
+    padding: 18px 14px 16px;
+    border: 1px solid #e7eeea;
+    border-radius: 22px;
+    background: #ffffff;
+  }
+
+  .sa-auth-form-stage {
+    width: 100%;
+  }
+
+  .sa-login-form > .MuiStack-root {
+    gap: 11px !important;
+  }
+
+  .sa-login-field .MuiOutlinedInput-root {
+    border-radius: 15px;
+    background: #fbfdfc;
+  }
+
+  .sa-login-field .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+    border-color: #b8ccc2;
+  }
+
+  .sa-login-field .MuiOutlinedInput-root.Mui-focused {
+    background: #ffffff;
+  }
+
+  .sa-login-field .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+    border-width: 1px;
+    border-color: #087455;
+  }
+
+  .sa-login-field .MuiInputLabel-root.Mui-focused {
+    color: #087455;
+  }
+
+  .sa-login-field .MuiInputAdornment-root .MuiSvgIcon-root {
+    color: #668178;
+  }
+
+  .sa-submit-button.MuiButton-root {
+    min-height: 48px;
+    border-radius: 15px;
+    background: #087455;
+    font-weight: 800;
+    letter-spacing: -.01em;
+  }
+
+  .sa-submit-button.MuiButton-root:hover {
+    background: #076a4e;
+  }
+
+  .sa-auth-switch-method.MuiButton-root {
+    margin-top: 2px;
+    color: #087455;
+    font-weight: 800;
+  }
+
+  .sa-login-identity-summary {
+    border-color: #dfe9e4;
+    border-radius: 14px;
+    background: #f6faf8;
+  }
+
+  .sa-register-consent {
+    padding: 2px 2px 0;
+  }
+
+  .sa-auth-protection-note {
+    max-width: 460px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 16px;
+    border-radius: 16px;
+  }
+
+  .sa-auth-support-copy.MuiTypography-root {
+    max-width: 460px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+  }
+}
+
+@media (max-width: 359px) {
+  .sa-auth-mobile-logo {
+    margin-bottom: 16px;
+  }
+
+  .sa-auth-mobile-route-intro {
+    margin-bottom: 18px;
+    padding: 0 4px;
+  }
+
+  .sa-auth-mobile-route-intro > h1.MuiTypography-root {
+    font-size: 22px;
+  }
+
+  .sa-auth-mobile-route-intro > p.MuiTypography-root {
+    max-width: 280px;
+    margin-top: 7px;
+    font-size: 9px;
+  }
+
+  .sa-auth-mode-nav.sa-login-mode-nav {
+    width: 100%;
+    margin-bottom: 20px !important;
+  }
+
+  .sa-login-mode-link {
+    min-height: 40px;
+    font-size: 9.4px;
+  }
+
+  .sa-auth-route-stage {
+    padding: 14px 10px 12px;
+    border-radius: 18px;
+  }
+
+  .sa-submit-button.MuiButton-root {
+    min-height: 42px;
+  }
+}
+
+@media (min-width: 431px) and (max-width: 599px) {
+  .sa-auth-mobile-route-intro {
+    margin-bottom: 24px;
+  }
+
+  .sa-auth-mode-nav.sa-login-mode-nav {
+    margin-bottom: 30px !important;
+  }
+
+  .sa-auth-route-stage {
+    padding: 20px 18px 18px;
+    border-radius: 24px;
+  }
+}
