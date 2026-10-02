@@ -383,8 +383,9 @@ export default function ApplyPropertyPage() {
   const roomSize = specs.roomSize?.value ? `${specs.roomSize.value} ${specs.roomSize.unit || 'sqft'}` : '—';
   const occupancy = specs.maximumOccupants ? `${specs.maximumOccupants} ${Number(specs.maximumOccupants) === 1 ? 'Person' : 'Persons'}` : '—';
   const address = [property?.address?.locality, property?.address?.city, property?.address?.district, property?.address?.state, property?.address?.country].filter(Boolean).join(', ');
-  const availabilityRaw = String(selectedRentalUnit?.availabilityStatus || selectedRentalUnit?.status || property?.status || 'available').toUpperCase();
-  const available = selectedRentalUnit ? selectedRentalUnit.canBook !== false && !selectedRentalUnit.isLocked && !selectedRentalUnit.applicationInProgress && !['OCCUPIED','BLOCKED','ARCHIVED'].includes(availabilityRaw) : true;
+  // APPLICATION_PENDING still accepts competing applications. Only the
+  // server-provided locked/non-bookable state blocks the booking form.
+  const available = selectedRentalUnit ? selectedRentalUnit.canBook !== false && !selectedRentalUnit.isLocked : true;
   const totalOnApproval = price + deposit;
 
   function setField(name: keyof FormState, value: string) { setForm((current) => ({ ...current, [name]: value })); }
