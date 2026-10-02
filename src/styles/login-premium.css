@@ -1584,9 +1584,9 @@
 
 /* v248 login heading section spacing */
 .sa-login-panel-login .sa-login-title.MuiTypography-root {
-  margin-top: 20px !important;
+  margin-top: 50px !important;
 }
 
 .sa-login-panel-login .sa-login-subtitle.MuiTypography-root {
-  margin-bottom: 20px !important;
+  margin-bottom: 50px !important;
 }
