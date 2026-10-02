@@ -153,13 +153,14 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
     description="Securely manage your properties, documents and people — all in one trusted platform."
   >
       <Box className="sa-login-panel">
-        <Stack className="sa-login-brand-row" direction="row" justifyContent="space-between" alignItems="center" gap={2}>
-          <LogoMark />
-          <Chip className="sa-login-access-chip" label={mode === 'register' ? 'New account' : 'Secure access'} size="small" variant="outlined" />
-        </Stack>
-        <Typography className="sa-login-title">{titles[mode]}</Typography><Typography className="sa-login-subtitle">{subtitles[mode]}</Typography>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}{message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
-        <Box component="form" className="sa-login-form" noValidate onSubmit={submit}><Stack spacing={1.7}>
+        <Box className="sa-auth-form-stage">
+          <Stack className="sa-login-brand-row" direction="row" justifyContent="space-between" alignItems="center" gap={2}>
+            <LogoMark />
+            <Chip className="sa-login-access-chip" label={mode === 'register' ? 'New account' : 'Secure access'} size="small" variant="outlined" />
+          </Stack>
+          <Typography className="sa-login-title">{titles[mode]}</Typography><Typography className="sa-login-subtitle">{subtitles[mode]}</Typography>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}{message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
+          <Box component="form" className="sa-login-form" noValidate onSubmit={submit}><Stack spacing={1.7}>
           {mode === 'login' && identifierField}
           {mode === 'login' && passwordField()}
           {mode === 'login' && <Stack direction="row" justifyContent="flex-end" sx={{ mt: -.65 }}><MuiLink component={RouterLink} className="sa-login-forgot" data-secureasset-forgot-password-link="dedicated-reset-v160" to="/auth/reset-password" underline="none">Forgot password?</MuiLink></Stack>}
@@ -192,11 +193,12 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
             <Box component="span" sx={{ opacity: loading ? 0 : 1, pointerEvents: 'none' }}>{actionLabel}</Box>{loading && <CircularProgress size={22} color="inherit" sx={{ position: 'absolute', left: '50%', top: '50%', ml: '-11px', mt: '-11px' }} />}
           </Button>
           {mode === 'two-factor' && <Button type="button" size="small" onClick={() => changeMode('login')}>Return to sign in</Button>}
-        </Stack></Box>
-        {invitationToken && inviteLoading && <Alert severity="info" sx={{ mb: 2 }}>Checking your tenant invitation…</Alert>}
-        {invitationToken && tenantInvite && <Alert severity="info" sx={{ mb: 2 }}>Your landlord has invited you to SecureAsset. Create your password, verify your mobile number, then complete tenant KYC.</Alert>}
-        {invitationToken && !inviteLoading && !tenantInvite && <Alert severity="warning" sx={{ mb: 2 }}>This invitation is invalid or expired. Ask the landlord for a new link.</Alert>}
-        {invitationToken && mode !== 'two-factor' && <Button type="button" size="small" onClick={() => changeMode(mode === 'register' ? 'login' : 'register')}>{mode === 'register' ? 'Already have an account? Sign in to accept' : 'Create a tenant account from this invitation'}</Button>}
+          </Stack></Box>
+          {invitationToken && inviteLoading && <Alert severity="info" sx={{ mb: 2 }}>Checking your tenant invitation…</Alert>}
+          {invitationToken && tenantInvite && <Alert severity="info" sx={{ mb: 2 }}>Your landlord has invited you to SecureAsset. Create your password, verify your mobile number, then complete tenant KYC.</Alert>}
+          {invitationToken && !inviteLoading && !tenantInvite && <Alert severity="warning" sx={{ mb: 2 }}>This invitation is invalid or expired. Ask the landlord for a new link.</Alert>}
+          {invitationToken && mode !== 'two-factor' && <Button type="button" size="small" onClick={() => changeMode(mode === 'register' ? 'login' : 'register')}>{mode === 'register' ? 'Already have an account? Sign in to accept' : 'Create a tenant account from this invitation'}</Button>}
+        </Box>
         {mode !== 'two-factor' && !invitationToken && <Box component="nav" aria-label="Authentication options" className="sa-auth-mode-nav sa-login-mode-nav">
           <Typography className="sa-login-mode-label">Account access</Typography>
           <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: .7 }}>
