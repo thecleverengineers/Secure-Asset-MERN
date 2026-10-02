@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useLocation } from 'react-router';
 import AnalyticsRounded from '@mui/icons-material/AnalyticsRounded';
 import ApartmentRounded from '@mui/icons-material/ApartmentRounded';
 import DescriptionRounded from '@mui/icons-material/DescriptionRounded';
@@ -19,9 +20,22 @@ type AuthExperienceProps = {
 
 export default function AuthExperience({ eyebrow, title, description, children }: AuthExperienceProps) {
   const { data } = useSite();
+  const location = useLocation();
+  const formColumnRef = useRef<HTMLDivElement | null>(null);
   const settings = data.settings || {};
   const supportEmail = settings.contact?.email || settings.contact?.supportEmail;
   const titleParts = title.split(/(smarter)/i);
+
+  // The desktop auth column is deliberately scrollable for shorter viewports.
+  // React keeps that element mounted while its route content changes, so reset
+  // its offset before paint to keep a mode switch from visibly jumping upward.
+  useLayoutEffect(() => {
+    const column = formColumnRef.current;
+    if (!column) return;
+    column.scrollTop = 0;
+    const frame = window.requestAnimationFrame(() => { column.scrollTop = 0; });
+    return () => window.cancelAnimationFrame(frame);
+  }, [location.pathname]);
 
   return (
     <Box component="section" className="sa-auth-experience sa-login-premium-shell">
@@ -104,7 +118,7 @@ export default function AuthExperience({ eyebrow, title, description, children }
           </Box>
         </Box>
 
-        <Box className="sa-login-premium-form-column">
+        <Box ref={formColumnRef} className="sa-login-premium-form-column">
           <Box className="sa-login-premium-card">
             {children}
             <Box className="sa-auth-protection-note">
