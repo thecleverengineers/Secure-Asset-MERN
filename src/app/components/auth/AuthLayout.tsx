@@ -1,6 +1,5 @@
 import { useLayoutEffect, useRef } from 'react';
 import { Link, Outlet, useLocation } from 'react-router';
-import ArrowOutwardRounded from '@mui/icons-material/ArrowOutwardRounded';
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
 import LockRounded from '@mui/icons-material/LockRounded';
 import ShieldRounded from '@mui/icons-material/ShieldRounded';
@@ -77,13 +76,18 @@ export default function AuthLayout() {
                 })}
               </Stack>
             </Box>
-            <Box className="sa-auth-protection-note">
-              <VerifiedUserRounded />
-              <Box>
-                <Typography className="sa-auth-protection-title">Protected access for your assets</Typography>
-                <Typography className="sa-auth-protection-copy">Designed for landlords, tenants, surveyors and administrators.</Typography>
-              </Box>
-              <ArrowOutwardRounded className="sa-auth-protection-arrow" aria-hidden="true" />
+            <Box className="sa-auth-protection-note sa-auth-security-note">
+              <Box
+                component="img"
+                className="sa-auth-security-icon"
+                src="https://img.icons8.com/external-nawicon-flat-nawicon/64/external-Shield-protection-and-security-nawicon-flat-nawicon.png"
+                alt="Security shield"
+                width={64}
+                height={64}
+              />
+              <Typography className="sa-auth-security-copy">
+                {isRegisterRoute ? 'Your personal information is encrypted & protected' : 'Secure & encrypted sign-in'}
+              </Typography>
             </Box>
             {supportEmail && <Typography className="sa-auth-support-copy">Need help? Contact {supportEmail}</Typography>}
           </Box>
