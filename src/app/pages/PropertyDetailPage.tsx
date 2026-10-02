@@ -378,7 +378,7 @@ export default function PropertyDetailPage() {
           </Stack>
           <Stack direction="row" gap={.7} sx={{ mt: 1.35 }}>
             <Button fullWidth size="small" variant="outlined" onClick={(event) => { event.stopPropagation(); navigate(`/room_details/${unit._id}`); }} sx={{ minHeight: 34, color: '#FFFFFF', borderColor: 'rgba(255,255,255,.6)', bgcolor: 'rgba(255,255,255,.08)', '&:hover': { borderColor: '#FFFFFF', bgcolor: 'rgba(255,255,255,.16)' } }}>View details</Button>
-            <Button fullWidth size="small" variant="contained" disabled={!canBook} onClick={(event) => { event.stopPropagation(); navigate(`/app/apply_property/${property._id}?rentalUnit=${unit._id}`); }} sx={{ minHeight: 34, fontWeight: 900, '&.Mui-disabled': { color: 'rgba(255,255,255,.65)', bgcolor: 'rgba(255,255,255,.18)' } }}>{locked ? 'Locked' : 'Book now'}</Button>
+            <Button fullWidth size="small" variant="contained" disabled={!canBook} onClick={(event) => { event.stopPropagation(); navigate(`/app/apply_property/${property._id}?rentalUnit=${unit._id}`); }} sx={{ minHeight: 34, fontWeight: 900, '&.Mui-disabled': { color: 'rgba(255,255,255,.65)', bgcolor: 'rgba(255,255,255,.18)' } }}>{locked ? 'Locked-Already Booked' : 'Apply for Room Booking'}</Button>
           </Stack>
         </Box>
       </Box>
@@ -771,7 +771,7 @@ export default function PropertyDetailPage() {
                         <OptimizedImage src={image} alt={`Room ${index+1}`} width={360} height={280} style={{ width:'100%',height:'100%',objectFit:'cover',borderRadius:'5px',display:'block' }} />
                       </Box>
                       <Box sx={{ flex: 1, minWidth: 0, py: .2 }}>
-                        <Stack direction="row" justifyContent="space-between" spacing={.5}><Typography sx={{ fontSize:11.5,fontWeight:800,color:'#173B55' }}>Room {index+1}</Typography><Chip size="small" label="Available" sx={{ height:20,bgcolor:'#EAF9F1',color:'#087443',fontSize:8.2,fontWeight:800 }} /></Stack>
+                        <Stack direction="row" justifyContent="space-between" spacing={.5}><Typography sx={{ fontSize:11.5,fontWeight:800,color:'#173B55' }}>Room {index+1}</Typography><Chip size="small" label="Available to Book" sx={{ height:20,bgcolor:'#EAF9F1',color:'#087443',fontSize:8.2,fontWeight:800 }} /></Stack>
                         <Typography sx={{ mt:.4,fontSize:9,color:'#8291A0' }}>Property interior</Typography>
                       </Box>
                     </Paper>
