@@ -2099,12 +2099,12 @@
 /* v254 larger mobile auth logo */
 @media (max-width: 599px) {
   .sa-auth-mobile-logo {
-    min-height: 66px;
+    min-height: 84px;
   }
 
   .sa-auth-mobile-logo img {
-    max-width: min(220px, 66vw);
-    max-height: 54px;
+    max-width: min(240px, 72vw);
+    max-height: 74px;
   }
 }
 
