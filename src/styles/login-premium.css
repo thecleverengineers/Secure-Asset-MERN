@@ -987,3 +987,82 @@
     font-size: 11.5px;
   }
 }
+
+
+/* v242 smaller secure asset platform hero typography */
+.sa-auth-eyebrow.MuiTypography-root {
+  margin-bottom: 12px;
+  font-size: 8.5px;
+  letter-spacing: .18em;
+}
+
+.sa-login-brand-title.MuiTypography-root {
+  max-width: 560px;
+  font-size: clamp(34px, 3.7vw, 54px);
+  line-height: 1.06;
+  letter-spacing: -.045em;
+}
+
+.sa-login-brand-description.MuiTypography-root {
+  max-width: 440px;
+  margin-top: 16px;
+  font-size: 12px;
+  line-height: 1.58;
+}
+
+.sa-auth-trust-list {
+  margin-top: 24px;
+}
+
+.sa-auth-trust-list .MuiSvgIcon-root {
+  font-size: 15px;
+}
+
+.sa-auth-trust-list .MuiTypography-root {
+  font-size: 10px;
+}
+
+.sa-auth-hero-product-card .MuiTypography-root {
+  font-size: 9.5px;
+}
+
+.sa-auth-hero-proof .MuiTypography-root {
+  font-size: 9.5px;
+}
+
+@media (max-width: 899px) {
+  .sa-auth-eyebrow.MuiTypography-root {
+    margin-bottom: 8px;
+    font-size: 7px;
+    letter-spacing: .17em;
+  }
+
+  .sa-login-brand-title.MuiTypography-root {
+    max-width: 500px;
+    font-size: clamp(29px, 6.2vw, 40px);
+  }
+
+  .sa-login-brand-description.MuiTypography-root {
+    max-width: 470px;
+    margin-top: 9px;
+    font-size: 10px;
+    line-height: 1.48;
+  }
+}
+
+@media (max-width: 599px) {
+  .sa-auth-eyebrow.MuiTypography-root {
+    font-size: 6.5px;
+  }
+
+  .sa-login-brand-title.MuiTypography-root {
+    max-width: 92%;
+    font-size: clamp(27px, 8vw, 36px);
+  }
+
+  .sa-login-brand-description.MuiTypography-root {
+    max-width: 88%;
+    font-size: 9.5px;
+    line-height: 1.45;
+  }
+}
