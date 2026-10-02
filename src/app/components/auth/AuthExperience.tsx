@@ -24,6 +24,7 @@ export default function AuthExperience({ eyebrow, title, description, children }
   const formColumnRef = useRef<HTMLDivElement | null>(null);
   const settings = data.settings || {};
   const supportEmail = settings.contact?.email || settings.contact?.supportEmail;
+  const isRegisterRoute = location.pathname === '/auth/register';
   const titleParts = title.split(/(smarter)/i);
 
   // The desktop auth column is deliberately scrollable for shorter viewports.
@@ -121,12 +122,18 @@ export default function AuthExperience({ eyebrow, title, description, children }
         <Box ref={formColumnRef} className="sa-login-premium-form-column">
           <Box className="sa-login-premium-card">
             {children}
-            <Box className="sa-auth-protection-note">
-              <VerifiedUserRounded />
-              <Box>
-                <Typography className="sa-auth-protection-title">Protected access for your assets</Typography>
-                <Typography className="sa-auth-protection-copy">Secure for landlords, tenants, surveyors and administrators.</Typography>
-              </Box>
+            <Box className="sa-auth-protection-note sa-auth-security-note">
+              <Box
+                component="img"
+                className="sa-auth-security-icon"
+                src="https://img.icons8.com/external-nawicon-flat-nawicon/64/external-Shield-protection-and-security-nawicon-flat-nawicon.png"
+                alt="Security shield"
+                width={64}
+                height={64}
+              />
+              <Typography className="sa-auth-security-copy">
+                {isRegisterRoute ? 'Your personal information is encrypted & protected' : 'Secure & encrypted sign-in'}
+              </Typography>
             </Box>
             {supportEmail && <Typography className="sa-auth-support-copy">Need help? Contact {supportEmail}</Typography>}
           </Box>
