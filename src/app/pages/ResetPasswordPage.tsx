@@ -64,7 +64,7 @@ export default function ResetPasswordPage({ intent = 'reset' }: { intent?: 'forg
     : 'Enter your email or mobile number, then use the secure reset code sent to the verified mobile number attached to that account.';
 
   return (
-      <Box className="sa-login-panel sa-reset-panel">
+      <Box className={`sa-login-panel sa-reset-panel sa-reset-panel-${intent}`}>
         <Stack className="sa-login-brand-row" direction="row" justifyContent="space-between" alignItems="center" gap={2}>
           <LogoMark />
           <Chip className="sa-login-access-chip" label={intent === 'forgot' ? 'Recovery' : 'Secure reset'} size="small" variant="outlined" />
