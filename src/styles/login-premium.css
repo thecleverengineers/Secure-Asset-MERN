@@ -2118,3 +2118,61 @@
     max-height: 48px;
   }
 }
+
+
+/* v255 register terms consent */
+.sa-register-consent {
+  align-items: flex-start !important;
+  margin: 1px 0 0 !important;
+}
+
+.sa-register-consent .MuiCheckbox-root {
+  margin-top: -2px;
+  padding: 4px 7px 4px 0;
+  color: #789086;
+}
+
+.sa-register-consent .MuiCheckbox-root.Mui-checked {
+  color: #087455;
+}
+
+.sa-register-consent .MuiFormControlLabel-label {
+  min-width: 0;
+}
+
+.sa-register-consent .MuiTypography-root {
+  color: #64736c;
+  font-size: 9.5px;
+  line-height: 1.45;
+}
+
+.sa-register-consent .MuiLink-root {
+  color: #087455;
+  font-weight: 700;
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 599px) {
+  .sa-register-consent {
+    margin-top: 0 !important;
+  }
+
+  .sa-register-consent .MuiCheckbox-root {
+    padding-top: 3px;
+  }
+
+  .sa-register-consent .MuiSvgIcon-root {
+    font-size: 18px;
+  }
+
+  .sa-register-consent .MuiTypography-root {
+    font-size: 9px;
+    line-height: 1.4;
+  }
+}
+
+@media (max-width: 359px) {
+  .sa-register-consent .MuiTypography-root {
+    font-size: 8.5px;
+  }
+}
