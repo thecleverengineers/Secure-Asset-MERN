@@ -2592,3 +2592,67 @@
     border-radius: 24px;
   }
 }
+
+
+/* v259 route-specific auth security note */
+.sa-auth-security-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: left;
+}
+
+.sa-auth-security-icon {
+  display: block;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
+
+.sa-auth-security-copy.MuiTypography-root {
+  margin: 0;
+  color: #52665d;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -.01em;
+}
+
+@media (max-width: 599px) {
+  .sa-auth-protection-note.sa-auth-security-note {
+    min-height: 68px;
+    padding: 10px 14px;
+    border: 1px solid #e5ece8;
+    border-radius: 16px;
+    background: #f8fbf9;
+  }
+
+  .sa-auth-security-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .sa-auth-security-copy.MuiTypography-root {
+    max-width: 260px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 359px) {
+  .sa-auth-protection-note.sa-auth-security-note {
+    gap: 9px;
+    min-height: 62px;
+    padding: 8px 10px;
+  }
+
+  .sa-auth-security-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  .sa-auth-security-copy.MuiTypography-root {
+    font-size: 9px;
+  }
+}
