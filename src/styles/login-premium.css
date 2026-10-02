@@ -1590,3 +1590,31 @@
 .sa-login-panel-login .sa-login-subtitle.MuiTypography-root {
   margin-bottom: 50px !important;
 }
+
+
+/* v249 remove mobile auth hero */
+@media (max-width: 599px) {
+  .sa-auth-hero {
+    display: none !important;
+  }
+
+  .sa-auth-desktop-frame {
+    min-height: 100svh;
+    background: #ffffff !important;
+  }
+
+  .sa-login-premium-form-column {
+    min-height: 100svh;
+    margin-top: 0 !important;
+    padding-top: max(18px, env(safe-area-inset-top));
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
+    background: #ffffff !important;
+  }
+
+  .sa-login-premium-card {
+    min-height: calc(100svh - max(36px, env(safe-area-inset-top) + env(safe-area-inset-bottom)));
+    border-radius: 0;
+    border: 0;
+    background: #ffffff !important;
+  }
+}
