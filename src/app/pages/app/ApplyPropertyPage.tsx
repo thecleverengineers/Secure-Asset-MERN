@@ -538,7 +538,7 @@ export default function ApplyPropertyPage() {
               <Grid size={{ xs: 12, md: 4 }}>
                 <Stack direction="row" spacing={.5} flexWrap="wrap" useFlexGap>
                   {Boolean((property as any)?.isVerified || (property as any)?.verificationStatus === 'verified') && <Chip size="small" icon={<VerifiedRounded sx={{ fontSize: '12px !important' }} />} label="Verified Property" sx={{ height: 21, bgcolor: '#E7F8EF', color: '#087443', fontSize: 7.8, fontWeight: 800, '& .MuiChip-icon': { color: '#087443' } }} />}
-                  <Chip size="small" label={available ? 'Available' : sentence(availabilityRaw)} sx={{ height: 21, bgcolor: available ? '#EAF9F1' : '#FFF4E7', color: available ? '#087443' : '#B54708', fontSize: 7.8, fontWeight: 800 }} />
+                  <Chip size="small" label={available ? 'Available to Book' : 'Locked-Already Booked'} sx={{ height: 21, bgcolor: available ? '#EAF9F1' : '#FEECEC', color: available ? '#087443' : '#B42318', fontSize: 7.8, fontWeight: 800 }} />
                 </Stack>
                 <Typography sx={{ mt: .65, color: '#0D2340', fontSize: { xs: 20, md: 21 }, lineHeight: 1.05, fontWeight: 800 }}>{roomTitle}</Typography>
                 <Typography sx={{ mt: .35, color: '#38546A', fontSize: 10.5, fontWeight: 700 }}>{property?.title}</Typography>
