@@ -1547,3 +1547,11 @@
     font-size: 8.7px;
   }
 }
+
+
+/* v245 remove mobile auth form shadow */
+@media (max-width: 599px) {
+  .sa-login-premium-card {
+    box-shadow: none !important;
+  }
+}
