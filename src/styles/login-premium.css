@@ -3033,3 +3033,12 @@
     font-size: 10px !important;
   }
 }
+
+
+/* v264 flat desktop auth container */
+@media (min-width: 600px) {
+  .sa-login-premium-card {
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+}
