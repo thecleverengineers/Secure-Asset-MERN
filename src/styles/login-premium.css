@@ -1891,3 +1891,52 @@
     font-size: 12px;
   }
 }
+
+
+/* v251 centered mobile auth logo */
+.sa-auth-mobile-logo {
+  display: none;
+}
+
+@media (max-width: 599px) {
+  .sa-auth-mobile-logo {
+    order: -20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    margin: 0 0 14px;
+    padding-top: max(4px, env(safe-area-inset-top));
+    text-align: center;
+  }
+
+  .sa-auth-mobile-logo > * {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .sa-auth-mobile-logo img {
+    display: block;
+    width: auto;
+    max-width: min(176px, 54vw);
+    max-height: 42px;
+    object-fit: contain;
+  }
+
+  .sa-auth-mode-nav.sa-login-mode-nav {
+    order: -10;
+  }
+}
+
+@media (max-width: 359px) {
+  .sa-auth-mobile-logo {
+    min-height: 44px;
+    margin-bottom: 12px;
+  }
+
+  .sa-auth-mobile-logo img {
+    max-width: min(156px, 52vw);
+    max-height: 38px;
+  }
+}
