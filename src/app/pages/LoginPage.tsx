@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router';
 import {
-  Alert, Box, Button, Chip, CircularProgress, Divider, IconButton, InputAdornment, Link as MuiLink, Stack,
+  Alert, Box, Button, Checkbox, Chip, CircularProgress, Divider, FormControlLabel, IconButton, InputAdornment, Link as MuiLink, Stack,
   TextField, Typography,
 } from '@mui/material';
 import EmailRounded from '@mui/icons-material/EmailRounded';
@@ -39,6 +39,7 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
   const [error, setError] = useState(''); const [message, setMessage] = useState('');
   const [tenantInvite, setTenantInvite] = useState<Record<string, any> | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const titles: Record<Mode,string> = { login: content.loginTitle || 'Welcome back', register: content.registerTitle || 'Create your account', otp: content.otpTitle || 'Mobile OTP login', 'two-factor': 'Two-factor verification' };
   const subtitles: Record<Mode,string> = {
     login: content.loginSubtitle || 'Sign in using your email address or mobile number.',
@@ -100,6 +101,10 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
         navigate('/app/dashboard', { replace: true }); return;
       }
       if (mode === 'register') {
+        if (!otpSent && !acceptedTerms) {
+          setError('Please agree to the Terms of Service and Privacy Policy to continue.');
+          return;
+        }
         if (!otpSent) {
           const challenge = await auth.register({ name, email, phone, password, invitationToken: invitationToken || undefined });
           setPhone(challenge.identifier); setOtpSent(true);
@@ -151,7 +156,7 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
           {mode === 'login' && passwordField()}
           {mode === 'login' && <Stack direction="row" justifyContent="flex-end" sx={{ mt: -.65 }}><MuiLink component={RouterLink} className="sa-login-forgot" data-secureasset-forgot-password-link="dedicated-reset-v160" to="/auth/forgot-password" underline="none">Forgot password?</MuiLink></Stack>}
 
-          {mode === 'register' && !otpSent && <><TextField className="sa-login-field" label="Full name" value={name} onChange={(event) => setName(event.target.value)} required helperText={'\u00a0'} InputProps={{ readOnly: Boolean(invitationToken) }} /><TextField className="sa-login-field" label="Email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required helperText={'\u00a0'} InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }} /><TextField className="sa-login-field" label="Mobile number" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 12))} required helperText="Indian mobile number used for OTP verification." InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><PhoneAndroidRounded fontSize="small" /></InputAdornment> }} />{passwordField()}</>}
+          {mode === 'register' && !otpSent && <><TextField className="sa-login-field" label="Full name" value={name} onChange={(event) => setName(event.target.value)} required helperText={'\u00a0'} InputProps={{ readOnly: Boolean(invitationToken) }} /><TextField className="sa-login-field" label="Email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required helperText={'\u00a0'} InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }} /><TextField className="sa-login-field" label="Mobile number" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 12))} required helperText="Indian mobile number used for OTP verification." InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><PhoneAndroidRounded fontSize="small" /></InputAdornment> }} />{passwordField()}<FormControlLabel className="sa-register-consent" control={<Checkbox checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} size="small" />} label={<Typography component="span">I agree to the <MuiLink href="https://www.ahibi.in/terms" target="_blank" rel="noopener noreferrer" underline="hover">Terms of Service</MuiLink> and <MuiLink href="https://www.ahibi.in/privacy" target="_blank" rel="noopener noreferrer" underline="hover">Privacy Policy</MuiLink></Typography>} /></>}
           {mode === 'register' && otpSent && <><Alert severity="info">Enter the six-digit OTP sent to your mobile. Your account remains inactive until verification succeeds.</Alert><TextField className="sa-login-field" label="6-digit mobile OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required helperText={'\u00a0'} inputProps={{ inputMode: 'numeric', maxLength: 6 }} /><Button className="sa-auth-secondary-button" type="button" onClick={resendRegistration} disabled={loading}>Resend OTP</Button></>}
 
           {mode === 'otp' && identifierField}
@@ -163,7 +168,7 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
             className="sa-submit-button"
             variant="contained"
             size="large"
-            disabled={loading || inviteLoading || Boolean(invitationToken && !tenantInvite)}
+            disabled={loading || inviteLoading || Boolean(invitationToken && !tenantInvite) || (mode === 'register' && !otpSent && !acceptedTerms)}
             disableElevation
           >
             <Box component="span" sx={{ opacity: loading ? 0 : 1, pointerEvents: 'none' }}>{actionLabel}</Box>{loading && <CircularProgress size={22} color="inherit" sx={{ position: 'absolute', left: '50%', top: '50%', ml: '-11px', mt: '-11px' }} />}
