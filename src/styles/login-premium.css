@@ -2912,3 +2912,80 @@
     padding-right: 44px;
   }
 }
+
+
+/* v262 premium desktop auth tabs */
+@media (min-width: 600px) {
+  .sa-auth-mode-nav.sa-login-mode-nav {
+    width: min(100%, 390px);
+    margin: 0 auto 30px !important;
+  }
+
+  .sa-auth-mode-nav.sa-login-mode-nav .MuiStack-root {
+    position: relative;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px !important;
+    padding: 6px;
+    border: 1px solid rgba(22, 51, 41, .08);
+    border-radius: 20px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.96), rgba(245,248,247,.94)),
+      #f5f8f7;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.9),
+      0 8px 24px rgba(30, 56, 47, .06);
+  }
+
+  .sa-login-mode-link {
+    position: relative;
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    border: 1px solid transparent !important;
+    border-radius: 15px;
+    background: transparent;
+    color: #65756d;
+    font-size: 10.5px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: .01em;
+    text-decoration: none;
+    transition:
+      background-color .16s ease,
+      color .16s ease,
+      border-color .16s ease,
+      box-shadow .16s ease,
+      transform .16s ease;
+  }
+
+  .sa-login-mode-link:hover {
+    border-color: var(--mui-palette-primary-main, #1976d2) !important;
+    background: var(--mui-palette-primary-main, #1976d2) !important;
+    color: #fff !important;
+    box-shadow: 0 7px 18px rgba(25, 118, 210, .16);
+    transform: translateY(-1px);
+  }
+
+  .sa-login-mode-link.is-active,
+  .sa-login-mode-link.is-active:hover {
+    border-color: var(--mui-palette-primary-main, #1976d2) !important;
+    background:
+      linear-gradient(135deg,
+        var(--mui-palette-primary-main, #1976d2),
+        var(--mui-palette-primary-dark, #115293)
+      ) !important;
+    color: #fff !important;
+    box-shadow:
+      0 8px 20px rgba(25, 118, 210, .20),
+      inset 0 1px 0 rgba(255,255,255,.16);
+    transform: none;
+  }
+
+  .sa-login-mode-link:focus-visible {
+    outline: 3px solid rgba(25, 118, 210, .16);
+    outline-offset: 2px;
+  }
+}
