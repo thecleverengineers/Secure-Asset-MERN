@@ -22,6 +22,13 @@ export default function AuthLayout() {
   const formColumnRef = useRef<HTMLDivElement | null>(null);
   const settings = data.settings || {};
   const supportEmail = settings.contact?.email || settings.contact?.supportEmail;
+  const isRegisterRoute = location.pathname === '/auth/register';
+  const isLoginRoute = ['/auth/login', '/auth/otp-login', '/auth/otp_login', '/auth/verify-otp'].includes(location.pathname);
+  const mobileRouteIntro = isRegisterRoute
+    ? { title: 'Create your account', subtitle: 'Create your account and verify your registered mobile number with OTP.' }
+    : isLoginRoute
+      ? { title: 'Welcome back', subtitle: 'Sign in with your organisation account.' }
+      : null;
 
   useLayoutEffect(() => {
     const column = formColumnRef.current;
@@ -60,6 +67,7 @@ export default function AuthLayout() {
         <Box ref={formColumnRef} className="sa-login-premium-form-column">
           <Box className="sa-login-premium-card">
             <Box className="sa-auth-mobile-logo"><LogoMark /></Box>
+            {mobileRouteIntro && <Box className="sa-auth-mobile-route-intro"><Typography component="h1">{mobileRouteIntro.title}</Typography><Typography>{mobileRouteIntro.subtitle}</Typography></Box>}
             <Box className="sa-auth-route-stage"><Outlet /></Box>
             <Box component="nav" aria-label="Authentication options" className="sa-auth-mode-nav sa-login-mode-nav">
               <Stack direction="row" spacing={1} justifyContent="center" useFlexGap flexWrap="wrap">
