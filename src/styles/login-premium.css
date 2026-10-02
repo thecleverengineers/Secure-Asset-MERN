@@ -2094,3 +2094,27 @@
     padding-top: max(80px, env(safe-area-inset-top)) !important;
   }
 }
+
+
+/* v254 larger mobile auth logo */
+@media (max-width: 599px) {
+  .sa-auth-mobile-logo {
+    min-height: 66px;
+  }
+
+  .sa-auth-mobile-logo img {
+    max-width: min(220px, 66vw);
+    max-height: 54px;
+  }
+}
+
+@media (max-width: 359px) {
+  .sa-auth-mobile-logo {
+    min-height: 58px;
+  }
+
+  .sa-auth-mobile-logo img {
+    max-width: min(190px, 64vw);
+    max-height: 48px;
+  }
+}
