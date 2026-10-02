@@ -46,6 +46,7 @@ export default function ResetPasswordPage({ intent = 'reset' }: { intent?: 'forg
     <TextField
       className="sa-login-field"
       label={label}
+      placeholder={label === 'New password' ? 'Create a new password' : 'Re-enter your new password'}
       type={showPassword ? 'text' : 'password'}
       value={value}
       onChange={(event) => onChange(event.target.value)}
@@ -84,6 +85,7 @@ export default function ResetPasswordPage({ intent = 'reset' }: { intent?: 'forg
               <TextField
                 className="sa-login-field"
                 label="Registered email or mobile"
+                placeholder="Enter registered email or mobile"
                 value={identifier}
                 onChange={(event) => setIdentifier(event.target.value)}
                 disabled={sent}
@@ -92,7 +94,7 @@ export default function ResetPasswordPage({ intent = 'reset' }: { intent?: 'forg
                 InputProps={{ startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }}
               />
               {sent && <>
-                <TextField className="sa-login-field sa-reset-otp" label="6-digit reset OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required helperText={'\u00a0'} inputProps={{ inputMode: 'numeric', maxLength: 6 }} />
+                <TextField className="sa-login-field sa-reset-otp" label="6-digit reset OTP" placeholder="Enter 6-digit reset OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required helperText={'\u00a0'} inputProps={{ inputMode: 'numeric', maxLength: 6 }} />
                 {passwordField('New password', password, setPassword)}
                 {passwordField('Confirm new password', confirm, setConfirm)}
               </>}
