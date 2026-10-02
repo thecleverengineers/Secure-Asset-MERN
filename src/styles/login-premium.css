@@ -474,7 +474,7 @@
    Register, so without this footprint the mode navigation visibly jumps up and
    down on each route change even when the outer card remains the same size. */
 .sa-auth-form-stage {
-  min-height: 494px;
+  min-height: 606px;
   overflow-anchor: none;
 }
 .sa-login-mode-nav {
