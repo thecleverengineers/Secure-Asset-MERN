@@ -1555,3 +1555,16 @@
     box-shadow: none !important;
   }
 }
+
+
+/* v246 pure white auth form column */
+.sa-login-premium-form-column {
+  background: #ffffff !important;
+}
+
+@media (max-width: 899px) {
+  .sa-auth-desktop-frame,
+  .sa-login-premium-form-column {
+    background: #ffffff !important;
+  }
+}
