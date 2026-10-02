@@ -55,14 +55,13 @@ const money = (value: number) => new Intl.NumberFormat('en-IN', { style: 'curren
 const sentence = (value: unknown) => String(value || '').replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 function roomStatus(unit: any) {
-  const raw = String(unit?.availabilityStatus || '').toUpperCase();
-  const available = unit?.canBook !== false && !unit?.isLocked && !unit?.applicationInProgress && !['OCCUPIED','BLOCKED','ARCHIVED'].includes(raw);
-  const label = unit?.availabilityLabel || (unit?.isLocked ? 'Occupied' : unit?.applicationInProgress ? 'Application Pending' : raw ? sentence(raw) : 'Available');
+  // A pending application is not a booking lock. Public users can keep
+  // applying until the server marks the unit as non-bookable/locked.
+  const available = unit?.canBook !== false && !unit?.isLocked;
+  const label = available ? 'Available to Book' : 'Locked-Already Booked';
   const tone = available
     ? { bg: '#E8FAF1', color: '#087443', dot: '#12B76A' }
-    : unit?.applicationInProgress || ['APPLICATION_PENDING','AGREEMENT_PENDING','PAYMENT_PENDING','NOTICE_PERIOD','VACATING'].includes(raw)
-      ? { bg: '#FFF7E6', color: '#B54708', dot: '#F79009' }
-      : { bg: '#FEECEC', color: '#B42318', dot: '#F04438' };
+    : { bg: '#FEECEC', color: '#B42318', dot: '#F04438' };
   return { available, label, tone };
 }
 
