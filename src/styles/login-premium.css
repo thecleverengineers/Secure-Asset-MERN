@@ -2288,3 +2288,91 @@
     font-size: 9px;
   }
 }
+
+
+/* v257 mobile auth headings above tabs */
+.sa-auth-mobile-route-intro {
+  display: none;
+}
+
+@media (max-width: 599px) {
+  .sa-auth-mobile-logo {
+    order: -30;
+  }
+
+  .sa-auth-mobile-route-intro {
+    order: -20;
+    display: block;
+    width: 100%;
+    max-width: 460px;
+    margin: 0 auto 20px;
+    padding: 0 4px;
+    text-align: center;
+  }
+
+  .sa-auth-mobile-route-intro > h1.MuiTypography-root {
+    margin: 0;
+    color: #173c30;
+    font-size: clamp(24px, 6.8vw, 29px);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -.035em;
+  }
+
+  .sa-auth-mobile-route-intro > p.MuiTypography-root {
+    max-width: 340px;
+    margin: 7px auto 0;
+    color: #708078;
+    font-size: clamp(9.5px, 2.7vw, 11px);
+    font-weight: 500;
+    line-height: 1.45;
+  }
+
+  .sa-auth-mobile-route-intro + .sa-auth-route-stage .sa-login-title,
+  .sa-auth-mobile-route-intro + .sa-auth-route-stage .sa-login-subtitle {
+    display: none !important;
+  }
+
+  .sa-auth-mobile-route-intro + .sa-auth-route-stage .sa-auth-feedback-slot {
+    margin-top: 0;
+  }
+
+  .sa-auth-mode-nav.sa-login-mode-nav {
+    order: -10;
+    margin-bottom: 24px !important;
+  }
+}
+
+@media (max-width: 359px) {
+  .sa-auth-mobile-route-intro {
+    margin-bottom: 16px;
+  }
+
+  .sa-auth-mobile-route-intro > h1.MuiTypography-root {
+    font-size: 22px;
+  }
+
+  .sa-auth-mobile-route-intro > p.MuiTypography-root {
+    max-width: 290px;
+    margin-top: 6px;
+    font-size: 8.8px;
+  }
+
+  .sa-auth-mode-nav.sa-login-mode-nav {
+    margin-bottom: 20px !important;
+  }
+}
+
+@media (min-width: 431px) and (max-width: 599px) {
+  .sa-auth-mobile-route-intro {
+    margin-bottom: 22px;
+  }
+
+  .sa-auth-mobile-route-intro > p.MuiTypography-root {
+    max-width: 380px;
+  }
+
+  .sa-auth-mode-nav.sa-login-mode-nav {
+    margin-bottom: 28px !important;
+  }
+}
