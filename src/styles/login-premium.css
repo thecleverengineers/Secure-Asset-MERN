@@ -2990,3 +2990,38 @@
     outline-offset: 2px;
   }
 }
+
+
+/* v263 ultra-small mobile security shield */
+@media (max-width: 599px) {
+  .sa-auth-protection-note.sa-auth-security-note {
+    gap: 6px;
+  }
+
+  .sa-auth-protection-note.sa-auth-security-note .sa-auth-security-icon {
+    width: 6px !important;
+    height: 6px !important;
+    min-width: 6px !important;
+    max-width: 6px !important;
+    min-height: 6px !important;
+    max-height: 6px !important;
+    flex: 0 0 6px !important;
+    object-fit: contain;
+  }
+}
+
+@media (max-width: 359px) {
+  .sa-auth-protection-note.sa-auth-security-note {
+    gap: 5px;
+  }
+
+  .sa-auth-protection-note.sa-auth-security-note .sa-auth-security-icon {
+    width: 5px !important;
+    height: 5px !important;
+    min-width: 5px !important;
+    max-width: 5px !important;
+    min-height: 5px !important;
+    max-height: 5px !important;
+    flex-basis: 5px !important;
+  }
+}
