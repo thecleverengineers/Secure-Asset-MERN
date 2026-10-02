@@ -367,7 +367,7 @@ export default function PropertyDetailPage() {
         <OptimizedImage src={roomImage} alt={unit.primaryImage?.name || roomTitle} width={720} height={980} sizes="(max-width: 900px) 50vw, 25vw" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', filter: locked ? 'grayscale(.45) saturate(.72)' : 'none', transition: 'transform .35s ease' }} />
         <Box sx={{ position: 'absolute', inset: 0, background: locked ? 'linear-gradient(180deg, rgba(10, 22, 22, .04) 24%, rgba(10, 22, 22, .28) 46%, rgba(10, 22, 22, .97) 100%)' : 'linear-gradient(180deg, rgba(10, 22, 22, .03) 22%, rgba(10, 22, 22, .16) 43%, rgba(10, 22, 22, .96) 100%)' }} />
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={.7} sx={{ position: 'absolute', top: 12, left: 12, right: 12 }}>
-          <Chip size="small" label={locked ? 'Locked' : unit.availabilityLabel || 'Available'} color={locked ? 'warning' : unit.applicationInProgress ? 'info' : 'success'} sx={{ color: locked ? '#4A2A00' : undefined, fontWeight: 850, backdropFilter: 'blur(10px)', boxShadow: '0 3px 10px rgba(0,0,0,.16)' }} />
+          <Chip size="small" label={locked ? 'Locked-Already Booked' : 'Available to Book'} color={locked ? 'warning' : 'success'} sx={{ color: locked ? '#4A2A00' : undefined, fontWeight: 850, backdropFilter: 'blur(10px)', boxShadow: '0 3px 10px rgba(0,0,0,.16)' }} />
           <Chip size="small" label={`Room ${unit.roomNumber}`} sx={{ color: '#FFFFFF', bgcolor: 'rgba(8, 30, 30, .58)', border: '1px solid rgba(255,255,255,.28)', fontWeight: 750, backdropFilter: 'blur(10px)' }} />
         </Stack>
         <Box sx={{ position: 'absolute', left: 14, right: 14, bottom: 14 }}>
@@ -691,14 +691,11 @@ export default function PropertyDetailPage() {
                 <Grid container spacing={{ xs: .85, sm: 1 }}>
                   {roomSlideItems.length ? roomSlideItems.map((unit: any, slidePosition: number) => {
                     const roomImage = unit.primaryImage?.url || unit.gallery?.find((item: any) => item?.url)?.url || shareImage;
-                    const rawStatus = String(unit.availabilityStatus || '').toUpperCase();
-                    const available = unit.canBook !== false && !unit.isLocked && !unit.applicationInProgress && !['OCCUPIED','BLOCKED','ARCHIVED'].includes(rawStatus);
-                    const statusLabel = unit.availabilityLabel || (unit.isLocked ? 'Occupied' : unit.applicationInProgress ? 'Application Pending' : rawStatus ? sentence(rawStatus) : 'Available');
+                    const available = unit.canBook !== false && !unit.isLocked;
+                    const statusLabel = available ? 'Available to Book' : 'Locked-Already Booked';
                     const statusTone = available
                       ? { bg: '#EAF9F1', color: '#087443', dot: '#12B76A' }
-                      : unit.applicationInProgress || ['APPLICATION_PENDING','AGREEMENT_PENDING','PAYMENT_PENDING','NOTICE_PERIOD','VACATING'].includes(rawStatus)
-                        ? { bg: '#FFF7E6', color: '#B54708', dot: '#F79009' }
-                        : { bg: '#FEECEC', color: '#B42318', dot: '#F04438' };
+                      : { bg: '#FEECEC', color: '#B42318', dot: '#F04438' };
                     const floorText = unit.floor?.floorName || (unit.floor?.floorNumber !== undefined ? `Floor ${unit.floor.floorNumber}` : '');
                     const roomType = sentence(unit.specifications?.roomType || unit.roomType || 'Private room');
                     const roomSize = unit.specifications?.roomSize?.value
