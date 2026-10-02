@@ -2999,18 +2999,18 @@
   }
 
   .sa-auth-protection-note.sa-auth-security-note .sa-auth-security-icon {
-    width: 10px !important;
-    height: 10px !important;
-    min-width: 10px !important;
-    max-width: 10px !important;
-    min-height: 10px !important;
-    max-height: 10px !important;
-    flex: 0 0 10px !important;
+    width: 14px !important;
+    height: 14px !important;
+    min-width: 14px !important;
+    max-width: 14px !important;
+    min-height: 14px !important;
+    max-height: 14px !important;
+    flex: 0 0 14px !important;
     object-fit: contain;
   }
 
   .sa-auth-protection-note.sa-auth-security-note .sa-auth-security-copy.MuiTypography-root {
-    font-size: 9px !important;
+    font-size: 10px !important;
   }
 }
 
@@ -3020,16 +3020,16 @@
   }
 
   .sa-auth-protection-note.sa-auth-security-note .sa-auth-security-icon {
-    width: 10px !important;
-    height: 10px !important;
-    min-width: 10px !important;
-    max-width: 10px !important;
-    min-height: 10px !important;
-    max-height: 10px !important;
-    flex-basis: 10px !important;
+    width: 14px !important;
+    height: 14px !important;
+    min-width: 14px !important;
+    max-width: 14px !important;
+    min-height: 14px !important;
+    max-height: 14px !important;
+    flex-basis: 14px !important;
   }
 
   .sa-auth-protection-note.sa-auth-security-note .sa-auth-security-copy.MuiTypography-root {
-    font-size: 9px !important;
+    font-size: 10px !important;
   }
 }
