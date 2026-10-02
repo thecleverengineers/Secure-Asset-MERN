@@ -809,3 +809,181 @@
     font-size: 11.5px;
   }
 }
+
+
+/* v241 compact login otp forgot routes */
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) {
+  min-height: 0;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-brand-row {
+  min-height: 28px;
+  margin-bottom: 10px;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-brand-row > div:first-child,
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-brand-row > a:first-child {
+  max-width: 180px;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-access-chip.MuiChip-root {
+  min-width: 82px;
+  height: 24px;
+  font-size: 8.5px;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-title.MuiTypography-root {
+  font-size: clamp(24px, 2.2vw, 29px);
+  line-height: 1.04;
+  letter-spacing: -.038em;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-subtitle.MuiTypography-root {
+  min-height: 28px;
+  margin: 5px 0 7px;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-auth-feedback-slot {
+  min-height: 28px;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-auth-feedback-slot:empty {
+  min-height: 8px;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-auth-feedback-slot .MuiAlert-root,
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-form .MuiAlert-root {
+  min-height: 38px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-radius: 10px;
+  font-size: 9px;
+  line-height: 1.3;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-form > .MuiStack-root {
+  gap: 8px !important;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-field .MuiOutlinedInput-root {
+  min-height: 44px;
+  border-radius: 10px;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-field .MuiOutlinedInput-input {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  font-size: 11.5px;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-field .MuiInputLabel-root,
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-field .MuiInputLabel-root.Mui-focused,
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-field .MuiInputLabel-root.Mui-error {
+  font-size: 10.5px;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-field .MuiInputAdornment-root .MuiSvgIcon-root {
+  font-size: 17px;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-field .MuiFormHelperText-root {
+  min-height: 9px;
+  margin-top: 1px;
+  font-size: 7.8px;
+  line-height: 1.15;
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-submit-button.MuiButton-root {
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  box-shadow: 0 8px 18px rgba(8, 124, 89, .17);
+}
+
+:is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .MuiIconButton-root {
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+}
+
+.sa-login-panel-login .sa-login-forgot {
+  font-size: 9.5px !important;
+}
+
+.sa-reset-panel-forgot .sa-reset-back-action.MuiButton-root,
+.sa-reset-panel-forgot .sa-reset-secondary-action.MuiButton-root {
+  min-height: 30px;
+  padding: 3px 7px;
+  font-size: 9.5px;
+}
+
+.sa-login-premium-card:has(.sa-login-panel-login) .sa-auth-route-stage,
+.sa-login-premium-card:has(.sa-login-panel-otp) .sa-auth-route-stage,
+.sa-login-premium-card:has(.sa-reset-panel-forgot) .sa-auth-route-stage {
+  overflow: visible;
+  scrollbar-gutter: auto;
+  padding-bottom: 0;
+}
+
+@media (max-width: 899px) {
+  .sa-login-premium-card:has(.sa-login-panel-login),
+  .sa-login-premium-card:has(.sa-login-panel-otp),
+  .sa-login-premium-card:has(.sa-reset-panel-forgot) {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    padding-top: 22px;
+    padding-bottom: 22px;
+  }
+
+  .sa-login-premium-card:has(.sa-login-panel-login) .sa-login-mode-nav,
+  .sa-login-premium-card:has(.sa-login-panel-otp) .sa-login-mode-nav,
+  .sa-login-premium-card:has(.sa-reset-panel-forgot) .sa-login-mode-nav {
+    margin-top: 16px;
+  }
+}
+
+@media (max-width: 599px) {
+  :is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-brand-row {
+    margin-bottom: 10px;
+  }
+
+  :is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-title.MuiTypography-root {
+    font-size: 25px;
+  }
+
+  :is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-subtitle.MuiTypography-root {
+    min-height: 24px;
+    margin: 4px auto 6px;
+    font-size: 9.8px;
+  }
+
+  :is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-auth-feedback-slot {
+    min-height: 24px;
+  }
+
+  :is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-auth-feedback-slot:empty {
+    min-height: 6px;
+  }
+
+  :is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-field .MuiOutlinedInput-root {
+    min-height: 42px;
+  }
+
+  :is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-login-field .MuiOutlinedInput-input {
+    padding-top: 9px !important;
+    padding-bottom: 9px !important;
+    font-size: 11px;
+  }
+
+  :is(.sa-login-panel-login, .sa-login-panel-otp, .sa-reset-panel-forgot) .sa-submit-button.MuiButton-root {
+    height: 42px;
+    min-height: 42px;
+    max-height: 42px;
+    font-size: 11.5px;
+  }
+}
