@@ -23,8 +23,8 @@
   font-family: 'Open Sans', sans-serif !important;
 }
 .sa-auth-desktop-frame {
-    height: 100dvh;
-min-height: 100dvh;
+  height: 100dvh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: minmax(0, 58%) minmax(430px, 42%);
   background: #fff;
@@ -32,8 +32,8 @@ min-height: 100dvh;
 }
 .sa-auth-hero {
   position: relative;
-  min-height: 100dvh;
   height: 100dvh;
+  min-height: 100dvh;
   overflow: hidden;
   isolation: isolate;
   color: #fff;
@@ -330,14 +330,16 @@ min-height: 100dvh;
 
 .sa-login-premium-form-column {
   position: relative;
-  min-height: 100dvh;
   height: 100dvh;
+  min-height: 100dvh;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   overflow-y: auto;
   overflow-x: hidden;
-  scrollbar-gutter: stable;
+  /* Keep a dedicated scroll area for long auth forms.  Without a fixed
+     viewport-height column, switching to Register/OTP adds a document
+     scrollbar and moves the whole card sideways by the scrollbar width. */
   scrollbar-gutter: stable both-edges;
   overscroll-behavior: contain;
   padding: clamp(42px,7vh,72px) clamp(32px,4vw,76px) 54px;
@@ -349,6 +351,12 @@ min-height: 100dvh;
 .sa-login-premium-card {
   width: min(520px,100%);
   flex: 0 0 auto;
+  /* Every public auth mode shares this frame.  Keeping its outer geometry
+     stable stops the page from snapping when a short login form is replaced
+     by the longer registration form (or vice versa). */
+  min-height: 920px;
+  display: flex;
+  flex-direction: column;
   contain: layout paint;
   padding: clamp(30px,3.4vw,52px);
   border: 1px solid #e3ebf2;
@@ -462,6 +470,13 @@ min-height: 100dvh;
   transform: none;
   box-shadow: 0 12px 26px rgba(5,143,137,.22);
 }
+/* The modes share a reserved form stage.  Login and OTP are much shorter than
+   Register, so without this footprint the mode navigation visibly jumps up and
+   down on each route change even when the outer card remains the same size. */
+.sa-auth-form-stage {
+  min-height: 494px;
+  overflow-anchor: none;
+}
 .sa-login-mode-nav {
   position: relative;
   margin-top: 30px;
@@ -507,7 +522,7 @@ min-height: 100dvh;
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-top: 28px;
+  margin-top: auto;
   padding: 15px 17px;
   border: 1px solid #dff0ee;
   border-radius: 12px;
@@ -626,8 +641,8 @@ min-height: 100dvh;
 
 @media (max-width: 899px) {
   .sa-auth-desktop-frame {
-    min-height: 100dvh;
     height: auto;
+    min-height: 100dvh;
     display: block;
     background: #fff;
     overflow: visible;
@@ -676,8 +691,8 @@ min-height: 100dvh;
   .sa-auth-building { width: 54%; right: -8%; top: 0; height: 100%; opacity: .9; }
   .sa-auth-skyline { right: 24%; bottom: 0; height: 27%; opacity: .74; }
   .sa-login-premium-form-column {
-    min-height: 52dvh;
     height: auto;
+    min-height: 52dvh;
     margin-top: -28px;
     padding: 0 18px max(28px,env(safe-area-inset-bottom));
     overflow: visible;
@@ -685,6 +700,7 @@ min-height: 100dvh;
   }
   .sa-login-premium-card {
     width: min(620px,100%);
+    min-height: 0;
     margin: 0 auto;
     contain: none;
     padding: 30px 24px 26px;
@@ -692,6 +708,8 @@ min-height: 100dvh;
     border-radius: 28px 28px 0 0;
     box-shadow: 0 -14px 44px rgba(4,31,51,.12);
   }
+  .sa-auth-form-stage { min-height: 0; }
+  .sa-auth-protection-note { margin-top: 28px; }
 }
 
 @media (max-width: 599px) {
