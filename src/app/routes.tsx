@@ -23,7 +23,12 @@ const SurveyorMarketplacePage = lazyWithRetry(() => import('./pages/SurveyorMark
 const SurveyorPublicProfilePage = lazyWithRetry(() => import('./pages/SurveyorPublicProfilePage'));
 const SurveyorQuotePage = lazyWithRetry(() => import('./pages/SurveyorQuotePage'));
 const SurveyorPrivateProfilePage = lazyWithRetry(() => import('./pages/SurveyorPrivateProfilePage'));
-const LoginPage = lazyWithRetry(() => import('./pages/LoginPage'));
+const AuthLayout = lazyWithRetry(() => import('./components/auth/AuthLayout'));
+const AuthLoginPage = lazyWithRetry(() => import('./pages/AuthLoginPage'));
+const AuthRegisterPage = lazyWithRetry(() => import('./pages/AuthRegisterPage'));
+const AuthOtpLoginPage = lazyWithRetry(() => import('./pages/AuthOtpLoginPage'));
+const VerifyOtpPage = lazyWithRetry(() => import('./pages/VerifyOtpPage'));
+const ForgotPasswordPage = lazyWithRetry(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazyWithRetry(() => import('./pages/ResetPasswordPage'));
 const PublicDrivePage = lazyWithRetry(() => import('./pages/PublicDrivePage'));
 const RoleDashboardPage = lazyWithRetry(() => import('./pages/app/RoleDashboardPage'));
@@ -58,19 +63,12 @@ function LegacyLoginRedirect() {
   const target = mode === 'register'
     ? '/auth/register'
     : mode === 'otp'
-      ? '/auth/otp_login'
+      ? '/auth/otp-login'
       : mode === 'forgot'
-        ? '/auth/reset-password'
+        ? '/auth/forgot-password'
         : '/auth/login';
   const query = params.toString();
   return <Navigate replace to={`${target}${query ? `?${query}` : ''}${location.hash}`} />;
-}
-
-function AuthAccessPage() {
-  const { authMode } = useParams();
-  const pageMode = authMode === 'register' ? 'register' : authMode === 'otp_login' ? 'otp' : authMode === 'login' ? 'login' : null;
-  if (!pageMode) return <Navigate replace to="/auth/login" />;
-  return <LoginPage pageMode={pageMode} />;
 }
 
 function LegacyPropertyActionRedirect({ target }: { target: 'apply_property' | 'schedule_visit' }) {
@@ -106,8 +104,20 @@ export const router = createBrowserRouter([
       { path: 'privacy-policy', Component: LegalPolicyPage },
       { path: 'shipping-policy', Component: LegalPolicyPage },
       { path: 'cancellation-and-refunds', Component: LegalPolicyPage },
-      { path: 'auth/reset-password', Component: ResetPasswordPage },
-      { path: 'auth/:authMode', Component: AuthAccessPage },
+      {
+        path: 'auth',
+        Component: AuthLayout,
+        children: [
+          { index: true, element: <Navigate to="login" replace /> },
+          { path: 'login', Component: AuthLoginPage },
+          { path: 'register', Component: AuthRegisterPage },
+          { path: 'otp-login', Component: AuthOtpLoginPage },
+          { path: 'otp_login', element: <Navigate to="/auth/otp-login" replace /> },
+          { path: 'forgot-password', Component: ForgotPasswordPage },
+          { path: 'reset-password', Component: ResetPasswordPage },
+          { path: 'verify-otp', Component: VerifyOtpPage },
+        ],
+      },
       { path: 'login', Component: LegacyLoginRedirect },
       { path: 'reset-password', element: <Navigate to="/auth/reset-password" replace /> },
       { path: ':slug', Component: DynamicContentPage },
