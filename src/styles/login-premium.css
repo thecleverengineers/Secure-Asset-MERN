@@ -378,12 +378,25 @@
   contain: layout paint;
 }
 
+.sa-auth-route-shell .sa-login-panel .sa-submit-button.MuiButton-root {
+  background-color: #087c59 !important;
+  background-image: linear-gradient(105deg, #087c59 0%, #20af7f 100%) !important;
+  border-color: transparent !important;
+}
+
 .sa-login-panel .sa-submit-button.MuiButton-root:hover,
 .sa-login-panel .sa-submit-button.MuiButton-root:active,
 .sa-login-panel .sa-submit-button.MuiButton-root.Mui-focusVisible {
   transform: none !important;
   background: linear-gradient(105deg, #087c59 0%, #20af7f 100%) !important;
   box-shadow: 0 12px 24px rgba(8, 124, 89, .2);
+}
+
+.sa-auth-route-shell .sa-login-panel .sa-submit-button.MuiButton-root:hover,
+.sa-auth-route-shell .sa-login-panel .sa-submit-button.MuiButton-root:active,
+.sa-auth-route-shell .sa-login-panel .sa-submit-button.MuiButton-root.Mui-focusVisible {
+  background-color: #087c59 !important;
+  background-image: linear-gradient(105deg, #087c59 0%, #20af7f 100%) !important;
 }
 
 .sa-login-panel .sa-submit-button.MuiButton-root.Mui-disabled {
