@@ -2080,3 +2080,17 @@
     margin-bottom: 30px !important;
   }
 }
+
+
+/* v253 80px mobile space before logo */
+@media (max-width: 599px) {
+  .sa-login-premium-form-column {
+    padding-top: max(80px, env(safe-area-inset-top)) !important;
+  }
+}
+
+@media (max-width: 359px) {
+  .sa-login-premium-form-column {
+    padding-top: max(80px, env(safe-area-inset-top)) !important;
+  }
+}
