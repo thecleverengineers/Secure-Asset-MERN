@@ -35,7 +35,7 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
   const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [phone, setPhone] = useState('');
   const [identifier, setIdentifier] = useState(showDemoAccounts ? 'admin@secureasset.in' : '');
   const [password, setPassword] = useState(showDemoAccounts ? 'Demo@123' : '');
-  const [otp, setOtp] = useState(''); const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState(''); const [otpSent, setOtpSent] = useState(false); const [otpDispatching, setOtpDispatching] = useState(false);
   const [challengeToken, setChallengeToken] = useState(''); const [showPassword, setShowPassword] = useState(false); const [loading, setLoading] = useState(false);
   const [error, setError] = useState(''); const [message, setMessage] = useState('');
   const [tenantInvite, setTenantInvite] = useState<Record<string, any> | null>(null);
@@ -144,27 +144,40 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
   }
 
   function selectDemo(account: string) { setIdentifier(account); setPassword('Demo@123'); }
-  async function switchToOtpLogin() {
-    if (loading) return;
-    if (!identifier.trim()) {
+  function switchToOtpLogin() {
+    if (loading || otpDispatching) return;
+    const cleanIdentifier = identifier.trim();
+    if (!cleanIdentifier) {
       setError('Enter your email address or mobile number first.');
       setLoginStep('identifier');
       return;
     }
-    setLoading(true); setError(''); setMessage('');
-    try {
-      const result = await sendOtp({ identifier });
-      setMode('otp'); setOtpSent(true); setOtp('');
-      setMessage(result.developmentOtp ? `Development OTP: ${result.developmentOtp}` : result.message || 'OTP sent to the registered mobile.');
-    } catch (exception) {
-      setError((exception as Error).message);
-    } finally {
-      setLoading(false);
-    }
+
+    if (cleanIdentifier !== identifier) setIdentifier(cleanIdentifier);
+    setError('');
+    setMessage('Sending OTP…');
+    setOtp('');
+    setOtpSent(false);
+    setMode('otp');
+    setOtpDispatching(true);
+
+    void sendOtp({ identifier: cleanIdentifier })
+      .then((result) => {
+        setOtpSent(true);
+        setMessage(result.developmentOtp ? `Development OTP: ${result.developmentOtp}` : result.message || 'OTP sent to the registered mobile.');
+      })
+      .catch((exception) => {
+        setOtpSent(false);
+        setMessage('');
+        setError((exception as Error).message);
+      })
+      .finally(() => {
+        setOtpDispatching(false);
+      });
   }
 
   function switchToPasswordLogin() {
-    setMode('login'); setOtpSent(false); setOtp(''); setError(''); setMessage('');
+    setMode('login'); setOtpSent(false); setOtpDispatching(false); setOtp(''); setError(''); setMessage('');
     setLoginStep(identifier.trim() ? 'password' : 'identifier');
   }
 
@@ -181,7 +194,7 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
   let actionLabel = 'Continue';
   if (mode === 'login') actionLabel = loginStep === 'identifier' ? 'Continue' : 'Sign in';
   if (mode === 'register') actionLabel = otpSent ? 'Verify mobile and create account' : 'Continue';
-  if (mode === 'otp') actionLabel = otpSent ? 'Verify OTP' : 'Continue';
+  if (mode === 'otp') actionLabel = otpDispatching ? 'Sending OTP…' : otpSent ? 'Verify OTP' : 'Continue';
   if (mode === 'two-factor') actionLabel = 'Verify and sign in';
 
   return <Box className={`sa-login-panel sa-login-panel-${mode}`}>
@@ -207,9 +220,9 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
           {mode === 'register' && !otpSent && <><TextField className="sa-login-field" label="Full name" placeholder="Enter your full name" value={name} onChange={(event) => setName(event.target.value)} required helperText={'\u00a0'} InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><PersonRounded fontSize="small" /></InputAdornment> }} /><TextField className="sa-login-field" label="Email address" placeholder="Enter your email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required helperText={'\u00a0'} InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }} /><TextField className="sa-login-field" label="Mobile number" placeholder="Enter your registered mobile number" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 12))} required helperText="Indian mobile number used for OTP verification." InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><PhoneAndroidRounded fontSize="small" /></InputAdornment> }} />{passwordField()}<FormControlLabel className="sa-register-consent" control={<Checkbox checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} size="small" />} label={<Typography component="span">I agree to the <MuiLink href="https://www.ahibi.in/terms" target="_blank" rel="noopener noreferrer" underline="hover">Terms of Service</MuiLink> and <MuiLink href="https://www.ahibi.in/privacy" target="_blank" rel="noopener noreferrer" underline="hover">Privacy Policy</MuiLink></Typography>} /></>}
           {mode === 'register' && otpSent && <><Alert severity="info">Enter the six-digit OTP sent to your mobile. Your account remains inactive until verification succeeds.</Alert><TextField className="sa-login-field" label="6-digit mobile OTP" placeholder="Enter 6-digit OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required helperText={'\u00a0'} inputProps={{ inputMode: 'numeric', maxLength: 6 }} /><Button className="sa-auth-secondary-button" type="button" onClick={resendRegistration} disabled={loading}>Resend OTP</Button></>}
 
-          {mode === 'otp' && !otpSent && identifierField}
-          {mode === 'otp' && otpSent && <Box className="sa-login-identity-summary"><Box><Typography className="sa-login-identity-label">OTP sent for</Typography><Typography className="sa-login-identity-value">{identifier}</Typography></Box><Button type="button" className="sa-login-change-identity" onClick={() => { setOtpSent(false); setOtp(''); setError(''); setMessage(''); }}>Change</Button></Box>}
-          {mode === 'otp' && otpSent && <TextField className="sa-login-field" label="6-digit OTP" placeholder="Enter 6-digit OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required helperText={'\u00a0'} inputProps={{ inputMode: 'numeric', maxLength: 6 }} />}
+          {mode === 'otp' && !otpSent && !otpDispatching && identifierField}
+          {mode === 'otp' && (otpSent || otpDispatching) && <Box className="sa-login-identity-summary"><Box><Typography className="sa-login-identity-label">{otpDispatching ? 'Sending OTP for' : 'OTP sent for'}</Typography><Typography className="sa-login-identity-value">{identifier}</Typography></Box><Button type="button" className="sa-login-change-identity" disabled={otpDispatching} onClick={() => { setOtpSent(false); setOtpDispatching(false); setOtp(''); setError(''); setMessage(''); }}>Change</Button></Box>}
+          {mode === 'otp' && (otpSent || otpDispatching) && <TextField className="sa-login-field" label="6-digit OTP" placeholder={otpDispatching ? "Waiting for OTP…" : "Enter 6-digit OTP"} value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required disabled={otpDispatching} helperText={'\u00a0'} inputProps={{ inputMode: 'numeric', maxLength: 6 }} />}
 
           {mode === 'two-factor' && <TextField className="sa-login-field" label="Authenticator or backup code" placeholder="Enter authenticator or backup code" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\s/g, '').slice(0, 16))} helperText={'\u00a0'} InputProps={{ startAdornment: <InputAdornment position="start"><SecurityRounded /></InputAdornment> }} required />}
           <Button
@@ -218,12 +231,12 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
             className="sa-submit-button"
             variant="contained"
             size="large"
-            disabled={loading || inviteLoading || Boolean(invitationToken && !tenantInvite) || (mode === 'register' && !otpSent && !acceptedTerms) || (mode === 'login' && loginStep === 'identifier' && !identifier.trim()) || (mode === 'otp' && !otpSent && !identifier.trim())}
+            disabled={loading || otpDispatching || inviteLoading || Boolean(invitationToken && !tenantInvite) || (mode === 'register' && !otpSent && !acceptedTerms) || (mode === 'login' && loginStep === 'identifier' && !identifier.trim()) || (mode === 'otp' && !otpSent && !identifier.trim())}
             disableElevation
           >
             <Box component="span" sx={{ opacity: loading ? 0 : 1, pointerEvents: 'none' }}>{actionLabel}</Box>{loading && <CircularProgress size={22} color="inherit" sx={{ position: 'absolute', left: '50%', top: '50%', ml: '-11px', mt: '-11px' }} />}
           </Button>
-          {mode === 'login' && loginStep === 'password' && content.allowOtpLogin !== false && <Button className="sa-auth-switch-method" type="button" onClick={switchToOtpLogin} disabled={loading}>Login with OTP instead</Button>}
+          {mode === 'login' && loginStep === 'password' && content.allowOtpLogin !== false && <Button className="sa-auth-switch-method" type="button" onClick={switchToOtpLogin} disabled={loading || otpDispatching}>Login with OTP instead</Button>}
           {mode === 'otp' && <Button className="sa-auth-switch-method" type="button" onClick={switchToPasswordLogin} disabled={loading}>Use password instead</Button>}
           {mode === 'two-factor' && <Button className="sa-auth-secondary-button" type="button" size="small" onClick={() => { setMode('login'); setOtp(''); setError(''); setLoginStep('password'); }}>Return to sign in</Button>}
           </Stack></Box>
