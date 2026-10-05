@@ -1,4 +1,6 @@
-import { Schema, model, models } from 'mongoose';
+import mongoose from 'mongoose';
+
+const { Schema, model, models } = mongoose;
 
 const SiteBrandAssetSchema = new Schema({
   slot: { type: String, enum: ['primary', 'light'], required: true, unique: true, index: true },
