@@ -25,7 +25,7 @@ export function resolveSiteLogoUrl(settings: Record<string, any> = {}, light = f
  * shell usable and prevents the browser's broken-image icon/alt text from ever
  * becoming the visible brand.
  */
-export function LogoMark({ light = false, compact = false }: { light?: boolean; compact?: boolean }) {
+export function LogoMark({ light = false, compact = false, fallbackIconOnly = false }: { light?: boolean; compact?: boolean; fallbackIconOnly?: boolean }) {
   const { data } = useSite();
   const settings = data.settings || {};
   const logoUrl = resolveSiteLogoUrl(settings, light);
@@ -97,7 +97,7 @@ export function LogoMark({ light = false, compact = false }: { light?: boolean; 
               }}
             />
           </Box>
-          {!compact && (
+          {!compact && !fallbackIconOnly && (
             <Typography
               component="span"
               sx={{
