@@ -61,9 +61,9 @@ export function LogoMark({ light = false, compact = false }: { light?: boolean; 
           onError={() => setFailedLogoUrl(logoUrl)}
           sx={{
             width: 'auto',
-            maxWidth: compact ? 96 : 230,
+            maxWidth: compact ? 72 : 230,
             height: 'auto',
-            maxHeight: compact ? 28 : 66,
+            maxHeight: compact ? 22 : 66,
             objectFit: 'contain',
             objectPosition: 'center',
             display: 'block',
@@ -97,20 +97,22 @@ export function LogoMark({ light = false, compact = false }: { light?: boolean; 
               }}
             />
           </Box>
-          <Typography
-            component="span"
-            sx={{
-              color: textColor,
-              fontWeight: 850,
-              fontSize: compact ? '.84rem' : '1.08rem',
-              lineHeight: 1,
-              letterSpacing: '-.035em',
-              whiteSpace: 'nowrap',
-              fontFamily: 'inherit',
-            }}
-          >
-            {String(name).replace(/SecureAsset/g, 'Secure Asset')}
-          </Typography>
+          {!compact && (
+            <Typography
+              component="span"
+              sx={{
+                color: textColor,
+                fontWeight: 850,
+                fontSize: '1.08rem',
+                lineHeight: 1,
+                letterSpacing: '-.035em',
+                whiteSpace: 'nowrap',
+                fontFamily: 'inherit',
+              }}
+            >
+              {String(name).replace(/SecureAsset/g, 'Secure Asset')}
+            </Typography>
+          )}
         </>
       )}
     </Box>
