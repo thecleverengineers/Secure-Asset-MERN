@@ -25,7 +25,7 @@ export function resolveSiteLogoUrl(settings: Record<string, any> = {}, light = f
  * shell usable and prevents the browser's broken-image icon/alt text from ever
  * becoming the visible brand.
  */
-export function LogoMark({ light = false }: { light?: boolean }) {
+export function LogoMark({ light = false, compact = false }: { light?: boolean; compact?: boolean }) {
   const { data } = useSite();
   const settings = data.settings || {};
   const logoUrl = resolveSiteLogoUrl(settings, light);
@@ -47,7 +47,7 @@ export function LogoMark({ light = false }: { light?: boolean }) {
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 1.15,
+        gap: compact ? .7 : 1.15,
         minWidth: 0,
         maxWidth: '100%',
       }}
@@ -61,9 +61,9 @@ export function LogoMark({ light = false }: { light?: boolean }) {
           onError={() => setFailedLogoUrl(logoUrl)}
           sx={{
             width: 'auto',
-            maxWidth: 230,
+            maxWidth: compact ? 96 : 230,
             height: 'auto',
-            maxHeight: 66,
+            maxHeight: compact ? 28 : 66,
             objectFit: 'contain',
             objectPosition: 'center',
             display: 'block',
@@ -74,9 +74,9 @@ export function LogoMark({ light = false }: { light?: boolean }) {
           <Box
             aria-hidden="true"
             sx={{
-              width: 34,
-              height: 34,
-              flex: '0 0 34px',
+              width: compact ? 24 : 34,
+              height: compact ? 24 : 34,
+              flex: compact ? '0 0 24px' : '0 0 34px',
               display: 'grid',
               placeItems: 'center',
               bgcolor: markBg,
@@ -89,8 +89,8 @@ export function LogoMark({ light = false }: { light?: boolean }) {
           >
             <Box
               sx={{
-                width: 14,
-                height: 14,
+                width: compact ? 10 : 14,
+                height: compact ? 10 : 14,
                 border: `2px solid ${markFg}`,
                 borderRadius: '4px 4px 6px 6px',
                 transform: 'rotate(45deg)',
@@ -102,7 +102,7 @@ export function LogoMark({ light = false }: { light?: boolean }) {
             sx={{
               color: textColor,
               fontWeight: 850,
-              fontSize: '1.08rem',
+              fontSize: compact ? '.84rem' : '1.08rem',
               lineHeight: 1,
               letterSpacing: '-.035em',
               whiteSpace: 'nowrap',
