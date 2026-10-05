@@ -85,18 +85,24 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
     setLoginStep('identifier');
   }, [invitationToken, modes, requestedAuthMode]);
 
+  function continueToPassword() {
+    if (mode !== 'login' || loginStep !== 'identifier') return;
+    const cleanIdentifier = identifier.trim();
+    if (!cleanIdentifier) {
+      setError('Enter your email address or mobile number to continue.');
+      return;
+    }
+    if (cleanIdentifier !== identifier) setIdentifier(cleanIdentifier);
+    setError('');
+    setMessage('');
+    setLoginStep('password');
+  }
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (loading) return;
     setError(''); setMessage('');
-    if (mode === 'login' && loginStep === 'identifier') {
-      if (!identifier.trim()) {
-        setError('Enter your email address or mobile number to continue.');
-        return;
-      }
-      setLoginStep('password');
-      return;
-    }
+    if (mode === 'login' && loginStep === 'identifier') return;
     setLoading(true);
     try {
       if (mode === 'two-factor') {
@@ -187,10 +193,16 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
           <Typography className="sa-login-title">{titles[mode]}</Typography><Typography className="sa-login-subtitle">{mode === 'login' && loginStep === 'password' ? 'Enter your password to securely access your account.' : mode === 'otp' && otpSent ? 'Enter the six-digit OTP sent to your registered mobile.' : subtitles[mode]}</Typography>
           <Box className="sa-auth-feedback-slot" aria-live="polite">{error && <Alert severity="error">{error}</Alert>}{message && <Alert severity="success">{message}</Alert>}</Box>
           <Box component="form" className="sa-login-form" noValidate onSubmit={submit}><Stack spacing={1.7}>
-          {mode === 'login' && loginStep === 'identifier' && identifierField}
-          {mode === 'login' && loginStep === 'password' && <Box className="sa-login-identity-summary"><Box><Typography className="sa-login-identity-label">Signing in as</Typography><Typography className="sa-login-identity-value">{identifier}</Typography></Box><Button type="button" className="sa-login-change-identity" onClick={() => { setLoginStep('identifier'); setPassword(''); setError(''); setMessage(''); }}>Change</Button></Box>}
-          {mode === 'login' && loginStep === 'password' && passwordField()}
-          {mode === 'login' && loginStep === 'password' && <Stack direction="row" justifyContent="flex-end" sx={{ mt: -.65 }}><MuiLink component={RouterLink} className="sa-login-forgot" data-secureasset-forgot-password-link="dedicated-reset-v160" to="/auth/forgot-password" underline="none">Forgot password?</MuiLink></Stack>}
+          {mode === 'login' && <>
+            <Box className="sa-login-step-panel" hidden={loginStep !== 'identifier'} aria-hidden={loginStep !== 'identifier'}>
+              {identifierField}
+            </Box>
+            <Box className="sa-login-step-panel" hidden={loginStep !== 'password'} aria-hidden={loginStep !== 'password'}>
+              <Box className="sa-login-identity-summary"><Box><Typography className="sa-login-identity-label">Signing in as</Typography><Typography className="sa-login-identity-value">{identifier}</Typography></Box><Button type="button" className="sa-login-change-identity" onClick={() => { setLoginStep('identifier'); setPassword(''); setError(''); setMessage(''); }}>Change</Button></Box>
+              {passwordField()}
+              <Stack direction="row" justifyContent="flex-end" sx={{ mt: -.65 }}><MuiLink component={RouterLink} className="sa-login-forgot" data-secureasset-forgot-password-link="dedicated-reset-v160" to="/auth/forgot-password" underline="none">Forgot password?</MuiLink></Stack>
+            </Box>
+          </>}
 
           {mode === 'register' && !otpSent && <><TextField className="sa-login-field" label="Full name" placeholder="Enter your full name" value={name} onChange={(event) => setName(event.target.value)} required helperText={'\u00a0'} InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><PersonRounded fontSize="small" /></InputAdornment> }} /><TextField className="sa-login-field" label="Email address" placeholder="Enter your email address" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required helperText={'\u00a0'} InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><EmailRounded fontSize="small" /></InputAdornment> }} /><TextField className="sa-login-field" label="Mobile number" placeholder="Enter your registered mobile number" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, '').slice(0, 12))} required helperText="Indian mobile number used for OTP verification." InputProps={{ readOnly: Boolean(invitationToken), startAdornment: <InputAdornment position="start"><PhoneAndroidRounded fontSize="small" /></InputAdornment> }} />{passwordField()}<FormControlLabel className="sa-register-consent" control={<Checkbox checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} size="small" />} label={<Typography component="span">I agree to the <MuiLink href="https://www.ahibi.in/terms" target="_blank" rel="noopener noreferrer" underline="hover">Terms of Service</MuiLink> and <MuiLink href="https://www.ahibi.in/privacy" target="_blank" rel="noopener noreferrer" underline="hover">Privacy Policy</MuiLink></Typography>} /></>}
           {mode === 'register' && otpSent && <><Alert severity="info">Enter the six-digit OTP sent to your mobile. Your account remains inactive until verification succeeds.</Alert><TextField className="sa-login-field" label="6-digit mobile OTP" placeholder="Enter 6-digit OTP" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required helperText={'\u00a0'} inputProps={{ inputMode: 'numeric', maxLength: 6 }} /><Button className="sa-auth-secondary-button" type="button" onClick={resendRegistration} disabled={loading}>Resend OTP</Button></>}
@@ -201,7 +213,8 @@ export default function LoginPage({ pageMode = 'login' }: { pageMode?: PublicMod
 
           {mode === 'two-factor' && <TextField className="sa-login-field" label="Authenticator or backup code" placeholder="Enter authenticator or backup code" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\s/g, '').slice(0, 16))} helperText={'\u00a0'} InputProps={{ startAdornment: <InputAdornment position="start"><SecurityRounded /></InputAdornment> }} required />}
           <Button
-            type="submit"
+            type={mode === 'login' && loginStep === 'identifier' ? 'button' : 'submit'}
+            onClick={mode === 'login' && loginStep === 'identifier' ? continueToPassword : undefined}
             className="sa-submit-button"
             variant="contained"
             size="large"
