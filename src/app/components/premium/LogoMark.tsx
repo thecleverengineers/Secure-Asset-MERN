@@ -25,7 +25,7 @@ export function resolveSiteLogoUrl(settings: Record<string, any> = {}, light = f
  * shell usable and prevents the browser's broken-image icon/alt text from ever
  * becoming the visible brand.
  */
-export function LogoMark({ light = false, compact = false, headerLarge = false, fallbackIconOnly = false }: { light?: boolean; compact?: boolean; headerLarge?: boolean; fallbackIconOnly?: boolean }) {
+export function LogoMark({ light = false, compact = false, headerLarge = false, fallbackIconOnly = false, forceFallback = false }: { light?: boolean; compact?: boolean; headerLarge?: boolean; fallbackIconOnly?: boolean; forceFallback?: boolean }) {
   const { data } = useSite();
   const settings = data.settings || {};
   const logoUrl = resolveSiteLogoUrl(settings, light);
@@ -34,7 +34,7 @@ export function LogoMark({ light = false, compact = false, headerLarge = false, 
   const textColor = light ? '#ffffff' : '#12382d';
   const markBg = light ? 'rgba(255,255,255,.14)' : '#12382d';
   const markFg = light ? '#ffffff' : '#ffffff';
-  const canRenderImage = Boolean(logoUrl) && failedLogoUrl !== logoUrl;
+  const canRenderImage = !forceFallback && Boolean(logoUrl) && failedLogoUrl !== logoUrl;
 
   useEffect(() => {
     if (!logoUrl) setFailedLogoUrl('');
