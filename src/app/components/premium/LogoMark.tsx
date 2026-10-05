@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import { useSite } from '../../context/SiteContext';
 
 const nonEmptyString = (value: unknown) => typeof value === 'string' ? value.trim() : '';
 
-/** Resolve the administrator's canonical logo across every application shell. */
+/** Resolve the administrator's uploaded canonical logo across every shell. */
 export function resolveSiteLogoUrl(settings: Record<string, any> = {}, light = false) {
   return [
     ...(light ? [settings.logoLightUrl, settings.design?.branding?.logoLightUrl, settings.brand?.logoLightUrl] : []),
@@ -27,43 +27,35 @@ type LogoMarkProps = {
 };
 
 /**
- * Brand-safe logo renderer.
+ * Uploaded-logo-only renderer.
  *
- * CMS logos are preferred. If a CMS logo disappears, the fallback remains
- * inside the same reserved footprint so app-shell branding never overlaps
- * navigation controls.
+ * There is deliberately no generated icon or text fallback. Brand logo uploads
+ * are persisted by Site Administration as data URLs so they survive Render
+ * deployments without depending on ephemeral /site-assets files.
  */
 export function LogoMark({
   light = false,
   compact = false,
   headerLarge = false,
   appShellLarge = false,
-  fallbackIconOnly = false,
-  forceFallback = false,
   appShellVariant,
 }: LogoMarkProps) {
   const { data } = useSite();
   const settings = data.settings || {};
   const logoUrl = resolveSiteLogoUrl(settings, light);
   const [failedLogoUrl, setFailedLogoUrl] = useState('');
-  const name = settings.shortTitle || settings.siteTitle || 'SecureAsset';
-  const textColor = light ? '#ffffff' : '#12382d';
-  const markBg = light ? 'rgba(255,255,255,.14)' : '#12382d';
-  const markFg = '#ffffff';
-  const canRenderImage = !forceFallback && Boolean(logoUrl) && failedLogoUrl !== logoUrl;
 
   const isMobileHeader = appShellVariant === 'mobileHeader';
   const isDesktopSidebar = appShellVariant === 'desktopSidebar';
   const imageMaxWidth = isMobileHeader ? 120 : isDesktopSidebar ? 160 : appShellLarge ? 210 : headerLarge ? 92 : compact ? 72 : 230;
   const imageMaxHeight = isMobileHeader ? 34 : isDesktopSidebar ? 42 : appShellLarge ? 230 : headerLarge ? 30 : compact ? 22 : 66;
-  const fallbackSize = isMobileHeader ? 28 : isDesktopSidebar ? 30 : appShellLarge ? 34 : headerLarge ? 30 : compact ? 24 : 34;
-  const fallbackGlyph = isMobileHeader ? 11 : isDesktopSidebar ? 12 : headerLarge ? 12 : compact ? 10 : 14;
-  const showFallbackText = !fallbackIconOnly && (!compact || isMobileHeader || isDesktopSidebar);
-  const fallbackFontSize = isMobileHeader ? '.84rem' : isDesktopSidebar ? '.94rem' : '1.08rem';
+  const canRenderImage = Boolean(logoUrl) && failedLogoUrl !== logoUrl;
 
   useEffect(() => {
-    if (!logoUrl) setFailedLogoUrl('');
-  }, [logoUrl]);
+    if (failedLogoUrl && failedLogoUrl !== logoUrl) setFailedLogoUrl('');
+  }, [logoUrl, failedLogoUrl]);
+
+  if (!canRenderImage) return null;
 
   return (
     <Box
@@ -72,74 +64,26 @@ export function LogoMark({
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'flex-start',
-        gap: isMobileHeader || isDesktopSidebar ? .8 : headerLarge ? .8 : compact ? .7 : 1.15,
         minWidth: 0,
         maxWidth: '100%',
       }}
     >
-      {canRenderImage ? (
-        <Box
-          component="img"
-          src={logoUrl}
-          alt=""
-          aria-label={`${name} logo`}
-          onError={() => setFailedLogoUrl(logoUrl)}
-          sx={{
-            width: 'auto',
-            maxWidth: imageMaxWidth,
-            height: 'auto',
-            maxHeight: imageMaxHeight,
-            objectFit: 'contain',
-            objectPosition: 'left center',
-            display: 'block',
-          }}
-        />
-      ) : (
-        <>
-          <Box
-            aria-hidden="true"
-            sx={{
-              width: fallbackSize,
-              height: fallbackSize,
-              flex: `0 0 ${fallbackSize}px`,
-              display: 'grid',
-              placeItems: 'center',
-              bgcolor: markBg,
-              border: light ? '1px solid rgba(255,255,255,.28)' : '1px solid rgba(18,56,45,.08)',
-              borderRadius: '9px',
-              boxShadow: light ? 'none' : '0 4px 12px rgba(18,56,45,.10)',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-          >
-            <Box
-              sx={{
-                width: fallbackGlyph,
-                height: fallbackGlyph,
-                border: `2px solid ${markFg}`,
-                borderRadius: '4px 4px 6px 6px',
-                transform: 'rotate(45deg)',
-              }}
-            />
-          </Box>
-          {showFallbackText && (
-            <Typography
-              component="span"
-              sx={{
-                color: textColor,
-                fontWeight: 850,
-                fontSize: fallbackFontSize,
-                lineHeight: 1,
-                letterSpacing: '-.03em',
-                whiteSpace: 'nowrap',
-                fontFamily: 'inherit',
-              }}
-            >
-              {String(name).replace(/SecureAsset/g, 'Secure Asset')}
-            </Typography>
-          )}
-        </>
-      )}
+      <Box
+        component="img"
+        src={logoUrl}
+        alt=""
+        aria-label="Secure Asset logo"
+        onError={() => setFailedLogoUrl(logoUrl)}
+        sx={{
+          width: 'auto',
+          maxWidth: imageMaxWidth,
+          height: 'auto',
+          maxHeight: imageMaxHeight,
+          objectFit: 'contain',
+          objectPosition: 'left center',
+          display: 'block',
+        }}
+      />
     </Box>
   );
 }
