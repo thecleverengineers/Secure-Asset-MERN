@@ -1119,6 +1119,11 @@ export async function uploadSiteAsset(file: File) {
   return request<ApiResponse<{ url: string; filename: string; mimeType: string; size: number }>>('/site/admin-assets', { method: 'POST', body: form });
 }
 
+export async function uploadBrandAsset(file: File, slot: 'primary' | 'light') {
+  const form = new FormData(); form.append('file', file);
+  return request<ApiResponse<{ slot: 'primary' | 'light'; url: string; mimeType: string; size: number }>>(`/site/admin-brand-assets/${slot}`, { method: 'POST', body: form });
+}
+
 type AppConfiguration = { modules: Record<string, any>[]; permissions?: Record<string, string[]>; resourcePermissions?: Record<string, string[]>; effectiveRole?: string; effectiveMode?: string; subscription?: Record<string, any>; role: string; mode: string };
 const appConfigurationRequests = new Map<string, Promise<ApiResponse<AppConfiguration>>>();
 
