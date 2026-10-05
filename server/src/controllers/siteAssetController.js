@@ -6,6 +6,7 @@ import { ApiError } from '../utils/apiError.js';
 import { AuditLog } from '../models/index.js';
 import { env } from '../config/env.js';
 import { SiteBrandAsset } from '../models/siteBrandAsset.js';
+import { SiteSetting } from '../models/propertyManagement.js';
 
 const allowed = new Map([
   ['image/jpeg', '.jpg'], ['image/png', '.png'], ['image/webp', '.webp'], ['image/gif', '.gif'],
@@ -95,9 +96,9 @@ export const uploadProfileAvatar = asyncHandler(async (req, res) => {
 export const getPersistentBrandAsset = asyncHandler(async (req, res) => {
   const slot = String(req.params.slot || '').trim().toLowerCase();
   if (!['primary', 'light'].includes(slot)) throw new ApiError(404, 'Brand asset not found');
-  const asset = await SiteBrandAsset.findOne({ slot }).lean();
+  const asset = await SiteBrandAsset.findOne({ slot });
   if (!asset?.data) throw new ApiError(404, 'Brand asset not found');
-  const bytes = Buffer.isBuffer(asset.data) ? asset.data : Buffer.from(asset.data.buffer || asset.data);
+  const bytes = Buffer.from(asset.data);
   res.set({
     'Content-Type': asset.mimeType,
     'Content-Length': String(bytes.length),
@@ -130,6 +131,14 @@ export const uploadPersistentBrandAsset = asyncHandler(async (req, res) => {
   );
 
   const url = `/api/v1/site/brand-assets/${slot}?v=${asset.updatedAt.getTime()}`;
+  const logoField = slot === 'primary' ? 'logoUrl' : 'logoLightUrl';
+  const designField = slot === 'primary' ? 'design.branding.logoUrl' : 'design.branding.logoLightUrl';
+  await SiteSetting.findOneAndUpdate(
+    { key: 'default' },
+    { $set: { [logoField]: url, [designField]: url } },
+    { upsert: true, new: true, setDefaultsOnInsert: true },
+  );
+
   await AuditLog.create({
     user: req.user._id,
     role: req.user.role,
