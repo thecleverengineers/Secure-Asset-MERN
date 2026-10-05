@@ -5,6 +5,7 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
 import { AuditLog } from '../models/index.js';
 import { env } from '../config/env.js';
+import { SiteBrandAsset } from '../models/siteBrandAsset.js';
 
 const allowed = new Map([
   ['image/jpeg', '.jpg'], ['image/png', '.png'], ['image/webp', '.webp'], ['image/gif', '.gif'],
@@ -88,4 +89,58 @@ export const uploadProfileAvatar = asyncHandler(async (req, res) => {
     ip: req.ip, device: req.get('user-agent'),
   });
   res.status(201).json({ success: true, data: uploaded, message: 'Profile photo updated' });
+});
+
+
+export const getPersistentBrandAsset = asyncHandler(async (req, res) => {
+  const slot = String(req.params.slot || '').trim().toLowerCase();
+  if (!['primary', 'light'].includes(slot)) throw new ApiError(404, 'Brand asset not found');
+  const asset = await SiteBrandAsset.findOne({ slot }).lean();
+  if (!asset?.data) throw new ApiError(404, 'Brand asset not found');
+  const bytes = Buffer.isBuffer(asset.data) ? asset.data : Buffer.from(asset.data.buffer || asset.data);
+  res.set({
+    'Content-Type': asset.mimeType,
+    'Content-Length': String(bytes.length),
+    'Cache-Control': req.query.v ? 'public, max-age=31536000, immutable' : 'public, max-age=300',
+    'X-Content-Type-Options': 'nosniff',
+  });
+  res.send(bytes);
+});
+
+export const uploadPersistentBrandAsset = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'admin') throw new ApiError(403, 'Administrator access required');
+  const slot = String(req.params.slot || '').trim().toLowerCase();
+  if (!['primary', 'light'].includes(slot)) throw new ApiError(400, 'Invalid brand asset slot');
+  if (!req.file) throw new ApiError(422, 'Choose an image to upload');
+  const ext = allowed.get(req.file.mimetype);
+  if (!ext || !validImage(req.file.buffer, req.file.mimetype)) throw new ApiError(422, 'Unsupported or invalid image');
+  if (req.file.size > 2 * 1024 * 1024) throw new ApiError(422, 'Logo must be 2 MB or smaller');
+
+  const asset = await SiteBrandAsset.findOneAndUpdate(
+    { slot },
+    {
+      $set: {
+        mimeType: req.file.mimetype,
+        data: req.file.buffer,
+        size: req.file.size,
+        updatedBy: req.user._id,
+      },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true },
+  );
+
+  const url = `/api/v1/site/brand-assets/${slot}?v=${asset.updatedAt.getTime()}`;
+  await AuditLog.create({
+    user: req.user._id,
+    role: req.user.role,
+    action: `brand-asset:${slot}-uploaded`,
+    module: 'site-assets',
+    updatedValue: { slot, url, mimeType: req.file.mimetype, size: req.file.size },
+    ip: req.ip,
+    device: req.get('user-agent'),
+  });
+  res.status(201).json({
+    success: true,
+    data: { slot, url, mimeType: req.file.mimetype, size: req.file.size },
+  });
 });
