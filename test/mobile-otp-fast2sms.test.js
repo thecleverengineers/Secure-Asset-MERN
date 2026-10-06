@@ -112,6 +112,12 @@ test('authentication routes expose registration verification and mobile OTP rese
   assert.match(controller, /registered mobile/);
 });
 
+test('password sign-in accepts legacy account passwords while password creation stays strict', () => {
+  const controller = fs.readFileSync(new URL('../server/src/controllers/authController.js', import.meta.url), 'utf8');
+  assert.match(controller, /const passwordRule = z\.string\(\)\.min\(8\)/);
+  assert.match(controller, /const credentialsSchema[\s\S]*password: z\.string\(\)\.min\(1\)\.max\(128\)/);
+});
+
 
 test('Fast2SMS OTP delivery authenticates through the supplied authorization query parameter', () => {
   const url = buildFast2SmsUrl(

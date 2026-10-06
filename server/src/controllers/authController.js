@@ -37,7 +37,10 @@ const credentialsSchema = z.object({
   identifier: z.string().min(3).max(160).optional(),
   email: z.string().max(160).optional(),
   phone: z.string().max(40).optional(),
-  password: z.string().min(8).max(128),
+  // Password complexity is required when a password is created or changed.
+  // Do not apply that newer policy at sign-in: existing accounts can have a
+  // valid legacy password shorter than eight characters.
+  password: z.string().min(1).max(128),
 }).refine((data) => Boolean(data.identifier || data.email || data.phone), { message: 'Email or mobile number is required' });
 const registerSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -268,7 +271,10 @@ export const resendRegistrationOtp = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   if (!(await authenticationPolicy()).allowPasswordLogin) throw new ApiError(403, 'Password login is currently disabled');
   const parsed = credentialsSchema.safeParse(req.body);
-  if (!parsed.success) throw new ApiError(422, 'Enter a valid email/mobile number and password');
+  if (!parsed.success) {
+    if (!String(req.body?.password || '')) throw new ApiError(422, 'Enter your password');
+    throw new ApiError(422, 'Enter a valid email/mobile number and password');
+  }
   const identifier = parsed.data.identifier || parsed.data.email || parsed.data.phone;
   const user = await findUserByIdentifier(identifier, '+password +refreshTokens +twoFactor.secretEncrypted +twoFactor.backupCodeHashes');
   if (!user || !(await user.comparePassword(parsed.data.password))) throw new ApiError(401, 'Invalid email/mobile number or password');
