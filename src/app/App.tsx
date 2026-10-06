@@ -11,7 +11,6 @@ import { queryClient } from './queryClient';
 import { normaliseDesignSystem, OPEN_SANS_FONT_FAMILY } from './designSystem';
 import ApplicationErrorBoundary from './components/shared/ApplicationErrorBoundary';
 import { WishlistProvider } from './context/WishlistContext';
-import { warmLazyModules } from './utils/lazyWithRetry';
 
 const SHADOWS = {
   none: 'none',
@@ -205,17 +204,5 @@ function ThemedApplication() {
 }
 
 export default function App() {
-  useEffect(() => {
-    // Warm route chunks only after the first screen is settled. Respect
-    // constrained connections so first-load bandwidth is never sacrificed
-    // just to accelerate later navigation.
-    const connection = (navigator as any).connection;
-    const effectiveType = String(connection?.effectiveType || '');
-    if (connection?.saveData || effectiveType.includes('2g')) return undefined;
-    const concurrency = effectiveType === '3g' ? 1 : 2;
-    const delay = effectiveType === '3g' ? 900 : 550;
-    const timer = window.setTimeout(() => { void warmLazyModules(concurrency); }, delay);
-    return () => window.clearTimeout(timer);
-  }, []);
   return <QueryClientProvider client={queryClient}><SiteProvider><ThemedApplication /></SiteProvider></QueryClientProvider>;
 }

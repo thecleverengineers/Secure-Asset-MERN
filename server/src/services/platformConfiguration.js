@@ -250,8 +250,8 @@ export async function ensurePlatformConfiguration() {
   return bootstrapPromise;
 }
 
-export async function getPublicNavigation() {
-  await ensurePlatformConfiguration();
+export async function getPublicNavigation({ ensureConfigured = true } = {}) {
+  if (ensureConfigured) await ensurePlatformConfiguration();
   return PlatformModule.find({ scope: 'public', enabled: true }).sort({ sectionOrder: 1, section: 1, sortOrder: 1, label: 1 }).lean();
 }
 
@@ -318,7 +318,7 @@ export async function getApplicationAccessSummary(user) {
   };
 }
 
-export async function getContentPage(path, authenticated = false) {
-  await ensurePlatformConfiguration();
+export async function getContentPage(path, authenticated = false, { ensureConfigured = true } = {}) {
+  if (ensureConfigured) await ensurePlatformConfiguration();
   return ContentPage.findOne({ path, active: true, ...(authenticated ? {} : { visibility: 'public' }) }).lean();
 }

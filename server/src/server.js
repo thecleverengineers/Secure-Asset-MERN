@@ -9,6 +9,8 @@ import { ensureStorageDirectories } from './services/storage.js';
 import { ensureBackupDirectories } from './services/backupRecovery.js';
 import { ensureServerSessionIndexes } from './services/serverSession.js';
 import { ensureBootstrapSuperAdmin } from './services/bootstrapSuperAdmin.js';
+import { ensurePlatformConfiguration } from './services/platformConfiguration.js';
+import { ensureLandlordPlans } from './services/landlordSubscription.js';
 
 let server;
 let stopSurveyorMaintenance = () => {};
@@ -21,6 +23,10 @@ async function start() {
   await connectDatabase();
   await ensureBootstrapSuperAdmin();
   await ensureServerSessionIndexes();
+  // Prepare catalogue and subscription defaults before the HTTP listener is
+  // marked ready. Public page requests must be reads, never a place where a
+  // visitor waits for first-boot migrations and seed writes to finish.
+  await Promise.all([ensurePlatformConfiguration(), ensureLandlordPlans()]);
 
   const app = createApp();
   server = http.createServer(app);

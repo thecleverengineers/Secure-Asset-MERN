@@ -5,6 +5,7 @@ import ApartmentRounded from '@mui/icons-material/ApartmentRounded';
 import DescriptionRounded from '@mui/icons-material/DescriptionRounded';
 import GroupsRounded from '@mui/icons-material/GroupsRounded';
 import LockRounded from '@mui/icons-material/LockRounded';
+import ShieldRounded from '@mui/icons-material/ShieldRounded';
 import VerifiedUserRounded from '@mui/icons-material/VerifiedUserRounded';
 import { Box, Divider, Stack, Typography } from '@mui/material';
 import { LogoMark } from '../premium/LogoMark';
@@ -123,14 +124,7 @@ export default function AuthExperience({ eyebrow, title, description, children }
           <Box className="sa-login-premium-card">
             {children}
             <Box className="sa-auth-protection-note sa-auth-security-note">
-              <Box
-                component="img"
-                className="sa-auth-security-icon"
-                src="https://img.icons8.com/external-nawicon-flat-nawicon/64/external-Shield-protection-and-security-nawicon-flat-nawicon.png"
-                alt="Security shield"
-                width={64}
-                height={64}
-              />
+              <ShieldRounded className="sa-auth-security-icon" aria-hidden="true" />
               <Typography className="sa-auth-security-copy">
                 {isRegisterRoute ? 'Your personal information is encrypted & protected' : 'Secure & encrypted sign-in'}
               </Typography>

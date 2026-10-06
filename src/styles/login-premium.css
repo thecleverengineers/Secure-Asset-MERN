@@ -2608,7 +2608,7 @@
   flex: 0 0 auto;
   width: 34px;
   height: 34px;
-  object-fit: contain;
+  color: #0b9064;
 }
 
 .sa-auth-security-copy.MuiTypography-root {

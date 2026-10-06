@@ -4,9 +4,8 @@ import {
 } from '../models/index.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/apiError.js';
-import { ensureLandlordPlans } from '../services/landlordSubscription.js';
 import { publicPropertySlug, serializePublicProperty, serializePublicRentalUnit, serializePublicSpace, serializePublicMedia } from '../services/publicPropertySerialization.js';
-import { ensurePlatformConfiguration, getApplicationAccessSummary, getContentPage, getPublicNavigation } from '../services/platformConfiguration.js';
+import { getApplicationAccessSummary, getContentPage, getPublicNavigation } from '../services/platformConfiguration.js';
 import { emitRealtime } from '../services/realtime.js';
 import { DEFAULT_DESIGN_SYSTEM, DEFAULT_SITE_FOOTER } from '../services/platformDefaults.js';
 import { getMapsConfiguration } from '../services/maps.js';
@@ -45,13 +44,13 @@ const withFooterDefaults = (footer = {}) => {
   };
 };
 
-const withDesignDefaults = (design = {}) => {
+const withDesignDefaults = (design = {}, { includeEditorState = false } = {}) => {
   const iconAssetMap = (value) => value && typeof value.toObject === 'function'
     ? value.toObject()
     : value instanceof Map
       ? Object.fromEntries(value.entries())
       : (value && typeof value === 'object' ? value : {});
-  const layers = Array.isArray(design?.canvas?.layers)
+  const layers = includeEditorState && Array.isArray(design?.canvas?.layers)
     ? design.canvas.layers.slice(0, 1600).map((layer) => ({ ...layer, style: { ...(layer?.style || {}), fontFamily: OPEN_SANS_FONT_NAME } }))
     : [];
   return {
@@ -70,7 +69,11 @@ const withDesignDefaults = (design = {}) => {
     iconLibrary: { ...DEFAULT_DESIGN_SYSTEM.iconLibrary, ...(design?.iconLibrary || {}) },
     iconAssets: { ...DEFAULT_DESIGN_SYSTEM.iconAssets, ...(design?.iconAssets || {}), bottomAppBar: { ...DEFAULT_DESIGN_SYSTEM.iconAssets.bottomAppBar, ...iconAssetMap(design?.iconAssets?.bottomAppBar) }, quickAccess: { ...DEFAULT_DESIGN_SYSTEM.iconAssets.quickAccess, ...iconAssetMap(design?.iconAssets?.quickAccess) } },
     navigation: Array.isArray(design?.navigation) ? design.navigation.slice(0, 120) : [],
-    pageDesigns: Array.isArray(design?.pageDesigns) ? design.pageDesigns.slice(0, 400) : [],
+    // The visual-editor canvas is administered through the protected Site
+    // Administration API. It is never needed to draw a normal visitor page,
+    // and returning it with every public request made the login payload much
+    // larger than the page itself.
+    pageDesigns: includeEditorState && Array.isArray(design?.pageDesigns) ? design.pageDesigns.slice(0, 400) : [],
     componentLibrary: { ...DEFAULT_DESIGN_SYSTEM.componentLibrary, ...(design?.componentLibrary || {}) },
     profiles: { ...DEFAULT_DESIGN_SYSTEM.profiles, ...(design?.profiles || {}) },
     motion: { ...DEFAULT_DESIGN_SYSTEM.motion, ...(design?.motion || {}) },
@@ -78,7 +81,7 @@ const withDesignDefaults = (design = {}) => {
   };
 };
 
-async function ensureSiteSetting() {
+async function ensureSiteSetting({ includeEditorState = false } = {}) {
   let setting = await SiteSetting.findOne({ key: 'default' }).lean();
   if (!setting) {
     setting = (await SiteSetting.create({
@@ -91,7 +94,7 @@ async function ensureSiteSetting() {
       design: DEFAULT_DESIGN_SYSTEM,
     })).toObject();
   }
-  return { ...setting, brand: { ...(setting.brand || {}), fontFamily: OPEN_SANS_FONT_NAME }, authentication: { ...AUTHENTICATION_DEFAULTS, ...(setting.authentication || {}) }, footer: withFooterDefaults(setting.footer), design: withDesignDefaults(setting.design) };
+  return { ...setting, brand: { ...(setting.brand || {}), fontFamily: OPEN_SANS_FONT_NAME }, authentication: { ...AUTHENTICATION_DEFAULTS, ...(setting.authentication || {}) }, footer: withFooterDefaults(setting.footer), design: withDesignDefaults(setting.design, { includeEditorState }) };
 }
 
 async function featuredMarketplaceData(sections) {
@@ -119,26 +122,33 @@ async function featuredMarketplaceData(sections) {
 }
 
 export const getPublicSite = asyncHandler(async (req, res) => {
-  await Promise.all([ensureLandlordPlans(), ensurePlatformConfiguration()]);
   const now = new Date();
   const path = String(req.query.path || '/').split('?')[0] || '/';
+  const isAuthRoute = path === '/login' || path === '/reset-password' || path.startsWith('/auth/');
+  const isHomeRoute = path === '/';
+  const isPricingRoute = path === '/pricing';
+  const isPublicShellRoute = !isAuthRoute && !path.startsWith('/app/');
+  const needsContentPage = isPublicShellRoute && !isHomeRoute && !path.startsWith('/marketplace') && !path.startsWith('/surveyors') && !path.startsWith('/room-') && !path.startsWith('/all_rooms');
   const [settings, maps, seo, carousel, sections, landlordPlans, propertyTypes, areaUnits, publicNavigation, page, footerPages] = await Promise.all([
     ensureSiteSetting(),
     getMapsConfiguration(),
-    SeoPage.findOne({ path, active: true }).lean(),
-    HomeCarousel.find({ active: true, $and: [{ $or: [{ startsAt: null }, { startsAt: { $lte: now } }, { startsAt: { $exists: false } }] }, { $or: [{ endsAt: null }, { endsAt: { $gt: now } }, { endsAt: { $exists: false } }] }] }).sort({ sortOrder: 1, createdAt: 1 }).lean(),
-    HomeSection.find({ active: true }).sort({ sortOrder: 1 }).lean(),
-    LandlordPlan.find({ active: true }).sort({ rank: 1 }).lean(),
+    isPublicShellRoute ? SeoPage.findOne({ path, active: true }).lean() : Promise.resolve(null),
+    isHomeRoute ? HomeCarousel.find({ active: true, $and: [{ $or: [{ startsAt: null }, { startsAt: { $lte: now } }, { startsAt: { $exists: false } }] }, { $or: [{ endsAt: null }, { endsAt: { $gt: now } }, { endsAt: { $exists: false } }] }] }).sort({ sortOrder: 1, createdAt: 1 }).lean() : Promise.resolve([]),
+    isHomeRoute ? HomeSection.find({ active: true }).sort({ sortOrder: 1 }).lean() : Promise.resolve([]),
+    isPricingRoute ? LandlordPlan.find({ active: true }).sort({ rank: 1 }).lean() : Promise.resolve([]),
     PropertyTypeConfig.find({ active: true }).sort({ sortOrder: 1, label: 1 }).lean(),
     AreaUnit.find({ active: true }).sort({ sortOrder: 1, label: 1 }).lean(),
-    getPublicNavigation(),
-    getContentPage(path, false),
-    ContentPage.find({ active: true, visibility: 'public', 'footer.enabled': true })
+    isPublicShellRoute ? getPublicNavigation({ ensureConfigured: false }) : Promise.resolve([]),
+    needsContentPage ? getContentPage(path, false, { ensureConfigured: false }) : Promise.resolve(null),
+    isPublicShellRoute ? ContentPage.find({ active: true, visibility: 'public', 'footer.enabled': true })
       .select('path title footer')
       .sort({ 'footer.sortOrder': 1, title: 1 })
-      .lean(),
+      .lean() : Promise.resolve([]),
   ]);
-  const featured = await featuredMarketplaceData(sections);
+  // Featured lists are only rendered on the homepage. Keeping the underlying
+  // property and subscription queries off login, marketplace and app routes
+  // removes the largest part of their initial configuration response.
+  const featured = isHomeRoute ? await featuredMarketplaceData(sections) : { featuredProperties: [], featuredSurveyors: [] };
   const publicMapKeys = [
     'provider', 'publicApiKey', 'enabled', 'navigationEnabled', 'locationPickerEnabled', 'reverseGeocodeEnabled', 'directionsEnabled',
     'serverRoutesEnabled', 'routesEnabled', 'placesEnabled', 'placesUiKitEnabled', 'addressValidationEnabled', 'elevationEnabled', 'roadsEnabled',
