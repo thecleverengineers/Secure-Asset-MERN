@@ -21,6 +21,11 @@ export default defineConfig({
   assetsInclude: ['**/*.svg', '**/*.csv'],
   build: {
     sourcemap: false,
+    // Load only the current route's critical modules first. The previously
+    // emitted 35+ eager modulepreload tags flooded mobile connections and
+    // could leave the React bootstrap unfinished before startup recovery.
+    // Native ESM still loads every required dependency automatically.
+    modulePreload: false,
     target: 'es2022',
     chunkSizeWarningLimit: 600,
     cssCodeSplit: true,
