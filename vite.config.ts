@@ -24,14 +24,8 @@ export default defineConfig({
     target: 'es2022',
     chunkSizeWarningLimit: 600,
     cssCodeSplit: true,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes('/node_modules/@tanstack/')) return 'query';
-          return undefined;
-        },
-      },
-    },
+    // Let Vite control dependency chunking. Forcing TanStack Query into a
+    // vendor chunk can create eager import cycles that prevent React boot.
   },
   server: {
     port: 5173,
