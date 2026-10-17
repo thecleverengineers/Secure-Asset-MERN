@@ -69,7 +69,21 @@ export function createApp() {
     },
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   }));
-  app.use(cors({ origin(origin, cb) { const allowed = env.CLIENT_ORIGINS; if (!origin || allowed.includes(origin)) cb(null, true); else cb(new Error('Origin not allowed')); }, credentials: true }));
+  // A browser sets the Origin header on same-origin module scripts, CSS and
+  // crossOrigin font preloads. Rejecting an unlisted Origin with an Express
+  // error turns those static files into JSON 500 responses and prevents the
+  // entire React application from booting. Only emit CORS permission for
+  // configured origins; do not turn ordinary requests into HTTP 500s.
+  const corsAllowedOrigins = new Set([...env.CLIENT_ORIGINS, env.PUBLIC_APP_URL]
+    .map((value) => String(value || '').trim().replace(/\\/$/, ''))
+    .filter(Boolean));
+  app.use(cors({
+    origin(origin, cb) {
+      if (!origin) return cb(null, true);
+      return cb(null, corsAllowedOrigins.has(origin.replace(/\\/$/, '')));
+    },
+    credentials: true,
+  }));
   app.use(compression());
   // Razorpay signs the exact raw request body. Mount this endpoint before the
   // JSON parser, authentication and CSRF middleware so signature verification
