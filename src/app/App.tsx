@@ -200,7 +200,7 @@ function ThemedApplication() {
     try { window.localStorage.setItem('sa_theme', next); } catch { /* preference storage is optional */ }
     return next;
   }) }), [mode]);
-  return <ColorModeContext.Provider value={colorMode}><ThemeProvider theme={theme}><CssBaseline /><AuthProvider><WishlistProvider><RealtimeProvider><Suspense fallback={null}><ApplicationErrorBoundary><RouterProvider router={router} /></ApplicationErrorBoundary></Suspense></RealtimeProvider></WishlistProvider></AuthProvider></ThemeProvider></ColorModeContext.Provider>;
+  return <ColorModeContext.Provider value={colorMode}><ThemeProvider theme={theme}><CssBaseline /><AuthProvider><WishlistProvider><RealtimeProvider><Suspense fallback={<div data-secureasset-loading="true" role="status" aria-live="polite" style={{ minHeight: '65vh', display: 'grid', placeItems: 'center', color: '#0B5270', fontFamily: 'Open Sans, sans-serif', fontSize: 15 }}>Loading Secure Asset…</div>}><ApplicationErrorBoundary><RouterProvider router={router} /></ApplicationErrorBoundary></Suspense></RealtimeProvider></WishlistProvider></AuthProvider></ThemeProvider></ColorModeContext.Provider>;
 }
 
 export default function App() {

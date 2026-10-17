@@ -69,12 +69,13 @@ export function lazyWithRetry<T extends ComponentType<any>>(
           // A new URL forces a current, non-cacheable document response while
           // preserving the route the user was already using.
           window.location.replace(url.toString());
-          return new Promise<{ default: T }>(() => {});
-        } catch { /* A normal reload remains the final recovery path. */ }
-        window.location.reload();
-        return new Promise<{ default: T }>((_resolve, reject) => {
-          window.setTimeout(() => reject(new Error('The latest application files could not be loaded. Reload the page again or return home.')), 8_000);
-        });
+        } catch {
+          // The browser may reject navigation (for example in embedded
+          // browsers). Surface the real import error instead of leaving
+          // Suspense permanently pending.
+          try { window.location.reload(); } catch { /* Error UI stays available. */ }
+        }
+        throw error;
       }
       throw error;
     }
