@@ -75,12 +75,12 @@ export function createApp() {
   // entire React application from booting. Only emit CORS permission for
   // configured origins; do not turn ordinary requests into HTTP 500s.
   const corsAllowedOrigins = new Set([...env.CLIENT_ORIGINS, env.PUBLIC_APP_URL]
-    .map((value) => String(value || '').trim().replace(/\\/$/, ''))
+    .map((value) => String(value || '').trim().replace(/[/]$/, ''))
     .filter(Boolean));
   app.use(cors({
     origin(origin, cb) {
       if (!origin) return cb(null, true);
-      return cb(null, corsAllowedOrigins.has(origin.replace(/\\/$/, '')));
+      return cb(null, corsAllowedOrigins.has(origin.replace(/[/]$/, '')));
     },
     credentials: true,
   }));
