@@ -1,0 +1,52 @@
+name: Secure Asset production browser smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/production-browser-smoke.yml'
+      - 'src/**'
+      - 'vite.config.ts'
+      - 'public/**'
+      - 'server/src/middleware/spa.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install browser driver
+        run: |
+          mkdir -p /tmp/secureasset-browser-smoke
+          cd /tmp/secureasset-browser-smoke
+          npm init -y >/dev/null
+          npm install --silent playwright-core
+      - name: Test production startup on Chrome
+        env:
+          NODE_PATH: /tmp/secureasset-browser-smoke/node_modules
+        run: |
+          node <<'NODE'
+          const { chromium } = require('playwright-core');
+          (async () => {
+            const browser = await chromium.launch({headless:true, executablePath:'/usr/bin/google-chrome', args:['--no-sandbox']});
+            try {
+              for (const device of [{name:'desktop', width:1365,height:768},{name:'mobile',width:390,height:844}]) {
+                const page = await browser.newPage({viewport: {width:device.width,height:device.height}, deviceScaleFactor:1});
+                const errors = [];
+                page.on('console', m => { if (m.type()==='error') errors.push('console: '+m.text()); });
+                page.on('pageerror', e => errors.push('pageerror: '+e.message+' '+(e.stack||'').slice(0,300)));
+                page.on('requestfailed', r => errors.push('requestfailed: '+r.url()+' '+r.failure()?.errorText));
+                page.on('response', r => {if(r.status()>=400 && /assets|api\/v1|startup-guard/.test(r.url())) errors.push('http '+r.status()+' '+r.url());});
+                await page.goto('https://secureasset.in/?sa_debug=1&smoke='+Date.now(),{waitUntil:'domcontentloaded',timeout:40000});
+                await page.waitForTimeout(20000);
+                const root = await page.locator('#root').innerText().catch(e=>'root missing '+e.message);
+                console.log(JSON.stringify({device:device.name,root:root.slice(0,4000),errors:errors.slice(0,70)}));
+                if (/Unable to finish loading|Loading Secure Asset/.test(root)) process.exitCode=1;
+                await page.close();
+              }
+            } finally { await browser.close(); }
+          })().catch(e => {console.error(e);process.exitCode=1;});
+          NODE
