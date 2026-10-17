@@ -42,6 +42,12 @@ jobs:
                 page.on('response', r => {if(r.status()>=400 && /assets|api\/v1|startup-guard/.test(r.url())) errors.push('http '+r.status()+' '+r.url());});
                 await page.goto('https://secureasset.in/?sa_debug=1&smoke='+Date.now(),{waitUntil:'domcontentloaded',timeout:40000});
                 await page.waitForTimeout(20000);
+                for (const path of ['/assets/index-hdBeHQ99.js','/assets/index-BEVuAzP7.css','/fonts/open-sans-latin-variable.woff2']) {
+                  try {
+                    const resp = await page.request.get('https://secureasset.in'+path,{timeout:10000});
+                    console.log('ASSET CHECK '+device.name+' '+path+' '+resp.status()+' '+JSON.stringify(resp.headers())+' '+(resp.status()>=400?(await resp.text()).slice(0,900):''));
+                  } catch(e) { console.log('ASSET CHECK ERROR '+device.name+' '+path+' '+e.message); }
+                }
                 const root = await page.locator('#root').innerText().catch(e=>'root missing '+e.message);
                 console.log(JSON.stringify({device:device.name,root:root.slice(0,4000),errors:errors.slice(0,70)}));
                 if (/Unable to finish loading|Loading Secure Asset/.test(root)) process.exitCode=1;
