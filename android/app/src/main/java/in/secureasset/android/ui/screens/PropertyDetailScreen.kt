@@ -1,4 +1,4 @@
-package in.secureasset.android.ui.screens
+package `in`.secureasset.android.ui.screens
 
 import android.content.Intent
 import android.net.Uri
@@ -69,18 +69,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import in.secureasset.android.model.PropertyListing
-import in.secureasset.android.model.RentalUnitOption
-import in.secureasset.android.model.UserProfile
-import in.secureasset.android.ui.components.EmptyState
-import in.secureasset.android.ui.components.MessageStrip
-import in.secureasset.android.ui.theme.Accent
-import in.secureasset.android.ui.theme.Border
-import in.secureasset.android.ui.theme.Ink
-import in.secureasset.android.ui.theme.Muted
-import in.secureasset.android.ui.theme.PaleBlue
-import in.secureasset.android.ui.theme.PaleGreen
-import in.secureasset.android.ui.theme.Surface
+import `in`.secureasset.android.model.PropertyListing
+import `in`.secureasset.android.model.RentalUnitOption
+import `in`.secureasset.android.model.UserProfile
+import `in`.secureasset.android.ui.components.EmptyState
+import `in`.secureasset.android.ui.components.MessageStrip
+import `in`.secureasset.android.ui.theme.Accent
+import `in`.secureasset.android.ui.theme.Border
+import `in`.secureasset.android.ui.theme.Ink
+import `in`.secureasset.android.ui.theme.Muted
+import `in`.secureasset.android.ui.theme.PaleBlue
+import `in`.secureasset.android.ui.theme.PaleGreen
+import `in`.secureasset.android.ui.theme.Surface
 import java.util.Calendar
 import java.text.SimpleDateFormat
 import java.util.Locale
