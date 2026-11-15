@@ -43,7 +43,13 @@ jobs:
           packages: ""
 
       - name: Install Android platform and build tools
-        run: sdkmanager --channel=3 "platforms;android-37" "build-tools;36.0.0"
+        run: |
+          set -euo pipefail
+          sdkmanager --channel=3 "platforms;android-37.0" "build-tools;36.0.0"
+          sdk_root="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$sdk_root"
+          test -d "$sdk_root/platforms/android-37.0"
+          ln -sfn android-37.0 "$sdk_root/platforms/android-37"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
