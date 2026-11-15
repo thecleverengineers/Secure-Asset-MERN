@@ -113,7 +113,7 @@ data class PropertyListing(
                 title = source.optString("title").ifBlank { source.optString("name", "Property") },
                 type = source.optString("type").ifBlank { source.optString("customType", "Home") },
                 listingType = source.optString("listingType").ifBlank { source.optString("purpose", "rent") },
-                price = price,
+                price = price ?: 0.0,
                 area = source.optDouble("area", source.optJSONObject("areas")?.optDouble("builtUpSqft", 0.0) ?: 0.0),
                 areaUnit = source.optString("areaUnit", "sqft").ifBlank { "sqft" },
                 bedrooms = source.optString("bedrooms").ifBlank { source.optJSONObject("roomCounts")?.optString("bedrooms").orEmpty() },
