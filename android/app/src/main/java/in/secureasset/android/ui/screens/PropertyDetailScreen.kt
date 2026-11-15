@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Bed
 import androidx.compose.material.icons.filled.Bathtub
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SquareFoot
@@ -40,6 +41,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -149,13 +151,13 @@ fun PropertyDetailScreen(
                     Row(Modifier.align(Alignment.TopStart).fillMaxWidth().padding(horizontal = 16.dp, vertical = 18.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                         CircleAction(Icons.Default.ArrowBack, "Back", onBack)
                         Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                            CircleAction(Icons.Default.Share, "Share property") {
+                            CircleAction(Icons.Default.Share, "Share property", onClick = {
                                 val share = Intent(Intent.ACTION_SEND).apply {
                                     type = "text/plain"
                                     putExtra(Intent.EXTRA_TEXT, "${listing.title} · ${listing.locationLabel}\nhttps://secureasset.in/property/${listing.slug.ifBlank { listing.id }}")
                                 }
                                 runCatching { context.startActivity(Intent.createChooser(share, "Share this home")) }
-                            }
+                            })
                             CircleAction(if (saved) Icons.Default.Favorite else Icons.Default.FavoriteBorder, if (saved) "Remove saved" else "Save property", onToggleSaved, tint = if (saved) Color(0xFFB85A53) else Ink)
                         }
                     }
@@ -315,6 +317,7 @@ private fun UnitCard(unit: RentalUnitOption, selected: Boolean, enabled: Boolean
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ApplicationSheet(
     listing: PropertyListing,
