@@ -55,7 +55,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import `in`.secureasset.android.model.UserProfile
