@@ -43,7 +43,7 @@ jobs:
           packages: ""
 
       - name: Install Android platform and build tools
-        run: sdkmanager "platforms;android-37" "build-tools;36.0.0"
+        run: sdkmanager --channel=1 "platforms;android-37" "build-tools;36.0.0"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
