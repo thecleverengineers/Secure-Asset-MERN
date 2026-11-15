@@ -1,4 +1,4 @@
-package in.secureasset.android.model
+package `in`.secureasset.android.model
 
 import org.json.JSONArray
 import org.json.JSONObject
