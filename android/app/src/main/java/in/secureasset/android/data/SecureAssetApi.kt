@@ -1,14 +1,14 @@
-package in.secureasset.android.data
+package `in`.secureasset.android.data
 
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
-import in.secureasset.android.BuildConfig
-import in.secureasset.android.model.ActivityRecord
-import in.secureasset.android.model.PropertyListing
-import in.secureasset.android.model.UserProfile
-import in.secureasset.android.model.objects
+import `in`.secureasset.android.BuildConfig
+import `in`.secureasset.android.model.ActivityRecord
+import `in`.secureasset.android.model.PropertyListing
+import `in`.secureasset.android.model.UserProfile
+import `in`.secureasset.android.model.objects
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
