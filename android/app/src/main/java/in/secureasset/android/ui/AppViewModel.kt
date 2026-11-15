@@ -1,14 +1,14 @@
-package in.secureasset.android.ui
+package `in`.secureasset.android.ui
 
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import in.secureasset.android.data.SecureAssetApi
-import in.secureasset.android.model.ActivityRecord
-import in.secureasset.android.model.PropertyListing
-import in.secureasset.android.model.TenantKycProfile
-import in.secureasset.android.model.UserProfile
+import `in`.secureasset.android.data.SecureAssetApi
+import `in`.secureasset.android.model.ActivityRecord
+import `in`.secureasset.android.model.PropertyListing
+import `in`.secureasset.android.model.TenantKycProfile
+import `in`.secureasset.android.model.UserProfile
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
