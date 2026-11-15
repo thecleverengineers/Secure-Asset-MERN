@@ -1,4 +1,4 @@
-package in.secureasset.android.ui.screens
+package `in`.secureasset.android.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -49,20 +49,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
-import in.secureasset.android.model.PropertyListing
-import in.secureasset.android.model.UserProfile
-import in.secureasset.android.ui.components.EmptyState
-import in.secureasset.android.ui.components.MessageStrip
-import in.secureasset.android.ui.components.PropertyCard
-import in.secureasset.android.ui.components.ScreenHeading
-import in.secureasset.android.ui.components.SecureAssetMark
-import in.secureasset.android.ui.components.SectionTitle
-import in.secureasset.android.ui.theme.Accent
-import in.secureasset.android.ui.theme.Border
-import in.secureasset.android.ui.theme.Ink
-import in.secureasset.android.ui.theme.Muted
-import in.secureasset.android.ui.theme.PaleBlue
-import in.secureasset.android.ui.theme.Surface
+import `in`.secureasset.android.model.PropertyListing
+import `in`.secureasset.android.model.UserProfile
+import `in`.secureasset.android.ui.components.EmptyState
+import `in`.secureasset.android.ui.components.MessageStrip
+import `in`.secureasset.android.ui.components.PropertyCard
+import `in`.secureasset.android.ui.components.ScreenHeading
+import `in`.secureasset.android.ui.components.SecureAssetMark
+import `in`.secureasset.android.ui.components.SectionTitle
+import `in`.secureasset.android.ui.theme.Accent
+import `in`.secureasset.android.ui.theme.Border
+import `in`.secureasset.android.ui.theme.Ink
+import `in`.secureasset.android.ui.theme.Muted
+import `in`.secureasset.android.ui.theme.PaleBlue
+import `in`.secureasset.android.ui.theme.Surface
 
 private const val FEATURED_HOME_PHOTO = "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=84"
 
