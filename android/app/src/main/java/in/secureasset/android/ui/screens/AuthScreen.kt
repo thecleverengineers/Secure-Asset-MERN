@@ -1,4 +1,4 @@
-package in.secureasset.android.ui.screens
+package `in`.secureasset.android.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -58,15 +58,15 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import in.secureasset.android.model.UserProfile
-import in.secureasset.android.ui.AuthStage
-import in.secureasset.android.ui.components.SecureAssetMark
-import in.secureasset.android.ui.theme.Accent
-import in.secureasset.android.ui.theme.Border
-import in.secureasset.android.ui.theme.Ink
-import in.secureasset.android.ui.theme.Muted
-import in.secureasset.android.ui.theme.PaleGreen
-import in.secureasset.android.ui.theme.Surface
+import `in`.secureasset.android.model.UserProfile
+import `in`.secureasset.android.ui.AuthStage
+import `in`.secureasset.android.ui.components.SecureAssetMark
+import `in`.secureasset.android.ui.theme.Accent
+import `in`.secureasset.android.ui.theme.Border
+import `in`.secureasset.android.ui.theme.Ink
+import `in`.secureasset.android.ui.theme.Muted
+import `in`.secureasset.android.ui.theme.PaleGreen
+import `in`.secureasset.android.ui.theme.Surface
 
 private const val SIGN_IN_PHOTO = "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1500&q=86"
 
