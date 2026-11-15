@@ -4,7 +4,7 @@ Native Android client for SecureAsset, built with Kotlin and Jetpack Compose. It
 
 ## Build
 
-Open this `android` directory in Android Studio with JDK 17 or newer and Android SDK Platform 36 installed, or run:
+Open this `android` directory in Android Studio with JDK 17 or newer and Android SDK Platform 37 installed, or run:
 
 ```bash
 gradle :app:assembleDebug
@@ -16,7 +16,9 @@ The default API is `https://secureasset.in/api/v1/`. For a staging environment, 
 gradle :app:assembleDebug -PsecureAssetApiBaseUrl=https://staging.example.com/api/v1/
 ```
 
-Only HTTPS is permitted. The app supports Android 7.0 (API 24) and newer, targets API 36, adapts navigation for phones and larger displays, and stores only the rotating session and CSRF cookies encrypted with an Android Keystore AES-GCM key.
+Only HTTPS is permitted. The app supports Android 7.0 (API 24) and newer, compiles against API 37, targets API 36, adapts navigation for phones and larger displays, and stores only the rotating session and CSRF cookies encrypted with an Android Keystore AES-GCM key.
+
+The GitHub Actions Android build assembles debug and release APKs on relevant pushes and pull requests. The release APK is unsigned until production signing credentials are configured.
 
 ## Included flows
 
