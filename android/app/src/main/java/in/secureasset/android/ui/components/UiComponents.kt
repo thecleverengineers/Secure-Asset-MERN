@@ -1,4 +1,4 @@
-package in.secureasset.android.ui.components
+package `in`.secureasset.android.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -44,14 +44,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import in.secureasset.android.model.PropertyListing
-import in.secureasset.android.ui.theme.Accent
-import in.secureasset.android.ui.theme.Border
-import in.secureasset.android.ui.theme.Blue
-import in.secureasset.android.ui.theme.Ink
-import in.secureasset.android.ui.theme.Muted
-import in.secureasset.android.ui.theme.PaleBlue
-import in.secureasset.android.ui.theme.PaleGreen
+import `in`.secureasset.android.model.PropertyListing
+import `in`.secureasset.android.ui.theme.Accent
+import `in`.secureasset.android.ui.theme.Border
+import `in`.secureasset.android.ui.theme.Blue
+import `in`.secureasset.android.ui.theme.Ink
+import `in`.secureasset.android.ui.theme.Muted
+import `in`.secureasset.android.ui.theme.PaleBlue
+import `in`.secureasset.android.ui.theme.PaleGreen
 
 private const val FALLBACK_HOME_PHOTO = "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1000&q=82"
 
