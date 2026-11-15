@@ -1,4 +1,4 @@
-package in.secureasset.android.ui.theme
+package `in`.secureasset.android.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
