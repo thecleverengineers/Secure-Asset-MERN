@@ -16,7 +16,9 @@ fs.rmSync(temporaryLink, { force: true });
 function run(command, args, extraEnv = {}) {
   const result = spawnSync(command, args, {
     cwd: appDir,
-    env: { ...process.env, ...extraEnv },
+    // Keep the service runtime heap override out of build tools; use the build
+    // environment's own Node memory sizing for TypeScript and Vite.
+    env: { ...process.env, NODE_OPTIONS: '', ...extraEnv },
     stdio: 'inherit',
   });
   if (result.error) throw result.error;
