@@ -1,4 +1,4 @@
-package in.secureasset.android.data
+package `in`.secureasset.android.data
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
@@ -97,7 +97,7 @@ class SecureCookieJar(context: Context, private val apiHost: String) : CookieJar
     }
 
     companion object {
-        private const val KEY_ALIAS = "in.secureasset.android.session-cookie.v1"
+        private const val KEY_ALIAS = "`in`.secureasset.android.session-cookie.v1"
         private const val GCM_IV_BYTES = 12
         private const val GCM_TAG_BITS = 128
         private val persistedNames = setOf("__Host-sa_session", "sa_csrf")
