@@ -1,4 +1,4 @@
-package in.secureasset.android.ui
+package `in`.secureasset.android.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -36,17 +36,17 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import in.secureasset.android.ui.screens.ActivityScreen
-import in.secureasset.android.ui.screens.AuthScreen
-import in.secureasset.android.ui.screens.ExploreScreen
-import in.secureasset.android.ui.screens.HomeScreen
-import in.secureasset.android.ui.screens.ProfileScreen
-import in.secureasset.android.ui.screens.PropertyDetailScreen
-import in.secureasset.android.ui.screens.SavedScreen
-import in.secureasset.android.ui.screens.TenantKycScreen
-import in.secureasset.android.ui.screens.GuestProfileScreen
-import in.secureasset.android.ui.theme.Ink
-import in.secureasset.android.ui.theme.Surface as AppSurface
+import `in`.secureasset.android.ui.screens.ActivityScreen
+import `in`.secureasset.android.ui.screens.AuthScreen
+import `in`.secureasset.android.ui.screens.ExploreScreen
+import `in`.secureasset.android.ui.screens.HomeScreen
+import `in`.secureasset.android.ui.screens.ProfileScreen
+import `in`.secureasset.android.ui.screens.PropertyDetailScreen
+import `in`.secureasset.android.ui.screens.SavedScreen
+import `in`.secureasset.android.ui.screens.TenantKycScreen
+import `in`.secureasset.android.ui.screens.GuestProfileScreen
+import `in`.secureasset.android.ui.theme.Ink
+import `in`.secureasset.android.ui.theme.Surface as AppSurface
 
 @Composable
 fun SecureAssetApp(viewModel: AppViewModel) {
@@ -173,7 +173,7 @@ private val navItems = listOf(
 )
 
 @Composable
-private fun MainContent(viewModel: AppViewModel, state: AppState, user: in.secureasset.android.model.UserProfile?, modifier: Modifier = Modifier) {
+private fun MainContent(viewModel: AppViewModel, state: AppState, user: `in`.secureasset.android.model.UserProfile?, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize()) {
         when (state.tab) {
             MainTab.HOME -> HomeScreen(
