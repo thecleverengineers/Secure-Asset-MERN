@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - codex/native-secureasset-android
     paths:
       - "android/**"
       - ".github/workflows/android-build.yml"
@@ -18,10 +17,6 @@ on:
 
 permissions:
   contents: read
-
-concurrency:
-  group: android-build-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   build:
